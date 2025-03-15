@@ -1,11 +1,12 @@
 use crate::download_progress::DownloadProgress;
+use color_eyre::eyre::Result;
 use memmap2::MmapOptions;
 use rayon::prelude::*;
-use std::{fs::File, io::Error};
+use std::fs::File;
 
 const CHUNK_SIZE: usize = 1024 * 4; // 4K 对齐会更快
 
-pub fn scan_file(file: &File) -> Result<Vec<DownloadProgress>, Error> {
+pub fn scan_file(file: &File) -> Result<Vec<DownloadProgress>> {
     // 使用内存映射打开文件
     let mmap = unsafe { MmapOptions::new().map(file)? };
     // 并行处理每个块

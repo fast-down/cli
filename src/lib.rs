@@ -1,6 +1,8 @@
 mod display_progress;
 pub mod download;
+mod download_multi_threads;
 pub mod download_progress;
+mod download_single_thread;
 pub mod format_file_size;
 mod get_chunks;
 mod get_url_info;

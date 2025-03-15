@@ -1,1 +1,1 @@
-https://mirrors.tuna.tsinghua.edu.cn/debian-cd/12.9.0-live/amd64/iso-hybrid/debian-live-12.9.0-amd64-kde.iso
+http://127.0.0.1:3000/Win11_24H2_Pro_Chinese_Simplified_x64.iso

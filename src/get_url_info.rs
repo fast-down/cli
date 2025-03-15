@@ -1,3 +1,4 @@
+use color_eyre::eyre::{self, Result};
 use content_disposition;
 use reqwest::{
     blocking::Client,
@@ -5,8 +6,8 @@ use reqwest::{
     StatusCode, Url,
 };
 use sanitize_filename;
-use std::error::Error;
 
+#[derive(Clone)]
 #[allow(dead_code)]
 pub struct UrlInfo {
     pub file_size: usize,
@@ -69,17 +70,17 @@ fn get_filename(headers: &HeaderMap, final_url: &Url) -> String {
     )
 }
 
-pub fn get_url_info(client: &Client, url: &str) -> Result<UrlInfo, Box<dyn Error>> {
+pub fn get_url_info(client: &Client, url: &str) -> Result<UrlInfo> {
     let resp = client.get(url).header(header::RANGE, "bytes=0-").send()?;
     let status = resp.status();
     let final_url = resp.url();
     let final_url_str = final_url.to_string();
     if !status.is_success() {
-        return Err(format!(
+        return Err(eyre::eyre!(
             "Request failed with status {} for URL: {}",
-            status, final_url_str
-        )
-        .into());
+            status,
+            final_url_str
+        ));
     }
 
     let resp_headers = resp.headers();

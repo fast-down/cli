@@ -14,7 +14,7 @@ pub struct DownloadInfo {
     pub file_name: String,
     pub file_path: PathBuf,
     pub threads: usize,
-    pub rx: flume::Receiver<DownloadProgress>,
+    pub rx: crossbeam_channel::Receiver<DownloadProgress>,
 }
 
 pub struct DownloadOptions<'a> {

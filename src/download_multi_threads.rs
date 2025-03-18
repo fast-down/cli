@@ -12,8 +12,8 @@ pub fn download_multi_threads(
     client: Client,
     info: UrlInfo,
     threads: usize,
-) -> Result<flume::Receiver<DownloadProgress>> {
-    let (tx, rx) = flume::unbounded();
+) -> Result<crossbeam_channel::Receiver<DownloadProgress>> {
+    let (tx, rx) = crossbeam_channel::unbounded();
     // let download_chunk = scan_file::scan_file(&file)?;
     let download_chunk = vec![DownloadProgress::new(0, info.file_size - 1)];
     if download_chunk.is_empty() {

@@ -9,7 +9,7 @@ description = "超级快的下载器"
 [dependencies]
 color-eyre = "0.6.3"
 content_disposition = "0.4.0"
-flume = "0.11.1"
+crossbeam-channel = "0.5.14"
 memmap2 = "0.9.5"
 mockito = "1.6.1"
 rayon = "1.10.0"

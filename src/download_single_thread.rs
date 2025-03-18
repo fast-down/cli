@@ -8,9 +8,9 @@ pub fn download_single_thread(
     file: File,
     client: Client,
     info: UrlInfo,
-) -> Result<flume::Receiver<DownloadProgress>> {
+) -> Result<crossbeam_channel::Receiver<DownloadProgress>> {
     let mut mmap = unsafe { MmapOptions::new().map_mut(&file)? };
-    let (tx, rx) = flume::unbounded();
+    let (tx, rx) = crossbeam_channel::unbounded();
     thread::spawn(move || {
         let mut response = client.get(info.final_url).send().unwrap();
         let mut downloaded = 0;

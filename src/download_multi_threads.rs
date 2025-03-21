@@ -26,9 +26,17 @@ pub fn download_multi_threads(
         return download_single_thread::download_single_thread(file, client, info);
     }
     let chunks = get_chunks::get_chunks(&download_chunk, threads);
+    let mut remian: Vec<usize> = Vec::with_capacity(chunks.len());
+    for chunk_group in &chunks {
+        remian.push(chunk_group.iter().map(|c| c.size()).sum());
+    }
+    let mut end_points = Vec::with_capacity(chunks.len());
+    for chunk_group in &chunks {
+        end_points.push(chunk_group.last().unwrap().end + 1);
+    }
     let final_url = Arc::new(info.final_url);
     let client = Arc::new(client);
-    for chunk_group in chunks {
+    for chunk_group in chunks.clone() {
         let client = client.clone();
         let final_url = final_url.clone();
         let tx = tx.clone();
@@ -96,5 +104,12 @@ pub fn download_multi_threads(
             mmap.flush().unwrap();
         });
     }
+    let rx_scheduel = rx.clone();
+    thread::spawn(move || {
+        while let Ok(chunk) = rx_scheduel.recv() {
+            let pos = end_points.partition_point(|end| *end <= chunk.end) - 1;
+            chunks[pos];
+        }
+    });
     Ok(rx)
 }

@@ -31,9 +31,9 @@ fn main() -> Result<()> {
     let mut progress: Vec<DownloadProgress> = Vec::new();
     let r = download::download(DownloadOptions {
         url: include_str!("../url.txt"),
-        threads: 1,
-        save_folder: r"C:\Users\Administrator\Desktop\新建文件夹 (3)",
-        // save_folder: r".\downloads",
+        threads: 32,
+        // save_folder: r"C:\Users\Administrator\Desktop\新建文件夹 (3)",
+        save_folder: r".\downloads",
         file_name: None,
         headers: Some(headers),
         proxy: None,

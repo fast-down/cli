@@ -51,7 +51,9 @@ pub fn get_chunks(
                 break;
             }
         }
-        chunks.push(inner_chunks);
+        if inner_chunks.len() > 0 {
+            chunks.push(inner_chunks);
+        }
     }
     chunks
 }
@@ -181,7 +183,7 @@ mod tests {
     fn test_zero_size_chunks() {
         let chunks = vec![];
         let result = get_chunks(&chunks, 2);
-        assert_eq!(result, vec![vec![], vec![]]);
+        assert_eq!(result, Vec::<Vec<DownloadProgress>>::new());
     }
 
     #[test]
@@ -194,8 +196,6 @@ mod tests {
                 vec![DownloadProgress::new(1, 1)], // 1 byte
                 vec![DownloadProgress::new(2, 2)], // 1 byte
                 vec![DownloadProgress::new(3, 3)], // 1 byte
-                vec![],                            // 0 bytes
-                vec![],                            // 0 bytes
             ]
         );
     }
@@ -233,7 +233,7 @@ mod tests {
     fn test_get_chunks_with_zero_chunks() {
         let chunks = vec![];
         let result = get_chunks(&chunks, 4);
-        assert_eq!(result, vec![vec![], vec![], vec![], vec![]]);
+        assert_eq!(result, Vec::<Vec<DownloadProgress>>::new());
     }
 
     #[test]
@@ -241,6 +241,6 @@ mod tests {
     fn test_get_chunks_with_zero_thread() {
         let chunks = vec![];
         let result = get_chunks(&chunks, 0);
-        assert_eq!(result, vec![vec![], vec![], vec![], vec![]]);
+        assert_eq!(result, Vec::<Vec<DownloadProgress>>::new());
     }
 }

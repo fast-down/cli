@@ -1,4 +1,4 @@
-use crate::download_progress::DownloadProgress;
+use crate::{download_progress::DownloadProgress, progresses_size::ProgressesSize};
 
 pub fn get_chunks(
     download_chunk: &Vec<DownloadProgress>,
@@ -7,7 +7,7 @@ pub fn get_chunks(
     if threads == 0 {
         panic!("threads must be greater than 0");
     }
-    let total_size: usize = download_chunk.iter().map(|c| c.size()).sum();
+    let total_size: usize = download_chunk.size();
     let chunk_size = total_size / threads;
     let mut remaining_size = total_size % threads;
     let mut chunks = Vec::with_capacity(threads);
@@ -147,17 +147,11 @@ mod tests {
         let result = get_chunks(&chunks, 32);
         println!("{:#?}", result);
         assert_eq!(result.len(), 32);
-        let chunk_size: usize = result[0].iter().map(|c| c.size()).sum();
+        let chunk_size: usize = result[0].size();
         for chunk_group in result.iter().skip(1) {
-            assert_eq!(
-                chunk_size,
-                chunk_group.iter().map(|c| c.size()).sum::<usize>()
-            );
+            assert_eq!(chunk_size, chunk_group.size());
         }
-        let total_size: usize = result
-            .iter()
-            .map(|c| c.iter().map(|c| c.size()).sum::<usize>())
-            .sum();
+        let total_size: usize = result.iter().map(|c| c.size()).sum();
         assert_eq!(total_size, 3512893440);
         assert_eq!(
             result[result.len() - 1][result[result.len() - 1].len() - 1].end,

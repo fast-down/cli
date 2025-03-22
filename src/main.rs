@@ -4,6 +4,7 @@ use fast_down::{
     download_progress::DownloadProgress,
     format_file_size,
     merge_progress::MergeProgress,
+    progresses_size::ProgressesSize,
 };
 use reqwest::header::{HeaderMap, HeaderValue};
 
@@ -32,8 +33,8 @@ fn main() -> Result<()> {
     let r = download::download(DownloadOptions {
         url: include_str!("../url.txt"),
         threads: 32,
-        // save_folder: r"C:\Users\Administrator\Desktop\新建文件夹 (3)",
-        save_folder: r".\downloads",
+        save_folder: r"C:\Users\Administrator\Desktop\新建文件夹 (3)",
+        // save_folder: r".\downloads",
         file_name: None,
         headers: Some(headers),
         proxy: None,
@@ -56,6 +57,6 @@ fn main() -> Result<()> {
 }
 
 fn draw_progress(total: usize, progress: &[DownloadProgress]) {
-    let downloaded: usize = progress.iter().map(|x| x.size()).sum();
+    let downloaded: usize = progress.size();
     print!("\r{:.2}%", downloaded as f64 / total as f64 * 100.0);
 }

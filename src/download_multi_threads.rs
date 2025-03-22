@@ -1,6 +1,6 @@
 use crate::{
     display_progress, download_progress::DownloadProgress, download_single_thread, get_chunks,
-    get_url_info::UrlInfo,
+    get_url_info::UrlInfo, progresses_remain::ProgressesRemain, progresses_size::ProgressesSize,
 };
 use color_eyre::{eyre, Result};
 use memmap2::MmapOptions;
@@ -14,7 +14,6 @@ pub fn download_multi_threads(
     threads: usize,
 ) -> Result<crossbeam_channel::Receiver<DownloadProgress>> {
     let (tx, rx) = crossbeam_channel::unbounded();
-    // let download_chunk = scan_file::scan_file(&file)?;
     let download_chunk = vec![DownloadProgress::new(0, info.file_size - 1)];
     if download_chunk.is_empty() {
         return Err(eyre::eyre!("Download completed"));
@@ -28,7 +27,7 @@ pub fn download_multi_threads(
     let chunks = get_chunks::get_chunks(&download_chunk, threads);
     let mut remian: Vec<usize> = Vec::with_capacity(chunks.len());
     for chunk_group in &chunks {
-        remian.push(chunk_group.iter().map(|c| c.size()).sum());
+        remian.push(chunk_group.size());
     }
     let mut end_points = Vec::with_capacity(chunks.len());
     for chunk_group in &chunks {
@@ -36,79 +35,121 @@ pub fn download_multi_threads(
     }
     let final_url = Arc::new(info.final_url);
     let client = Arc::new(client);
-    for chunk_group in chunks.clone() {
+    let mut workers = Vec::with_capacity(chunks.len());
+    for (i, chunk_group) in chunks.iter().cloned().enumerate() {
         let client = client.clone();
         let final_url = final_url.clone();
         let tx = tx.clone();
         let mut mmap = unsafe { MmapOptions::new().map_mut(&file)? };
+        let (tx_task, rx_task) = crossbeam_channel::unbounded();
+        tx_task.send(chunk_group).unwrap();
+        workers.push(tx_task);
         thread::spawn(move || {
-            let range_str = display_progress::display_progress(&chunk_group);
-            let mut response = client
-                .get(&*final_url)
-                .header(header::RANGE, format!("bytes={}", range_str))
-                .send()
-                .unwrap();
-            if response.status() != StatusCode::PARTIAL_CONTENT {
-                panic!(
-                    "Error: response code is {}, not 206\n{}",
-                    response.status(),
-                    range_str
-                );
-            }
-            let mut remain: Option<Rc<RefCell<[u8]>>> = None;
-            let mut remain_start = 0;
-            'outer: for chunk in chunk_group {
-                let mut downloaded = 0;
-                let size = chunk.size();
-                if let Some(remain_buffer) = remain {
-                    let len = remain_buffer.borrow().len() - remain_start;
-                    if len > size {
-                        tx.send(DownloadProgress::new(chunk.start, chunk.end))
-                            .unwrap();
-                        mmap[chunk.start..=chunk.end].copy_from_slice(
-                            &remain_buffer.borrow()[remain_start..remain_start + size],
-                        );
-                        remain = Some(remain_buffer);
-                        remain_start = remain_start + size;
-                        continue;
-                    } else {
-                        let end = chunk.start + len - 1;
-                        tx.send(DownloadProgress::new(chunk.start, end)).unwrap();
-                        mmap[chunk.start..=end].copy_from_slice(
-                            &remain_buffer.borrow()[remain_start..remain_start + len],
-                        );
-                    }
-                    downloaded += len;
+            'task: while let Ok(chunk_group) = rx_task.recv() {
+                let range_str = display_progress::display_progress(&chunk_group);
+                println!("线程 {}，开始下载 {}", i, range_str);
+                let mut response = client
+                    .get(&*final_url)
+                    .header(header::RANGE, format!("bytes={}", range_str))
+                    .send()
+                    .unwrap();
+                if response.status() != StatusCode::PARTIAL_CONTENT {
+                    panic!(
+                        "Error: response code is {}, not 206\n{}",
+                        response.status(),
+                        range_str
+                    );
                 }
-                let buffer = Rc::new(RefCell::new([0u8; 4096]));
-                loop {
-                    let len = response.read(&mut *buffer.borrow_mut()).unwrap();
-                    if len == 0 {
-                        break 'outer;
+                let mut remain: Option<Rc<RefCell<[u8]>>> = None;
+                let mut remain_start = 0;
+                'outer: for chunk in chunk_group {
+                    let mut downloaded = 0;
+                    let size = chunk.size();
+                    if let Some(remain_buffer) = remain {
+                        let len = remain_buffer.borrow().len() - remain_start;
+                        if len > size {
+                            mmap[chunk.start..=chunk.end].copy_from_slice(
+                                &remain_buffer.borrow()[remain_start..remain_start + size],
+                            );
+                            remain = Some(remain_buffer);
+                            remain_start = remain_start + size;
+                            tx.send(DownloadProgress::new(chunk.start, chunk.end))
+                                .unwrap();
+                            if rx_task.len() > 0 {
+                                continue 'task;
+                            }
+                            continue;
+                        } else {
+                            let end = chunk.start + len - 1;
+                            mmap[chunk.start..=end].copy_from_slice(
+                                &remain_buffer.borrow()[remain_start..remain_start + len],
+                            );
+                            tx.send(DownloadProgress::new(chunk.start, end)).unwrap();
+                            if rx_task.len() > 0 {
+                                continue 'task;
+                            }
+                        }
+                        downloaded += len;
                     }
-                    let start = chunk.start + downloaded;
-                    if downloaded + len > size {
-                        tx.send(DownloadProgress::new(start, chunk.end)).unwrap();
-                        mmap[start..=chunk.end].copy_from_slice(&buffer.borrow()[..size]);
-                        remain = Some(buffer);
-                        remain_start = size;
-                        continue 'outer;
-                    } else {
-                        let end = start + len - 1;
-                        tx.send(DownloadProgress::new(start, end)).unwrap();
-                        mmap[start..=end].copy_from_slice(&buffer.borrow()[..len]);
+                    let buffer = Rc::new(RefCell::new([0u8; 4096]));
+                    loop {
+                        let len = response.read(&mut *buffer.borrow_mut()).unwrap();
+                        if len == 0 {
+                            break 'outer;
+                        }
+                        let start = chunk.start + downloaded;
+                        if downloaded + len > size {
+                            mmap[start..=chunk.end].copy_from_slice(&buffer.borrow()[..size]);
+                            remain = Some(buffer);
+                            remain_start = size;
+                            tx.send(DownloadProgress::new(start, chunk.end)).unwrap();
+                            if rx_task.len() > 0 {
+                                continue 'task;
+                            }
+                            continue 'outer;
+                        } else {
+                            let end = start + len - 1;
+                            mmap[start..=end].copy_from_slice(&buffer.borrow()[..len]);
+                            tx.send(DownloadProgress::new(start, end)).unwrap();
+                            if rx_task.len() > 0 {
+                                continue 'task;
+                            }
+                        }
+                        downloaded += len;
                     }
-                    downloaded += len;
                 }
+                mmap.flush().unwrap();
             }
-            mmap.flush().unwrap();
         });
     }
     let rx_scheduel = rx.clone();
     thread::spawn(move || {
         while let Ok(chunk) = rx_scheduel.recv() {
-            let pos = end_points.partition_point(|end| *end <= chunk.end) - 1;
-            chunks[pos];
+            let pos = end_points.partition_point(|end| *end <= chunk.end);
+            if pos == 0 {
+                continue;
+            }
+            let pos = pos - 1;
+            remian[pos] -= chunk.size();
+            if remian[pos] == 0 {
+                // 开始任务窃取
+                // 找到 remain 最多的线程
+                let (max_pos, max_remain) = remian
+                    .iter()
+                    .enumerate()
+                    .max_by_key(|&(_, &remain)| remain)
+                    .unwrap_or((0, &0));
+                if *max_remain < 2 {
+                    continue;
+                }
+                // 从 max_pos 窃取一个任务
+                let splits =
+                    get_chunks::get_chunks(&chunks[max_pos].get_remain(remian[max_pos]), 2);
+                let size = splits[1].size();
+                remian[max_pos] -= size;
+                remian[pos] = size;
+                workers[pos].send(splits[1].clone()).unwrap();
+            }
         }
     });
     Ok(rx)

@@ -7,4 +7,5 @@ pub mod format_file_size;
 mod get_chunks;
 mod get_url_info;
 pub mod merge_progress;
-mod scan_file;
+mod progresses_remain;
+pub mod progresses_size;

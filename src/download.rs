@@ -7,6 +7,7 @@ use reqwest::{blocking::Client, header::HeaderMap, Proxy};
 use std::{
     fs::{self, OpenOptions},
     path::{Path, PathBuf},
+    thread::JoinHandle,
 };
 
 pub struct DownloadInfo {
@@ -15,6 +16,7 @@ pub struct DownloadInfo {
     pub file_path: PathBuf,
     pub threads: usize,
     pub rx: crossbeam_channel::Receiver<DownloadProgress>,
+    pub handle: JoinHandle<()>,
 }
 
 pub struct DownloadOptions<'a> {
@@ -57,7 +59,7 @@ pub fn download<'a>(options: DownloadOptions<'a>) -> Result<DownloadInfo> {
 
     let can_fast_download = info.file_size > 0 && info.supports_range;
 
-    let rx = if can_fast_download {
+    let (rx, handle) = if can_fast_download {
         download_multi_threads::download_multi_threads(file, client, info.clone(), options.threads)?
     } else {
         download_single_thread::download_single_thread(file, client, info.clone())?
@@ -73,5 +75,6 @@ pub fn download<'a>(options: DownloadOptions<'a>) -> Result<DownloadInfo> {
             1
         },
         rx,
+        handle,
     })
 }

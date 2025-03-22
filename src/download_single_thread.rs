@@ -4,20 +4,24 @@ use reqwest::blocking::Client;
 use std::{
     fs::File,
     io::{BufWriter, Read, Write},
-    thread,
+    thread::{self, JoinHandle},
 };
 
 pub fn download_single_thread(
     file: File,
     client: Client,
     info: UrlInfo,
-) -> Result<crossbeam_channel::Receiver<DownloadProgress>> {
-    let mut writer = BufWriter::with_capacity(4096, file);
+) -> Result<(
+    crossbeam_channel::Receiver<DownloadProgress>,
+    JoinHandle<()>,
+)> {
+    let mut writer = BufWriter::with_capacity(8 * 1024, file);
     let (tx, rx) = crossbeam_channel::unbounded();
+    let (tx_write, rx_write) = crossbeam_channel::unbounded();
     thread::spawn(move || {
         let mut downloaded = 0;
         let mut response = client.get(info.final_url).send().unwrap();
-        let mut buffer = [0u8; 4096];
+        let mut buffer = [0u8; 8 * 1024];
         loop {
             let len = response.read(&mut buffer).unwrap();
             if len == 0 {
@@ -26,11 +30,16 @@ pub fn download_single_thread(
             tx.send(DownloadProgress::new(downloaded, downloaded + len - 1))
                 .unwrap();
             downloaded += len;
-            writer.write_all(&buffer[..len]).unwrap();
+            tx_write.send(buffer[..len].to_vec()).unwrap();
+        }
+    });
+    let handle = thread::spawn(move || {
+        while let Ok(bytes) = rx_write.recv() {
+            writer.write_all(&bytes).unwrap();
         }
         writer.flush().unwrap();
     });
-    Ok(rx)
+    Ok((rx, handle))
 }
 
 #[cfg(test)]
@@ -66,9 +75,10 @@ mod tests {
         let file = temp_file.reopen().unwrap();
 
         let client = Client::new();
-        let rx = download_single_thread(file, client, url_info).unwrap();
+        let (rx, handle) = download_single_thread(file, client, url_info).unwrap();
 
         let progress_events: Vec<_> = rx.iter().collect();
+        handle.join().unwrap();
 
         let mut file_content = Vec::new();
         File::open(file_path)
@@ -108,9 +118,10 @@ mod tests {
         let file = temp_file.reopen().unwrap();
 
         let client = Client::new();
-        let rx = download_single_thread(file, client, url_info).unwrap();
+        let (rx, handle) = download_single_thread(file, client, url_info).unwrap();
 
         let progress_events: Vec<_> = rx.iter().collect();
+        handle.join().unwrap();
 
         // 验证空文件
         let mut file_content = Vec::new();
@@ -149,9 +160,10 @@ mod tests {
         let file = temp_file.reopen().unwrap();
 
         let client = Client::new();
-        let rx = download_single_thread(file, client, url_info).unwrap();
+        let (rx, handle) = download_single_thread(file, client, url_info).unwrap();
 
         let progress_events: Vec<_> = rx.iter().collect();
+        handle.join().unwrap();
 
         // 验证文件内容
         let mut file_content = Vec::new();
@@ -171,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_downloads_exact_buffer_size_file() {
-        let mock_body = vec![b'x'; 4096];
+        let mock_body = vec![b'x'; 8 * 1024];
         let mut server = mockito::Server::new();
         let mock = server
             .mock("GET", "/")
@@ -193,9 +205,10 @@ mod tests {
         let file = temp_file.reopen().unwrap();
 
         let client = Client::new();
-        let rx = download_single_thread(file, client, url_info).unwrap();
+        let (rx, handle) = download_single_thread(file, client, url_info).unwrap();
 
         let progress_events: Vec<_> = rx.iter().collect();
+        handle.join().unwrap();
 
         // 验证文件内容
         let mut file_content = Vec::new();

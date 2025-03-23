@@ -15,7 +15,6 @@ pub fn download_single_thread(
     crossbeam_channel::Receiver<DownloadProgress>,
     JoinHandle<()>,
 )> {
-    let mut writer = BufWriter::with_capacity(8 * 1024, file);
     let (tx, rx) = crossbeam_channel::unbounded();
     let (tx_write, rx_write) = crossbeam_channel::unbounded();
     thread::spawn(move || {
@@ -34,6 +33,7 @@ pub fn download_single_thread(
         }
     });
     let handle = thread::spawn(move || {
+        let mut writer = BufWriter::with_capacity(8 * 1024 * 1024, file);
         while let Ok(bytes) = rx_write.recv() {
             writer.write_all(&bytes).unwrap();
         }
@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_downloads_exact_buffer_size_file() {
-        let mock_body = vec![b'x'; 8 * 1024];
+        let mock_body = vec![b'x'; 4096];
         let mut server = mockito::Server::new();
         let mock = server
             .mock("GET", "/")

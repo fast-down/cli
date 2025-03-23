@@ -101,7 +101,7 @@ pub fn download_multi_threads(
                         }
                         downloaded += len;
                     }
-                    let buffer = Rc::new(RefCell::new([0u8; 8 * 1024]));
+                    let buffer = Rc::new(RefCell::new([0u8; 4096]));
                     loop {
                         let len = response.read(&mut *buffer.borrow_mut()).unwrap();
                         if len == 0 {

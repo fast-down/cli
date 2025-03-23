@@ -32,7 +32,7 @@ fn main() -> Result<()> {
     let mut progress: Vec<DownloadProgress> = Vec::new();
     let r = download::download(DownloadOptions {
         url: include_str!("../url.txt"),
-        threads: 1,
+        threads: 32,
         save_folder: r"C:\Users\Administrator\Desktop\下载测试",
         // save_folder: r".\downloads",
         file_name: None,
@@ -52,6 +52,7 @@ fn main() -> Result<()> {
         progress.merge_progress(e);
         draw_progress(r.file_size, &progress);
     }
+    r.handle.join().unwrap();
 
     Ok(())
 }

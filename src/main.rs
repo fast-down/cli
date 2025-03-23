@@ -48,7 +48,7 @@ fn main() -> Result<()> {
         r.threads
     );
 
-    while let Ok(e) = r.rx.recv() {
+    for e in r.rx {
         progress.merge_progress(e);
         draw_progress(r.file_size, &progress);
     }

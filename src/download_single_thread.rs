@@ -34,7 +34,7 @@ pub fn download_single_thread(
     });
     let handle = thread::spawn(move || {
         let mut writer = BufWriter::with_capacity(8 * 1024 * 1024, file);
-        while let Ok(bytes) = rx_write.recv() {
+        for bytes in rx_write {
             writer.write_all(&bytes).unwrap();
         }
         writer.flush().unwrap();

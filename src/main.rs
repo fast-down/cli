@@ -33,8 +33,8 @@ fn main() -> Result<()> {
     let r = download::download(DownloadOptions {
         url: include_str!("../url.txt"),
         threads: 32,
-        save_folder: r"C:\Users\Administrator\Desktop\下载测试",
-        // save_folder: r".\downloads",
+        // save_folder: r"C:\Users\Administrator\Desktop\下载测试",
+        save_folder: r".\downloads",
         file_name: None,
         headers: Some(headers),
         proxy: None,

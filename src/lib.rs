@@ -5,7 +5,7 @@ pub mod download_progress;
 mod download_single_thread;
 pub mod format_file_size;
 mod get_chunks;
-mod get_url_info;
+pub mod get_url_info;
 pub mod merge_progress;
 mod progresses_remain;
 pub mod progresses_size;

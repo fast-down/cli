@@ -1,9 +1,9 @@
-use crate::download_progress::DownloadProgress;
+use crate::progress::{ProgresTrait as _, Progress};
 
-pub fn display_progress(progress: &[DownloadProgress]) -> String {
+pub fn display_progress(progress: &[Progress]) -> String {
     progress
         .iter()
-        .map(|p| p.to_string())
+        .map(|p| p.fmt())
         .collect::<Vec<_>>()
         .join(",")
 }
@@ -14,19 +14,19 @@ mod tests {
 
     #[test]
     fn test_display_progress() {
-        let progress = vec![DownloadProgress::new(0, 10), DownloadProgress::new(20, 30)];
-        assert_eq!(display_progress(&progress), "0-10,20-30");
+        let progress = vec![Progress::new(0, 10), Progress::new(20, 30)];
+        assert_eq!(display_progress(&progress), "0-9,20-29");
     }
 
     #[test]
     fn test_display_progress_empty() {
-        let progress: Vec<DownloadProgress> = vec![];
+        let progress: Vec<Progress> = vec![];
         assert_eq!(display_progress(&progress), "");
     }
 
     #[test]
     fn test_display_progress_single() {
-        let progress = vec![DownloadProgress::new(5, 15)];
-        assert_eq!(display_progress(&progress), "5-15");
+        let progress = vec![Progress::new(5, 15)];
+        assert_eq!(display_progress(&progress), "5-14");
     }
 }

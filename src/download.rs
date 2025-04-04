@@ -1,7 +1,4 @@
-use crate::{
-    download_multi_threads, download_progress::DownloadProgress, download_single_thread,
-    get_url_info,
-};
+use crate::{download_multi_threads, download_single_thread, get_url_info, progress::Progress};
 use color_eyre::eyre::Result;
 use reqwest::{blocking::Client, header::HeaderMap, Proxy};
 use std::{
@@ -11,11 +8,11 @@ use std::{
 };
 
 pub struct DownloadInfo {
-    pub file_size: usize,
+    pub file_size: u64,
     pub file_name: String,
     pub file_path: PathBuf,
     pub threads: usize,
-    pub rx: crossbeam_channel::Receiver<DownloadProgress>,
+    pub rx: crossbeam_channel::Receiver<Progress>,
     pub handle: JoinHandle<()>,
 }
 
@@ -51,7 +48,6 @@ pub fn download<'a>(options: DownloadOptions<'a>) -> Result<DownloadInfo> {
     let file_path =
         Path::new(options.save_folder).join(options.file_name.unwrap_or(&info.file_name));
     let file = OpenOptions::new()
-        .read(true)
         .write(true)
         .create(true)
         .open(&file_path)?;

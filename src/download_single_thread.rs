@@ -1,4 +1,7 @@
-use crate::{download_progress::DownloadProgress, get_url_info::UrlInfo};
+use crate::{
+    get_url_info::UrlInfo,
+    progress::{ProgresTrait, Progress},
+};
 use color_eyre::eyre::Result;
 use reqwest::blocking::Client;
 use std::{
@@ -11,10 +14,7 @@ pub fn download_single_thread(
     file: File,
     client: Client,
     info: UrlInfo,
-) -> Result<(
-    crossbeam_channel::Receiver<DownloadProgress>,
-    JoinHandle<()>,
-)> {
+) -> Result<(crossbeam_channel::Receiver<Progress>, JoinHandle<()>)> {
     let (tx, rx) = crossbeam_channel::unbounded();
     let (tx_write, rx_write) = crossbeam_channel::unbounded();
     thread::spawn(move || {
@@ -26,9 +26,9 @@ pub fn download_single_thread(
             if len == 0 {
                 break;
             }
-            tx.send(DownloadProgress::new(downloaded, downloaded + len - 1))
+            tx.send(Progress::new(downloaded, downloaded + len as u64))
                 .unwrap();
-            downloaded += len;
+            downloaded += len as u64;
             tx_write.send(buffer[..len].to_vec()).unwrap();
         }
     });
@@ -44,9 +44,8 @@ pub fn download_single_thread(
 
 #[cfg(test)]
 mod tests {
-    use crate::progresses_size::ProgressesSize;
-
     use super::*;
+    use fast_steal::total::Total;
     use std::io::Read;
     use tempfile::NamedTempFile;
 
@@ -63,7 +62,7 @@ mod tests {
 
         let url_info = UrlInfo {
             final_url: server.url(),
-            file_size: mock_body.len(),
+            file_size: mock_body.len() as u64,
             file_name: "test_file.bin".to_string(),
             supports_range: false,
             etag: None,
@@ -89,7 +88,7 @@ mod tests {
 
         assert_eq!(progress_events.len(), 1);
         assert_eq!(progress_events[0].start, 0);
-        assert_eq!(progress_events[0].end, mock_body.len() - 1);
+        assert_eq!(progress_events[0].end, mock_body.len() as u64);
         mock.assert();
     }
 
@@ -106,7 +105,7 @@ mod tests {
 
         let url_info = UrlInfo {
             final_url: server.url(),
-            file_size: mock_body.len(),
+            file_size: mock_body.len() as u64,
             file_name: "empty.bin".to_string(),
             supports_range: false,
             etag: None,
@@ -148,7 +147,7 @@ mod tests {
 
         let url_info = UrlInfo {
             final_url: server.url(),
-            file_size: mock_body.len(),
+            file_size: mock_body.len() as u64,
             file_name: "large.bin".to_string(),
             supports_range: false,
             etag: None,
@@ -174,10 +173,10 @@ mod tests {
         assert_eq!(file_content, mock_body);
 
         // 验证进度事件总和
-        let total_downloaded = progress_events.size();
-        assert_eq!(total_downloaded, mock_body.len());
+        let total_downloaded = progress_events.total();
+        assert_eq!(total_downloaded, mock_body.len() as u64);
         assert_eq!(progress_events[0].start, 0);
-        assert_eq!(progress_events.last().unwrap().end, mock_body.len() - 1);
+        assert_eq!(progress_events.last().unwrap().end, mock_body.len() as u64);
         mock.assert();
     }
 
@@ -193,7 +192,7 @@ mod tests {
 
         let url_info = UrlInfo {
             final_url: server.url(),
-            file_size: mock_body.len(),
+            file_size: mock_body.len() as u64,
             file_name: "exact_buffer.bin".to_string(),
             supports_range: false,
             etag: None,
@@ -219,10 +218,10 @@ mod tests {
         assert_eq!(file_content, mock_body);
 
         // 验证进度事件完整性
-        let total_downloaded = progress_events.size();
-        assert_eq!(total_downloaded, mock_body.len());
+        let total_downloaded = progress_events.total();
+        assert_eq!(total_downloaded, mock_body.len() as u64);
         assert_eq!(progress_events[0].start, 0);
-        assert_eq!(progress_events.last().unwrap().end, 4095);
+        assert_eq!(progress_events.last().unwrap().end, mock_body.len() as u64);
         mock.assert();
     }
 }

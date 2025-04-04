@@ -1,11 +1,11 @@
 use color_eyre::eyre::Result;
 use fast_down::{
     download::{self, DownloadOptions},
-    download_progress::DownloadProgress,
     format_file_size,
     merge_progress::MergeProgress,
-    progresses_size::ProgressesSize,
+    progress::Progress,
 };
+use fast_steal::total::Total;
 use reqwest::header::{HeaderMap, HeaderValue};
 
 fn main() -> Result<()> {
@@ -29,12 +29,12 @@ fn main() -> Result<()> {
     headers.insert("Sec-Fetch-User", HeaderValue::from_static("?1"));
     headers.insert("Upgrade-Insecure-Requests", HeaderValue::from_static("1"));
 
-    let mut progress: Vec<DownloadProgress> = Vec::new();
+    let mut progress: Vec<Progress> = Vec::new();
     let r = download::download(DownloadOptions {
         url: include_str!("../url.txt"),
-        threads: 32,
-        // save_folder: r"C:\Users\Administrator\Desktop\下载测试",
-        save_folder: r".\downloads",
+        threads: 1,
+        save_folder: r"C:\Users\Administrator\Desktop\下载测试",
+        // save_folder: r".\downloads",
         file_name: None,
         headers: Some(headers),
         proxy: None,
@@ -57,7 +57,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn draw_progress(total: usize, progress: &[DownloadProgress]) {
-    let downloaded: usize = progress.size();
+fn draw_progress(total: u64, progress: &Vec<Progress>) {
+    let downloaded = progress.total();
     print!("\r{:.2}%", downloaded as f64 / total as f64 * 100.0);
 }

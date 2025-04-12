@@ -6,3 +6,4 @@ pub mod format_file_size;
 pub mod get_url_info;
 pub mod merge_progress;
 pub mod progress;
+pub mod total;

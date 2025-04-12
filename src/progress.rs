@@ -1,21 +1,20 @@
-use fast_steal::task::Task;
-
-pub type Progress = Task<u64>;
+use core::ops::Range;
+pub type Progress = Range<usize>;
 
 pub trait ProgresTrait {
-    fn fmt(&self) -> String;
-    fn new(start: u64, end: u64) -> Self;
+    fn format(&self) -> String;
+    fn new(start: usize, end: usize) -> Self;
     fn can_merge(&self, other: &Self) -> bool;
 }
 
 impl ProgresTrait for Progress {
-    fn fmt(&self) -> String {
+    fn format(&self) -> String {
         format!("{}-{}", self.start, self.end - 1)
     }
 
-    fn new(start: u64, end: u64) -> Self {
+    fn new(start: usize, end: usize) -> Self {
         if end <= start {
-            panic!("end <= start");
+            panic!("end should <= start");
         }
         Self { start, end }
     }
@@ -41,7 +40,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic = "end <= start"]
+    #[should_panic = "end should <= start"]
     fn test_new_error() {
         Progress::new(10, 10);
     }

@@ -8,7 +8,7 @@ use std::{
 };
 
 pub struct DownloadInfo {
-    pub file_size: u64,
+    pub file_size: usize,
     pub file_name: String,
     pub file_path: PathBuf,
     pub threads: usize,

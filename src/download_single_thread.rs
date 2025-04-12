@@ -26,9 +26,9 @@ pub fn download_single_thread(
             if len == 0 {
                 break;
             }
-            tx.send(Progress::new(downloaded, downloaded + len as u64))
+            tx.send(Progress::new(downloaded, downloaded + len))
                 .unwrap();
-            downloaded += len as u64;
+            downloaded += len;
             tx_write.send(buffer[..len].to_vec()).unwrap();
         }
     });
@@ -44,8 +44,9 @@ pub fn download_single_thread(
 
 #[cfg(test)]
 mod tests {
+    use crate::total::Total;
+
     use super::*;
-    use fast_steal::total::Total;
     use std::io::Read;
     use tempfile::NamedTempFile;
 
@@ -62,7 +63,7 @@ mod tests {
 
         let url_info = UrlInfo {
             final_url: server.url(),
-            file_size: mock_body.len() as u64,
+            file_size: mock_body.len(),
             file_name: "test_file.bin".to_string(),
             supports_range: false,
             etag: None,
@@ -88,7 +89,7 @@ mod tests {
 
         assert_eq!(progress_events.len(), 1);
         assert_eq!(progress_events[0].start, 0);
-        assert_eq!(progress_events[0].end, mock_body.len() as u64);
+        assert_eq!(progress_events[0].end, mock_body.len());
         mock.assert();
     }
 
@@ -105,7 +106,7 @@ mod tests {
 
         let url_info = UrlInfo {
             final_url: server.url(),
-            file_size: mock_body.len() as u64,
+            file_size: mock_body.len(),
             file_name: "empty.bin".to_string(),
             supports_range: false,
             etag: None,
@@ -147,7 +148,7 @@ mod tests {
 
         let url_info = UrlInfo {
             final_url: server.url(),
-            file_size: mock_body.len() as u64,
+            file_size: mock_body.len(),
             file_name: "large.bin".to_string(),
             supports_range: false,
             etag: None,
@@ -174,9 +175,9 @@ mod tests {
 
         // 验证进度事件总和
         let total_downloaded = progress_events.total();
-        assert_eq!(total_downloaded, mock_body.len() as u64);
+        assert_eq!(total_downloaded, mock_body.len());
         assert_eq!(progress_events[0].start, 0);
-        assert_eq!(progress_events.last().unwrap().end, mock_body.len() as u64);
+        assert_eq!(progress_events.last().unwrap().end, mock_body.len());
         mock.assert();
     }
 
@@ -192,7 +193,7 @@ mod tests {
 
         let url_info = UrlInfo {
             final_url: server.url(),
-            file_size: mock_body.len() as u64,
+            file_size: mock_body.len(),
             file_name: "exact_buffer.bin".to_string(),
             supports_range: false,
             etag: None,
@@ -219,9 +220,9 @@ mod tests {
 
         // 验证进度事件完整性
         let total_downloaded = progress_events.total();
-        assert_eq!(total_downloaded, mock_body.len() as u64);
+        assert_eq!(total_downloaded, mock_body.len());
         assert_eq!(progress_events[0].start, 0);
-        assert_eq!(progress_events.last().unwrap().end, mock_body.len() as u64);
+        assert_eq!(progress_events.last().unwrap().end, mock_body.len());
         mock.assert();
     }
 }

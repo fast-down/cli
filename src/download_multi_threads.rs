@@ -4,13 +4,15 @@ use crate::{
     progress::{ProgresTrait, Progress},
 };
 use color_eyre::{eyre, Result};
-use fast_steal::{spawn, split_task::SplitTask, total::Total};
+use fast_steal::{
+    spawn::Spawn,
+    task_list::TaskList,
+};
 use reqwest::{blocking::Client, header, StatusCode};
 use std::{
-    cell::RefCell,
     fs::File,
     io::{BufWriter, Read, Seek, SeekFrom, Write},
-    rc::Rc,
+    sync::Arc,
     thread::{self, JoinHandle},
 };
 
@@ -42,16 +44,23 @@ pub fn download_multi_threads(
         }
         writer.flush().unwrap();
     });
-    let task_group = download_chunk.split_task(threads as u64);
     let final_url = info.final_url;
-    spawn::spawn(task_group, move |rx_task, id, progress| {
-        // 监听任务
-        'task: for tasks in &rx_task {
-            if tasks.is_empty() {
+    let tasks: Arc<TaskList> = Arc::new(download_chunk.into());
+    let tasks_clone = tasks.clone();
+    tasks.spawn(
+        threads,
+        |closure| thread::spawn(move || closure()),
+        move |id, task, get_task| loop {
+            let mut start = task.start();
+            let end = task.end();
+            if start >= end {
+                if get_task() {
+                    continue;
+                }
+                println!("线程 {id} 下载完成");
                 break;
             }
-            // 任务执行
-            let range_str = display_progress::display_progress(&tasks);
+            let range_str = display_progress::display_progress(&tasks_clone.get_range(start..end));
             println!("线程 {id} 下载 {range_str}");
             let mut response = client
                 .get(&final_url)
@@ -65,90 +74,26 @@ pub fn download_multi_threads(
                     range_str
                 );
             }
-            let mut remain: Option<Rc<RefCell<[u8]>>> = None;
-            let mut remain_start = 0;
-            'outer: for task in tasks {
-                let mut downloaded = 0;
-                let size = task.total();
-                if let Some(remain_buffer) = remain {
-                    let len = remain_buffer.borrow().len() as u64 - remain_start;
-                    if len > size {
-                        if !rx_task.is_empty() {
-                            continue 'task;
-                        }
-                        progress(size);
-                        tx.send(Progress::new(task.start, task.end)).unwrap();
-                        tx_write
-                            .send((
-                                task.start,
-                                remain_buffer.borrow()
-                                    [remain_start as usize..(remain_start + size) as usize]
-                                    .to_vec(),
-                            ))
-                            .unwrap();
-                        if !rx_task.is_empty() {
-                            continue 'task;
-                        }
-                        remain = Some(remain_buffer);
-                        remain_start = remain_start + size;
-                        continue;
-                    } else {
-                        if !rx_task.is_empty() {
-                            continue 'task;
-                        }
-                        progress(len);
-                        let end = task.start + len - 1;
-                        tx.send(Progress::new(task.start, end)).unwrap();
-                        tx_write
-                            .send((
-                                task.start,
-                                remain_buffer.borrow()
-                                    [remain_start as usize..(remain_start + len) as usize]
-                                    .to_vec(),
-                            ))
-                            .unwrap();
-                        if !rx_task.is_empty() {
-                            continue 'task;
-                        }
-                    }
-                    downloaded += len;
+            let mut buffer = [0u8; CHUNK_SIZE];
+            loop {
+                if start >= task.end() {
+                    break;
                 }
-                let buffer = Rc::new(RefCell::new([0u8; CHUNK_SIZE]));
-                loop {
-                    if !rx_task.is_empty() {
-                        continue 'task;
-                    }
-                    progress(CHUNK_SIZE as u64);
-                    let len = response.read(&mut *buffer.borrow_mut()).unwrap();
-                    if len == 0 {
-                        break 'outer;
-                    }
-                    let start = task.start + downloaded;
-                    if downloaded + len as u64 > size {
-                        tx.send(Progress::new(start, task.end)).unwrap();
-                        tx_write
-                            .send((start, buffer.borrow()[..size as usize].to_vec()))
-                            .unwrap();
-                        if !rx_task.is_empty() {
-                            continue 'task;
-                        }
-                        remain = Some(buffer);
-                        remain_start = size;
-                        continue 'outer;
-                    } else {
-                        tx.send(Progress::new(start, start + len as u64 - 1))
-                            .unwrap();
-                        tx_write
-                            .send((start, buffer.borrow()[..len].to_vec()))
-                            .unwrap();
-                        if !rx_task.is_empty() {
-                            continue 'task;
-                        }
-                    }
-                    downloaded += len as u64;
+                task.fetch_add_start(CHUNK_SIZE);
+                let len = response.read(&mut buffer).unwrap();
+                if len < CHUNK_SIZE {
+                    task.fetch_sub_start(CHUNK_SIZE - len);
                 }
+                if len == 0 {
+                    break;
+                }
+                tx.send(Progress::new(start, start + len)).unwrap();
+                tx_write
+                    .send((start as u64, buffer[..len].to_vec()))
+                    .unwrap();
+                start += len;
             }
-        }
-    });
+        },
+    );
     Ok((rx, handle))
 }

@@ -3,7 +3,7 @@ use crate::progress::{ProgresTrait as _, Progress};
 pub fn display_progress(progress: &[Progress]) -> String {
     progress
         .iter()
-        .map(|p| p.fmt())
+        .map(|p| p.format())
         .collect::<Vec<_>>()
         .join(",")
 }

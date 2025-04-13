@@ -14,7 +14,7 @@ jobs:
       matrix:
         build:
           - linux-arm64
-          - linux-32bit
+          # - linux-32bit
           - linux-64bit
           - macos-arm64
           - macos-64bit
@@ -26,11 +26,11 @@ jobs:
             target: aarch64-unknown-linux-gnu
             archive-name: fast-down-linux-arm64
             filename: fast-down
-          - build: linux-32bit
-            os: ubuntu-latest
-            target: i686-unknown-linux-gnu
-            archive-name: fast-down-linux-32bit
-            filename: fast-down
+          # - build: linux-32bit
+          #   os: ubuntu-latest
+          #   target: i686-unknown-linux-gnu
+          #   archive-name: fast-down-linux-32bit
+          #   filename: fast-down
           - build: linux-64bit
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu

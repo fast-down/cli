@@ -82,13 +82,13 @@ jobs:
           name: ${{ matrix.archive-name }}
           path: ./target/${{ matrix.target }}/release/${{ matrix.filename }}
 
-      - name: Rename binary
-        run: |
-          if [[ "${{ matrix.build }}" == windows* ]]; then
-            mv ./target/${{ matrix.target }}/release/${{ matrix.filename }} ./target/${{ matrix.target }}/release/${{ matrix.archive-name }}.exe
-          else
-            mv ./target/${{ matrix.target }}/release/${{ matrix.filename }} ./target/${{ matrix.target }}/release/${{ matrix.archive-name }}
-          fi
+      - name: Rename binary (Windows)
+        if: contains(matrix.build, 'windows')
+        run: mv ./target/${{ matrix.target }}/release/${{ matrix.filename }} ./target/${{ matrix.target }}/release/${{ matrix.archive-name }}.exe
+
+      - name: Rename binary (Non-Windows)
+        if: ${{ !contains(matrix.build, 'windows') }}
+        run: mv ./target/${{ matrix.target }}/release/${{ matrix.filename }} ./target/${{ matrix.target }}/release/${{ matrix.archive-name }}
 
       - name: Release
         uses: softprops/action-gh-release@v2

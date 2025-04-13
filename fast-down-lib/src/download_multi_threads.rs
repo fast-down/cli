@@ -51,7 +51,7 @@ pub fn download_multi_threads(
     tasks.spawn(
         threads,
         |closure| thread::spawn(move || closure()),
-        move |_id, task, get_task| loop {
+        move |_, task, get_task| loop {
             let mut start = task.start();
             let end = task.end();
             if start >= end {
@@ -75,17 +75,14 @@ pub fn download_multi_threads(
             }
             let mut buffer = [0u8; CHUNK_SIZE];
             loop {
-                if start >= task.end() {
+                let end = task.end();
+                if start >= end {
                     break;
                 }
-                task.fetch_add_start(CHUNK_SIZE);
+                let remain = end - start;
+                let add = CHUNK_SIZE.min(remain);
+                task.fetch_add_start(add);
                 let len = response.read(&mut buffer).unwrap();
-                if len < CHUNK_SIZE {
-                    task.fetch_sub_start(CHUNK_SIZE - len);
-                }
-                if len == 0 {
-                    break;
-                }
                 tx.send(Progress::new(start, start + len)).unwrap();
                 tx_write
                     .send((start as u64, buffer[..len].to_vec()))
@@ -95,4 +92,59 @@ pub fn download_multi_threads(
         },
     );
     Ok((rx, handle))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Total;
+    use std::io::Read;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn test_multi_thread_regular_download() {
+        let mock_body = vec![b'a'; 3 * 1024];
+        let mock_body_clone = mock_body.clone();
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("GET", "/")
+            .with_status(206)
+            .with_body_from_request(move |request| {
+                if !request.has_header("Range") {
+                    return mock_body_clone.clone();
+                }
+                let range = request.header("Range")[0];
+                println!("range: {:?}", range);
+                let mut parts = range
+                    .to_str()
+                    .unwrap()
+                    .rsplit('=')
+                    .next()
+                    .unwrap()
+                    .splitn(2, '-');
+                let start = parts.next().unwrap().parse::<usize>().unwrap();
+                let end = parts.next().unwrap().parse::<usize>().unwrap();
+                mock_body_clone[start..=end].to_vec()
+            })
+            .create();
+
+        let temp_file = NamedTempFile::new().unwrap();
+        let file = temp_file.reopen().unwrap();
+
+        let client = Client::new();
+        let (rx, handle) =
+            download_multi_threads(server.url(), 3, mock_body.len(), file, client).unwrap();
+
+        let progress_events: Vec<_> = rx.iter().collect();
+        handle.join().unwrap();
+
+        let mut file_content = Vec::new();
+        File::open(temp_file.path())
+            .unwrap()
+            .read_to_end(&mut file_content)
+            .unwrap();
+        assert_eq!(file_content, mock_body);
+        assert_eq!(progress_events.total(), mock_body.len());
+        mock.assert();
+    }
 }

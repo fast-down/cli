@@ -400,10 +400,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "fast-down"
+name = "fast-down-cli"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "color-eyre",
+ "fast-down-lib",
+ "reqwest",
+]
+
+[[package]]
+name = "fast-down-lib"
+version = "0.1.0"
+dependencies = [
  "color-eyre",
  "content_disposition",
  "crossbeam-channel",

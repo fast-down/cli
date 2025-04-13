@@ -1,6 +1,6 @@
 use clap::Parser;
 use color_eyre::eyre::{eyre, Result};
-use fast_down::{DownloadOptions, MergeProgress, Progress, Total};
+use fast_down_lib::{DownloadOptions, MergeProgress, Progress, Total};
 use reqwest::{
     blocking::Client,
     header::{HeaderMap, HeaderName, HeaderValue},
@@ -65,7 +65,7 @@ fn main() -> Result<()> {
     }
     let client = client.build()?;
 
-    let info = fast_down::get_url_info(&args.url, &client)?;
+    let info = fast_down_lib::get_url_info(&args.url, &client)?;
     let threads = if info.can_fast_download {
         args.threads
     } else {
@@ -77,7 +77,7 @@ fn main() -> Result<()> {
     println!(
         "文件名: {}\n文件大小: {} ({} 字节) \n文件路径: {}\n线程数量: {}",
         info.file_name,
-        fast_down::format_file_size(info.file_size as f64),
+        fast_down_lib::format_file_size(info.file_size as f64),
         info.file_size,
         save_path.to_str().unwrap(),
         threads
@@ -98,7 +98,7 @@ fn main() -> Result<()> {
         }
     }
 
-    let r = fast_down::download(DownloadOptions {
+    let r = fast_down_lib::download(DownloadOptions {
         url: info.final_url,
         threads: args.threads,
         save_path: &save_path,

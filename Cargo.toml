@@ -1,18 +1,18 @@
-[package]
-name = "fast-down"
+[workspace]
+members = [
+    "fast-down-lib",
+    "fast-down-cli"
+]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
 authors = ["share121 <2854631158@qq.com>"]
-description = "超级快的下载器"
 
-[dependencies]
-clap = { version = "4.5.36", features = ["derive"] }
+[workspace.dependencies]
 color-eyre = "0.6.3"
-content_disposition = "0.4.0"
-crossbeam-channel = "0.5.14"
-fast-steal = "2.4.0"
-mockito = "1.6.1"
 reqwest = { version = "0.12.12", features = [
   "gzip",
   "brotli",
@@ -21,9 +21,6 @@ reqwest = { version = "0.12.12", features = [
   "http2",
   "blocking",
 ] }
-sanitize-filename = "0.6.0"
-tempfile = "3.18.0"
-urlencoding = "2.1.3"
 
 [profile.dev]
 incremental = true

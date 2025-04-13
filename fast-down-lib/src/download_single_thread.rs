@@ -65,7 +65,6 @@ mod tests {
             .create();
 
         let temp_file = NamedTempFile::new().unwrap();
-        let file_path = temp_file.path().to_path_buf();
         let file = temp_file.reopen().unwrap();
 
         let client = Client::new();
@@ -75,7 +74,7 @@ mod tests {
         handle.join().unwrap();
 
         let mut file_content = Vec::new();
-        File::open(file_path)
+        File::open(temp_file.path())
             .unwrap()
             .read_to_end(&mut file_content)
             .unwrap();
@@ -99,7 +98,6 @@ mod tests {
             .create();
 
         let temp_file = NamedTempFile::new().unwrap();
-        let file_path = temp_file.path().to_path_buf();
         let file = temp_file.reopen().unwrap();
 
         let client = Client::new();
@@ -110,7 +108,7 @@ mod tests {
 
         // 验证空文件
         let mut file_content = Vec::new();
-        File::open(file_path)
+        File::open(temp_file.path())
             .unwrap()
             .read_to_end(&mut file_content)
             .unwrap();
@@ -132,7 +130,6 @@ mod tests {
             .create();
 
         let temp_file = NamedTempFile::new().unwrap();
-        let file_path = temp_file.path().to_path_buf();
         let file = temp_file.reopen().unwrap();
 
         let client = Client::new();
@@ -143,7 +140,7 @@ mod tests {
 
         // 验证文件内容
         let mut file_content = Vec::new();
-        File::open(file_path)
+        File::open(temp_file.path())
             .unwrap()
             .read_to_end(&mut file_content)
             .unwrap();
@@ -168,7 +165,6 @@ mod tests {
             .create();
 
         let temp_file = NamedTempFile::new().unwrap();
-        let file_path = temp_file.path().to_path_buf();
         let file = temp_file.reopen().unwrap();
 
         let client = Client::new();
@@ -179,7 +175,7 @@ mod tests {
 
         // 验证文件内容
         let mut file_content = Vec::new();
-        File::open(file_path)
+        File::open(temp_file.path())
             .unwrap()
             .read_to_end(&mut file_content)
             .unwrap();

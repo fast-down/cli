@@ -1,0 +1,17 @@
+[package]
+name = "fast-down-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "超级快的下载器命令行界面"
+
+[dependencies]
+fast-down-lib = { path = "../fast-down-lib" }
+clap = { version = "4.5.36", features = ["derive"] }
+color-eyre = { workspace = true }
+reqwest = { workspace = true }
+
+[[bin]]
+name = "fast-down"
+path = "src/main.rs"

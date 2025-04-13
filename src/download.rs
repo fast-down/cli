@@ -1,5 +1,8 @@
 extern crate std;
-use crate::{download_multi_threads::download_multi_threads, download_single_thread::download_single_thread, progress::Progress};
+use crate::{
+    download_multi_threads::download_multi_threads, download_single_thread::download_single_thread,
+    progress::Progress,
+};
 use std::{fs, io::ErrorKind, path::Path, thread::JoinHandle};
 extern crate alloc;
 use alloc::string::String;

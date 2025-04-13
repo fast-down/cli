@@ -74,6 +74,15 @@ fn main() -> Result<()> {
     let save_path =
         Path::new(&args.save_folder).join(args.file_name.as_ref().unwrap_or(&info.file_name));
 
+    println!(
+        "文件名: {}\n文件大小: {} ({} 字节) \n文件路径: {}\n线程数量: {}",
+        info.file_name,
+        fast_down::format_file_size(info.file_size as f64),
+        info.file_size,
+        save_path.to_str().unwrap(),
+        threads
+    );
+
     if save_path.exists() && !args.force {
         print!("文件已存在，是否覆盖？(y/N) ");
         std::io::stdout().flush()?;
@@ -89,14 +98,6 @@ fn main() -> Result<()> {
         }
     }
 
-    println!(
-        "文件名: {}\n文件大小: {} ({} 字节) \n文件路径: {}\n线程数量: {}",
-        info.file_name,
-        fast_down::format_file_size(info.file_size as f64),
-        info.file_size,
-        save_path.to_str().unwrap(),
-        threads
-    );
     let r = fast_down::download(DownloadOptions {
         url: info.final_url,
         threads: args.threads,
@@ -112,6 +113,7 @@ fn main() -> Result<()> {
         draw_progress(info.file_size, &progress);
     }
     r.handle.join().unwrap();
+    assert_eq!(progress, vec![0..info.file_size]);
 
     Ok(())
 }

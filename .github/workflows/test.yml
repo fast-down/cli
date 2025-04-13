@@ -1,0 +1,54 @@
+name: Test
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        channel:
+          - stable
+          - beta
+          - nightly
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        run: rustup update ${{ matrix.channel }} && rustup default ${{ matrix.channel }}
+
+      - name: Test
+        run: cargo test
+
+  check-minimal:
+    name: Check minimal versions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        run: rustup default nightly
+
+      - name: Check minimal versions
+        run: cargo check --all --all-targets -Z minimal-versions
+
+  # benches:
+  #   name: Benches
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v4
+
+  #     - name: Install Rust toolchain
+  #       run: rustup default nightly
+
+  #     - name: Default features
+  #       run: cargo bench --no-run

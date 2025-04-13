@@ -1,0 +1,88 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        build:
+          - linux-arm64
+          - linux-32bit
+          - linux-64bit
+          - macos-arm64
+          - macos-64bit
+          - windows-64bit
+          - windows-32bit
+        include:
+          - build: linux-arm64
+            os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            archive-name: fast-down-linux-arm64
+            filename: fast-down
+          - build: linux-32bit
+            os: ubuntu-latest
+            target: i686-unknown-linux-gnu
+            archive-name: fast-down-linux-32bit
+            filename: fast-down
+          - build: linux-64bit
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive-name: fast-down-linux-64bit
+            filename: fast-down
+          - build: macos-arm64
+            os: macos-latest
+            target: aarch64-apple-darwin
+            archive-name: fast-down-macos-arm64
+            filename: fast-down
+          - build: macos-64bit
+            os: macos-latest
+            target: x86_64-apple-darwin
+            archive-name: fast-down-macos-64bit
+            filename: fast-down
+          - build: windows-64bit
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive-name: fast-down-windows-64bit
+            filename: fast-down.exe
+          - build: windows-32bit
+            os: windows-latest
+            target: i686-pc-windows-msvc
+            archive-name: fast-down-windows-32bit
+            filename: fast-down.exe
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        run: rustup update stable && rustup default stable
+
+      - name: Build binary
+        run: cargo build --verbose --release --target ${{ matrix.target }}
+        env:
+          RUST_BACKTRACE: 1
+
+      - name: Strip binary (linux and macos)
+        if: matrix.build == 'linux' || matrix.build == 'macos'
+        run: strip "target/${{ matrix.target }}/release/fast-down"
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive-name }}
+          path: ./target/${{ matrix.target }}/release/${{ matrix.filename }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./target/${{ matrix.target }}/release/${{ matrix.filename }}

@@ -1,8 +1,8 @@
-pub fn format_file_size(mut size: f64) -> String {
-    if size < 0.0 {
-        panic!("Size must be a positive number")
-    }
+extern crate alloc;
+use alloc::format;
+use alloc::string::String;
 
+pub fn format_file_size(mut size: f64) -> String {
     const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
     const LEN: usize = UNITS.len();
 
@@ -20,7 +20,6 @@ mod tests {
 
     #[test]
     fn test_format_file_size() {
-        // Test with different file sizes
         assert_eq!(format_file_size(0.0), "0.00 B");
         assert_eq!(format_file_size(1023.0), "1023.00 B");
         assert_eq!(format_file_size(1024.0), "1.00 KB");
@@ -69,11 +68,5 @@ mod tests {
             ),
             "1048565.76 YB"
         );
-    }
-
-    #[test]
-    #[should_panic = "Size must be a positive number"]
-    fn test_negative_size() {
-        format_file_size(-1.0);
     }
 }

@@ -1,25 +1,25 @@
-use crate::{
-    get_url_info::UrlInfo,
-    progress::{ProgresTrait, Progress},
-};
+use crate::progress::{ProgresTrait, Progress};
 use color_eyre::eyre::Result;
 use reqwest::blocking::Client;
+extern crate std;
 use std::{
     fs::File,
     io::{BufWriter, Read, Write},
     thread::{self, JoinHandle},
 };
+extern crate alloc;
+use alloc::string::String;
 
 pub fn download_single_thread(
+    url: String,
     file: File,
     client: Client,
-    info: UrlInfo,
 ) -> Result<(crossbeam_channel::Receiver<Progress>, JoinHandle<()>)> {
     let (tx, rx) = crossbeam_channel::unbounded();
     let (tx_write, rx_write) = crossbeam_channel::unbounded();
     thread::spawn(move || {
         let mut downloaded = 0;
-        let mut response = client.get(info.final_url).send().unwrap();
+        let mut response = client.get(url).send().unwrap();
         let mut buffer = [0u8; 8 * 1024];
         loop {
             let len = response.read(&mut buffer).unwrap();
@@ -45,8 +45,11 @@ pub fn download_single_thread(
 #[cfg(test)]
 mod tests {
     use crate::total::Total;
-
+    extern crate alloc;
+    extern crate std;
     use super::*;
+    use alloc::vec;
+    use alloc::vec::Vec;
     use std::io::Read;
     use tempfile::NamedTempFile;
 
@@ -61,21 +64,12 @@ mod tests {
             .with_body(mock_body)
             .create();
 
-        let url_info = UrlInfo {
-            final_url: server.url(),
-            file_size: mock_body.len(),
-            file_name: "test_file.bin".to_string(),
-            supports_range: false,
-            etag: None,
-            last_modified: None,
-        };
-
         let temp_file = NamedTempFile::new().unwrap();
         let file_path = temp_file.path().to_path_buf();
         let file = temp_file.reopen().unwrap();
 
         let client = Client::new();
-        let (rx, handle) = download_single_thread(file, client, url_info).unwrap();
+        let (rx, handle) = download_single_thread(server.url(), file, client).unwrap();
 
         let progress_events: Vec<_> = rx.iter().collect();
         handle.join().unwrap();
@@ -104,21 +98,12 @@ mod tests {
             .with_body(mock_body)
             .create();
 
-        let url_info = UrlInfo {
-            final_url: server.url(),
-            file_size: mock_body.len(),
-            file_name: "empty.bin".to_string(),
-            supports_range: false,
-            etag: None,
-            last_modified: None,
-        };
-
         let temp_file = NamedTempFile::new().unwrap();
         let file_path = temp_file.path().to_path_buf();
         let file = temp_file.reopen().unwrap();
 
         let client = Client::new();
-        let (rx, handle) = download_single_thread(file, client, url_info).unwrap();
+        let (rx, handle) = download_single_thread(server.url(), file, client).unwrap();
 
         let progress_events: Vec<_> = rx.iter().collect();
         handle.join().unwrap();
@@ -146,21 +131,12 @@ mod tests {
             .with_body(&mock_body)
             .create();
 
-        let url_info = UrlInfo {
-            final_url: server.url(),
-            file_size: mock_body.len(),
-            file_name: "large.bin".to_string(),
-            supports_range: false,
-            etag: None,
-            last_modified: None,
-        };
-
         let temp_file = NamedTempFile::new().unwrap();
         let file_path = temp_file.path().to_path_buf();
         let file = temp_file.reopen().unwrap();
 
         let client = Client::new();
-        let (rx, handle) = download_single_thread(file, client, url_info).unwrap();
+        let (rx, handle) = download_single_thread(server.url(), file, client).unwrap();
 
         let progress_events: Vec<_> = rx.iter().collect();
         handle.join().unwrap();
@@ -191,21 +167,12 @@ mod tests {
             .with_body(&mock_body)
             .create();
 
-        let url_info = UrlInfo {
-            final_url: server.url(),
-            file_size: mock_body.len(),
-            file_name: "exact_buffer.bin".to_string(),
-            supports_range: false,
-            etag: None,
-            last_modified: None,
-        };
-
         let temp_file = NamedTempFile::new().unwrap();
         let file_path = temp_file.path().to_path_buf();
         let file = temp_file.reopen().unwrap();
 
         let client = Client::new();
-        let (rx, handle) = download_single_thread(file, client, url_info).unwrap();
+        let (rx, handle) = download_single_thread(server.url(), file, client).unwrap();
 
         let progress_events: Vec<_> = rx.iter().collect();
         handle.join().unwrap();

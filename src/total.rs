@@ -1,3 +1,5 @@
+extern crate alloc;
+use alloc::vec::Vec;
 use core::ops::Range;
 
 pub trait Total {
@@ -19,6 +21,7 @@ impl<T: Total> Total for Vec<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec;
 
     #[test]
     fn test_range_total() {

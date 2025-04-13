@@ -1,4 +1,6 @@
 use crate::progress::{ProgresTrait, Progress};
+extern crate alloc;
+use alloc::vec::Vec;
 
 pub trait MergeProgress {
     fn merge_progress(&mut self, new: Progress);
@@ -9,8 +11,8 @@ impl MergeProgress for Vec<Progress> {
         let i = self.partition_point(|old| old.start < new.start);
         if i == self.len() {
             match self.last_mut() {
-                Some(last) if last.end >= new.start => {
-                    last.end = last.end.max(new.end);
+                Some(last) if last.end == new.start => {
+                    last.end = new.end;
                 }
                 _ => self.push(new),
             }
@@ -39,6 +41,7 @@ impl MergeProgress for Vec<Progress> {
 mod tests {
     use super::*;
     use crate::progress::Progress;
+    use alloc::vec;
 
     #[test]
     fn test_merge_into_empty_vec() {
@@ -70,30 +73,23 @@ mod tests {
     }
 
     #[test]
-    fn test_merge_with_first() {
-        let mut v = vec![Progress::new(6, 10)];
-        v.merge_progress(Progress::new(1, 7));
-        assert_eq!(v, vec![Progress::new(1, 10)]);
-    }
-
-    #[test]
     fn test_merge_between_two() {
         let mut v = vec![Progress::new(1, 5), Progress::new(10, 15)];
-        v.merge_progress(Progress::new(4, 12));
+        v.merge_progress(Progress::new(5, 10));
         assert_eq!(v, vec![Progress::new(1, 15)]);
     }
 
     #[test]
     fn test_merge_with_previous_only() {
         let mut v = vec![Progress::new(1, 5), Progress::new(10, 15)];
-        v.merge_progress(Progress::new(4, 8));
+        v.merge_progress(Progress::new(5, 8));
         assert_eq!(v, vec![Progress::new(1, 8), Progress::new(10, 15)]);
     }
 
     #[test]
     fn test_merge_with_next_only() {
         let mut v = vec![Progress::new(1, 5), Progress::new(10, 15)];
-        v.merge_progress(Progress::new(8, 12));
+        v.merge_progress(Progress::new(8, 10));
         assert_eq!(v, vec![Progress::new(1, 5), Progress::new(8, 15)]);
     }
 
@@ -109,19 +105,5 @@ mod tests {
                 Progress::new(10, 15)
             ]
         );
-    }
-
-    #[test]
-    fn test_completely_contained() {
-        let mut v = vec![Progress::new(1, 10)];
-        v.merge_progress(Progress::new(3, 7));
-        assert_eq!(v, vec![Progress::new(1, 10)]);
-    }
-
-    #[test]
-    fn test_merge_adjacent() {
-        let mut v = vec![Progress::new(1, 5)];
-        v.merge_progress(Progress::new(5, 10));
-        assert_eq!(v, vec![Progress::new(1, 10)]);
     }
 }

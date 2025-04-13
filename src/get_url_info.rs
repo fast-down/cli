@@ -1,3 +1,5 @@
+extern crate alloc;
+use alloc::string::{String, ToString};
 use color_eyre::eyre::{self, Result};
 use content_disposition;
 use reqwest::{
@@ -13,6 +15,7 @@ pub struct UrlInfo {
     pub file_size: usize,
     pub file_name: String,
     pub supports_range: bool,
+    pub can_fast_download: bool,
     pub final_url: String,
     pub etag: Option<String>,
     pub last_modified: Option<String>,
@@ -54,7 +57,7 @@ fn get_filename(headers: &HeaderMap, final_url: &Url) -> String {
         .and_then(|segments| segments.last())
         .and_then(|s| urlencoding::decode(s).ok())
         .filter(|s| !s.trim().is_empty())
-        .map(|s| s.to_string());
+        .map(|s| (&s).to_string());
 
     let raw_name = from_disposition
         .or(from_url)
@@ -70,7 +73,7 @@ fn get_filename(headers: &HeaderMap, final_url: &Url) -> String {
     )
 }
 
-pub fn get_url_info(client: &Client, url: &str) -> Result<UrlInfo> {
+pub fn get_url_info(url: &str, client: &Client) -> Result<UrlInfo> {
     let resp = client.get(url).header(header::RANGE, "bytes=0-").send()?;
     let status = resp.status();
     let final_url = resp.url();
@@ -84,11 +87,14 @@ pub fn get_url_info(client: &Client, url: &str) -> Result<UrlInfo> {
     }
 
     let resp_headers = resp.headers();
+    let file_size = get_file_size(resp_headers, &status);
+    let supports_range = status == StatusCode::PARTIAL_CONTENT;
     Ok(UrlInfo {
         final_url: final_url_str,
-        supports_range: status == StatusCode::PARTIAL_CONTENT,
         file_name: get_filename(resp_headers, &final_url),
-        file_size: get_file_size(resp_headers, &status),
+        file_size,
+        supports_range,
+        can_fast_download: file_size > 0 && supports_range,
         etag: get_header_str(resp_headers, &header::ETAG),
         last_modified: get_header_str(resp_headers, &header::LAST_MODIFIED),
     })
@@ -97,6 +103,8 @@ pub fn get_url_info(client: &Client, url: &str) -> Result<UrlInfo> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::format;
+    use alloc::vec;
 
     #[test]
     fn test_redirect_and_content_range() {
@@ -116,7 +124,7 @@ mod tests {
             .create();
 
         let client = Client::new();
-        let url_info = get_url_info(&client, &format!("{}/redirect", server.url()))
+        let url_info = get_url_info(&format!("{}/redirect", server.url()), &client)
             .expect("Request should succeed");
 
         assert_eq!(url_info.file_size, 2048);
@@ -141,7 +149,7 @@ mod tests {
             .create();
 
         let client = Client::new();
-        let url_info = get_url_info(&client, &format!("{}/file", server.url()))
+        let url_info = get_url_info(&format!("{}/file", server.url()), &client)
             .expect("Request should succeed");
 
         assert_eq!(url_info.file_size, 2048);
@@ -157,14 +165,14 @@ mod tests {
             .mock("GET", "/test1")
             .with_header("Content-Disposition", "attachment; filename=\"test.txt\"")
             .create();
-        let url_info = get_url_info(&Client::new(), &format!("{}/test1", server.url())).unwrap();
+        let url_info = get_url_info(&format!("{}/test1", server.url()), &Client::new()).unwrap();
         assert_eq!(url_info.file_name, "test.txt");
         mock1.assert();
 
         // Test URL path source
         let mock2 = server.mock("GET", "/test2/file.pdf").create();
         let url_info =
-            get_url_info(&Client::new(), &format!("{}/test2/file.pdf", server.url())).unwrap();
+            get_url_info(&format!("{}/test2/file.pdf", server.url()), &Client::new()).unwrap();
         assert_eq!(url_info.file_name, "file.pdf");
         mock2.assert();
 
@@ -176,7 +184,7 @@ mod tests {
                 "attachment; filename*=UTF-8''%E6%82%AA%E3%81%84%3C%3E%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%3F%E5%90%8D.txt"
             )
             .create();
-        let url_info = get_url_info(&Client::new(), &format!("{}/test3", server.url())).unwrap();
+        let url_info = get_url_info(&format!("{}/test3", server.url()), &Client::new()).unwrap();
         assert_eq!(url_info.file_name, "悪い__ファイル_名.txt");
         mock3.assert();
     }
@@ -188,7 +196,7 @@ mod tests {
         let mock1 = server.mock("GET", "/404").with_status(404).create();
 
         let client = Client::new();
-        get_url_info(&client, &format!("{}/404", server.url())).unwrap();
+        get_url_info(&format!("{}/404", server.url()), &client).unwrap();
 
         mock1.assert();
     }

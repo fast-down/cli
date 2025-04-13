@@ -6,12 +6,16 @@ use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     Proxy,
 };
-use std::{path::Path, str::FromStr};
+use std::{io::Write, path::Path, str::FromStr};
 
 /// 超级快的下载器
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
+    /// 强制覆盖已有文件
+    #[arg(short, long, default_value_t = false)]
+    pub force: bool,
+
     /// 要下载的URL
     #[arg(required = true)]
     pub url: String,
@@ -69,6 +73,22 @@ fn main() -> Result<()> {
     };
     let save_path =
         Path::new(&args.save_folder).join(args.file_name.as_ref().unwrap_or(&info.file_name));
+
+    if save_path.exists() && !args.force {
+        print!("文件已存在，是否覆盖？(y/N) ");
+        std::io::stdout().flush()?;
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input)?;
+        match input.trim().to_lowercase().as_str() {
+            "y" => {}
+            "n" | "N" | "" => {
+                println!("下载取消");
+                return Ok(());
+            }
+            _ => return Err(eyre!("无效输入，下载取消")),
+        }
+    }
+
     println!(
         "文件名: {}\n文件大小: {} ({} 字节) \n文件路径: {}\n线程数量: {}",
         info.file_name,
@@ -80,7 +100,7 @@ fn main() -> Result<()> {
     let r = fast_down::download(DownloadOptions {
         url: info.final_url,
         threads: args.threads,
-        save_path: Path::new(""),
+        save_path: &save_path,
         can_fast_download: info.can_fast_download,
         file_size: info.file_size,
         client,

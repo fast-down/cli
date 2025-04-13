@@ -64,8 +64,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Rust Toolchain
-        run: rustup update stable && rustup default stable
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
       - name: Build binary
         run: cargo build --verbose --release --target ${{ matrix.target }}

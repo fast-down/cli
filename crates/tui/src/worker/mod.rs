@@ -1,8 +1,8 @@
-use std::io;
 use fast_down::file::DownloadOptions;
 use fast_down::{DownloadResult, ProgressEntry, UrlInfo};
 use futures::stream::StreamExt;
 use reqwest::{Client, Url};
+use std::io;
 use std::path::PathBuf;
 use std::sync::Arc;
 

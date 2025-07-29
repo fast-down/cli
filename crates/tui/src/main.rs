@@ -325,9 +325,9 @@ impl App {
                             }
                         }
                     }
-                },
-                TaskState::IoError(_) => {},
-                TaskState::Completed => {},
+                }
+                TaskState::IoError(_) => {}
+                TaskState::Completed => {}
             }
         }
         for task_id in pending_completes {

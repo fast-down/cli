@@ -330,7 +330,9 @@ mod tests {
         let client = Client::new();
         let result = download(
             client,
-            format!("{}/exact_buffer_size_file", server.url()).parse().unwrap(),
+            format!("{}/exact_buffer_size_file", server.url())
+                .parse()
+                .unwrap(),
             SeqFileWriter::new(file, 8 * 1024 * 1024),
             DownloadOptions {
                 retry_gap: Duration::from_secs(1),

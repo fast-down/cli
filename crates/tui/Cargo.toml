@@ -20,3 +20,8 @@ futures = "0.3.31"
 reqwest.workspace = true
 fxhash = "0.2.1"
 slab = "0.4.10"
+rkyv = "0.8.10"
+arboard = { version = "3.6.0", features = ["wayland-data-control"] }
+async-channel.workspace = true
+smallvec = "1.15.1"
+thiserror = "2.0.12"

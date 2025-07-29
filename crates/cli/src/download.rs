@@ -10,8 +10,8 @@ use reqwest::{
     Client, Proxy,
     header::{self, HeaderValue},
 };
-use std::{env, path::Path, sync::Arc, time::Instant};
 use std::num::NonZeroUsize;
+use std::{env, path::Path, sync::Arc, time::Instant};
 use tokio::{
     io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader},
     runtime::Handle,
@@ -66,8 +66,6 @@ fn cancel_expected() -> Result<()> {
     Ok(())
 }
 
-
-
 pub async fn download(mut args: DownloadArgs) -> Result<()> {
     if args.browser {
         let url = Url::parse(&args.url)?;
@@ -99,7 +97,9 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     };
     let concurrent = if info.can_fast_download {
         NonZeroUsize::new(args.threads)
-    } else { None };
+    } else {
+        None
+    };
     let mut save_path =
         Path::new(&args.save_folder).join(args.file_name.as_ref().unwrap_or(&info.file_name));
     if save_path.is_relative()
@@ -128,9 +128,8 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     #[allow(clippy::single_range_in_vec_init)]
     let mut download_chunks = vec![0..info.file_size];
     let mut resume_download = false;
-    let mut write_progress: Vec<ProgressEntry> = Vec::with_capacity(
-        concurrent.map(NonZeroUsize::get).unwrap_or(1)
-    );
+    let mut write_progress: Vec<ProgressEntry> =
+        Vec::with_capacity(concurrent.map(NonZeroUsize::get).unwrap_or(1));
 
     if save_path.try_exists()? && args.resume && info.can_fast_download {
         if let Ok(Some(progress)) = db.get_entry(save_path_str.clone()).await {
@@ -221,10 +220,10 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         client,
         info.final_url.clone(),
         download_chunks,
+        info.file_size,
         &save_path,
         DownloadOptions {
             concurrent,
-            file_size: info.file_size,
             retry_gap: args.retry_gap,
             write_buffer_size: args.write_buffer_size,
             write_channel_size: args.write_channel_size,

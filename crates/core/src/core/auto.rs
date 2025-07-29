@@ -1,8 +1,8 @@
 use super::{DownloadResult, multi, single};
 use crate::{ProgressEntry, RandWriter, SeqWriter};
 use core::time::Duration;
+use reqwest::{Client, IntoUrl, Url};
 use std::num::NonZeroUsize;
-use reqwest::{Client, IntoUrl};
 
 #[derive(Debug, Clone)]
 pub struct DownloadOptions {
@@ -14,12 +14,12 @@ pub struct DownloadOptions {
 
 pub async fn download(
     client: Client,
-    url: impl IntoUrl,
+    url: Url,
     download_chunks: Vec<ProgressEntry>,
     seq_writer: impl SeqWriter + 'static,
     rand_writer: impl RandWriter + 'static,
     options: DownloadOptions,
-) -> Result<DownloadResult, reqwest::Error> {
+) -> DownloadResult {
     if let Some(threads) = options.concurrent {
         multi::download(
             client,

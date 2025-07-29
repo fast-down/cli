@@ -1,42 +1,32 @@
 use crate::file;
 use crate::writer::file::SeqFileWriter;
 use crate::{DownloadResult, ProgressEntry, auto};
-use reqwest::{Client, IntoUrl};
-use std::{io::ErrorKind, path::Path, time::Duration};
+use reqwest::{Client, IntoUrl, Url};
 use std::num::NonZeroUsize;
+use std::{io, io::ErrorKind, path::Path, time::Duration};
 use tokio::fs::{self, OpenOptions};
 
 #[derive(Debug, Clone)]
 pub struct DownloadOptions {
     pub concurrent: Option<NonZeroUsize>,
-    pub write_buffer_size: usize,
     pub retry_gap: Duration,
-    pub file_size: u64,
+    pub write_buffer_size: usize,
     pub write_channel_size: usize,
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum DownloadErrorKind {
-    #[error("Reqwest error: {0}")]
-    Reqwest(#[from] reqwest::Error),
-    #[error("IO error: {0}")]
-    Io(#[from] std::io::Error),
 }
 
 pub async fn download(
     client: Client,
-    url: impl IntoUrl,
+    url: Url,
     download_chunks: Vec<ProgressEntry>,
+    file_size: u64,
     save_path: &Path,
     options: DownloadOptions,
-) -> Result<DownloadResult, DownloadErrorKind> {
-    let save_folder = save_path
-        .parent()
-        .ok_or(DownloadErrorKind::Io(ErrorKind::NotFound.into()))?;
+) -> Result<DownloadResult, io::Error> {
+    let save_folder = save_path.parent().ok_or(ErrorKind::NotFound)?;
     if let Err(e) = fs::create_dir_all(save_folder).await
         && e.kind() != ErrorKind::AlreadyExists
     {
-        return Err(DownloadErrorKind::Io(e));
+        return Err(e);
     }
     let file = OpenOptions::new()
         .read(true)
@@ -44,41 +34,34 @@ pub async fn download(
         .create(true)
         .truncate(false)
         .open(&save_path)
-        .await
-        .map_err(DownloadErrorKind::Io)?;
-    let seq_file_writer = SeqFileWriter::new(
-        file.try_clone().await.map_err(DownloadErrorKind::Io)?,
-        options.write_buffer_size,
-    );
+        .await?;
+    let seq_file_writer = SeqFileWriter::new(file.try_clone().await?, options.write_buffer_size);
     #[cfg(target_pointer_width = "64")]
     let rand_file_writer = file::rand_file_writer_mmap::RandFileWriter::new(
         file,
-        options.file_size,
+        file_size,
         options.write_buffer_size,
     )
-    .await
-    .map_err(DownloadErrorKind::Io)?;
+    .await?;
     #[cfg(not(target_pointer_width = "64"))]
     let rand_file_writer = file::rand_file_writer_std::RandFileWriter::new(
         file,
         options.file_size,
         options.write_buffer_size,
     )
-    .await
-    .map_err(|e| DownloadErrorKind::Io(e))?;
-    auto::download(
+    .await?;
+    Ok(auto::download(
         client,
         url,
         download_chunks,
         seq_file_writer,
         rand_file_writer,
         auto::DownloadOptions {
+            file_size,
             concurrent: options.concurrent,
             retry_gap: options.retry_gap,
-            file_size: options.file_size,
             write_channel_size: options.write_channel_size,
         },
     )
-    .await
-    .map_err(DownloadErrorKind::Reqwest)
+    .await)
 }

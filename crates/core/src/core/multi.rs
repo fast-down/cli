@@ -152,7 +152,7 @@ pub async fn download(
                             let range_end = range.start + downloaded;
                             let span = range_start..range_end.min(task_list.get(task.end()));
                             let len = span.total();
-                            tx.send(Event::DownloadProgress(span.clone()))
+                            tx.send(Event::DownloadProgress(id, span.clone()))
                                 .await
                                 .unwrap();
                             tx_write
@@ -263,7 +263,7 @@ mod tests {
         let mut write_progress: Vec<ProgressEntry> = Vec::new();
         while let Ok(e) = result.event_chain.recv().await {
             match e {
-                Event::DownloadProgress(p) => {
+                Event::DownloadProgress(_, p) => {
                     download_progress.merge_progress(p);
                 }
                 Event::WriteProgress(p) => {
@@ -362,7 +362,7 @@ mod tests {
         let mut write_progress: Vec<ProgressEntry> = Vec::new();
         while let Ok(e) = result.event_chain.recv().await {
             match e {
-                Event::DownloadProgress(p) => {
+                Event::DownloadProgress(_, p) => {
                     download_progress.merge_progress(p);
                 }
                 Event::WriteProgress(p) => {
@@ -464,7 +464,7 @@ mod tests {
             let mut download_progress: Vec<ProgressEntry> = Vec::new();
             while let Ok(e) = result.event_chain.recv().await {
                 match e {
-                    Event::DownloadProgress(p) => {
+                    Event::DownloadProgress(_, p) => {
                         download_progress.merge_progress(p);
                     }
                     Event::WriteProgress(p) => {
@@ -521,7 +521,7 @@ mod tests {
         let mut write_progress: Vec<ProgressEntry> = Vec::new();
         while let Ok(e) = result.event_chain.recv().await {
             match e {
-                Event::DownloadProgress(p) => {
+                Event::DownloadProgress(_, p) => {
                     download_progress.merge_progress(p);
                 }
                 Event::WriteProgress(p) => {

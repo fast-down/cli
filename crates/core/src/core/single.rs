@@ -82,7 +82,7 @@ pub async fn download(
             let chunk = chunk.unwrap();
             let len = chunk.len() as u64;
             let span = downloaded..(downloaded + len);
-            tx.send(Event::DownloadProgress(span.clone()))
+            tx.send(Event::DownloadProgress(0, span.clone()))
                 .await
                 .unwrap();
             tx_write.send((span, chunk)).await.unwrap();
@@ -154,7 +154,7 @@ mod tests {
         assert_eq!(
             progress_events
                 .iter()
-                .map(|m| if let Event::DownloadProgress(p) = m {
+                .map(|m| if let Event::DownloadProgress(_, p) = m {
                     p.total()
                 } else {
                     0
@@ -225,7 +225,7 @@ mod tests {
         assert_eq!(
             progress_events
                 .iter()
-                .map(|m| if let Event::DownloadProgress(p) = m {
+                .map(|m| if let Event::DownloadProgress(_, p) = m {
                     p.total()
                 } else {
                     0
@@ -295,7 +295,7 @@ mod tests {
         assert_eq!(
             progress_events
                 .iter()
-                .map(|m| if let Event::DownloadProgress(p) = m {
+                .map(|m| if let Event::DownloadProgress(_, p) = m {
                     p.total()
                 } else {
                     0
@@ -365,7 +365,7 @@ mod tests {
         assert_eq!(
             progress_events
                 .iter()
-                .map(|m| if let Event::DownloadProgress(p) = m {
+                .map(|m| if let Event::DownloadProgress(_, p) = m {
                     p.total()
                 } else {
                     0

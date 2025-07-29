@@ -266,7 +266,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     let start = Instant::now();
     while let Ok(e) = result.event_chain.recv().await {
         match e {
-            Event::DownloadProgress(p) => painter.lock().await.add(p),
+            Event::DownloadProgress(_, p) => painter.lock().await.add(p),
             Event::WriteProgress(p) => {
                 write_progress.merge_progress(p);
                 if last_db_update.elapsed().as_secs() >= 1 {

@@ -73,6 +73,9 @@ impl TaskUrlInfo {
         }
     }
 
+    /// # Safety
+    ///
+    /// Calling this method on an `Pending` variant is undefined behavior  .
     pub unsafe fn unwrap_unchecked(&self) -> Rc<UrlInfo> {
         match self {
             TaskUrlInfo::Pending(_) => unsafe { std::hint::unreachable_unchecked() },
@@ -308,7 +311,7 @@ impl App {
                                 Event::WriteError(err) => {
                                     failures.push_back(DownloadErrors::Write(err))
                                 }
-                                Event::WriteProgress(progress) => {
+                                Event::WriteProgress(_, progress) => {
                                     // eprintln!("write progress {:?}", progress);
                                 }
                                 Event::Finished(id) => {
@@ -345,7 +348,7 @@ impl App {
                 .send(Self::create_download_command(
                     &task.info.unwrap(),
                     client,
-                    &mut task,
+                    task,
                     None,
                     None,
                 ))
@@ -369,6 +372,7 @@ impl App {
         if !info.can_fast_download {
             options.concurrent = None;
         }
+        #[allow(clippy::single_range_in_vec_init)]
         worker::Task::Download(
             client,
             task.url.clone(),
@@ -437,17 +441,16 @@ impl App {
     }
 
     fn handle_events(&mut self) -> io::Result<()> {
-        match event::poll(Duration::from_millis(50))? {
-            true => match event::read()? {
+        if event::poll(Duration::from_millis(50))? {
+            match event::read()? {
                 // it's important to check that the event is a key press event as
                 // crossterm also emits key release and repeat events on Windows.
                 TermEvent::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                     self.handle_key_event(key_event)
                 }
                 _ => {}
-            },
-            _ => {}
-        };
+            }
+        }
         Ok(())
     }
 }

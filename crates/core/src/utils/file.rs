@@ -1,7 +1,7 @@
 use crate::file;
 use crate::writer::file::SeqFileWriter;
 use crate::{DownloadResult, ProgressEntry, auto};
-use reqwest::{Client, IntoUrl, Url};
+use reqwest::{Client, Url};
 use std::num::NonZeroUsize;
 use std::{io, io::ErrorKind, path::Path, time::Duration};
 use tokio::fs::{self, OpenOptions};

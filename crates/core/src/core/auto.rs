@@ -1,7 +1,7 @@
 use super::{DownloadResult, multi, single};
 use crate::{ProgressEntry, RandWriter, SeqWriter};
 use core::time::Duration;
-use reqwest::{Client, IntoUrl, Url};
+use reqwest::{Client, Url};
 use std::num::NonZeroUsize;
 
 #[derive(Debug, Clone)]

@@ -264,7 +264,7 @@ mod tests {
                 Event::DownloadProgress(_, p) => {
                     download_progress.merge_progress(p);
                 }
-                Event::WriteProgress(p) => {
+                Event::WriteProgress(_, p) => {
                     write_progress.merge_progress(p);
                 }
                 _ => {}
@@ -362,7 +362,7 @@ mod tests {
                 Event::DownloadProgress(_, p) => {
                     download_progress.merge_progress(p);
                 }
-                Event::WriteProgress(p) => {
+                Event::WriteProgress(_, p) => {
                     write_progress.merge_progress(p);
                 }
                 _ => {}

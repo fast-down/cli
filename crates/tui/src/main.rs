@@ -278,7 +278,7 @@ impl App {
                     TaskUrlInfo::Ready(_) if task.auto => {
                         pending_downloads.push(task.id);
                     }
-                    _ => {}
+                    TaskUrlInfo::Ready(_) => {}
                 },
                 TaskState::Request(rx) => match rx.try_recv() {
                     Ok(Ok(result)) => task.state = TaskState::Download(Default::default(), result),

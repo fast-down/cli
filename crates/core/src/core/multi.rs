@@ -1,5 +1,5 @@
 use super::DownloadResult;
-use crate::{ConnectErrorKind, Event, ProgressEntry, RandWriter, Total};
+use crate::{ConnectErrorKind, Event, ProgressEntry, RandWriter, Total, WorkerId};
 use bytes::Bytes;
 use fast_steal::{SplitTask, StealTask, Task, TaskList};
 use reqwest::{Client, StatusCode, Url, header};
@@ -29,10 +29,10 @@ pub async fn download(
 ) -> DownloadResult {
     let (tx, event_chain) = async_channel::unbounded();
     let (tx_write, rx_write) =
-        async_channel::bounded::<(ProgressEntry, Bytes)>(options.write_channel_size);
+        async_channel::bounded::<(WorkerId, ProgressEntry, Bytes)>(options.write_channel_size);
     let tx_clone = tx.clone();
     let handle = tokio::spawn(async move {
-        while let Ok((spin, data)) = rx_write.recv().await {
+        while let Ok((id, spin, data)) = rx_write.recv().await {
             loop {
                 match writer.write_randomly(spin.clone(), &data).await {
                     Ok(_) => break,
@@ -40,7 +40,7 @@ pub async fn download(
                 }
                 tokio::time::sleep(options.retry_gap).await;
             }
-            tx_clone.send(Event::WriteProgress(spin)).await.unwrap();
+            tx_clone.send(Event::WriteProgress(id, spin)).await.unwrap();
         }
         loop {
             match writer.flush().await {
@@ -155,7 +155,7 @@ pub async fn download(
                                 .await
                                 .unwrap();
                             tx_write
-                                .send((span, chunk.split_to(len as usize)))
+                                .send((id, span, chunk.split_to(len as usize)))
                                 .await
                                 .unwrap();
                             if start >= task.end() {

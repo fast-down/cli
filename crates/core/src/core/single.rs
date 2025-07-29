@@ -33,7 +33,7 @@ pub async fn download(
                 }
                 tokio::time::sleep(options.retry_gap).await;
             }
-            tx_clone.send(Event::WriteProgress(spin)).await.unwrap();
+            tx_clone.send(Event::WriteProgress(0, spin)).await.unwrap();
         }
         loop {
             match writer.flush().await {
@@ -163,7 +163,7 @@ mod tests {
         assert_eq!(
             progress_events
                 .iter()
-                .map(|m| if let Event::WriteProgress(p) = m {
+                .map(|m| if let Event::WriteProgress(_, p) = m {
                     p.total()
                 } else {
                     0
@@ -233,7 +233,7 @@ mod tests {
         assert_eq!(
             progress_events
                 .iter()
-                .map(|m| if let Event::WriteProgress(p) = m {
+                .map(|m| if let Event::WriteProgress(_, p) = m {
                     p.total()
                 } else {
                     0
@@ -302,7 +302,7 @@ mod tests {
         assert_eq!(
             progress_events
                 .iter()
-                .map(|m| if let Event::WriteProgress(p) = m {
+                .map(|m| if let Event::WriteProgress(_, p) = m {
                     p.total()
                 } else {
                     0
@@ -373,7 +373,7 @@ mod tests {
         assert_eq!(
             progress_events
                 .iter()
-                .map(|m| if let Event::WriteProgress(p) = m {
+                .map(|m| if let Event::WriteProgress(_, p) = m {
                     p.total()
                 } else {
                     0

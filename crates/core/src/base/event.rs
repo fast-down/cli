@@ -29,7 +29,7 @@ pub enum Event {
     /// error writing
     WriteError(std::io::Error),
     /// write progress
-    WriteProgress(ProgressEntry),
+    WriteProgress(WorkerId, ProgressEntry),
     /// worker finished given task
     Finished(WorkerId),
     /// worker aborted

@@ -1,7 +1,7 @@
 use crate::client::ClientId;
 use fast_down::file::DownloadOptions;
 use fast_down::{
-    ConnectErrorKind, DownloadResult, MergeProgress, ProgressEntry, UrlInfo, WorkerId,
+    ConnectErrorKind, DownloadResult, MergeProgress, ProgressEntry, Total, UrlInfo, WorkerId,
 };
 use reqwest::Url;
 use std::collections::VecDeque;
@@ -36,16 +36,22 @@ pub enum FDWorkerState {
 #[derive(Debug)]
 pub struct Statistics {
     pub(crate) state: Box<[FDWorkerState]>,
-    pub(crate) write_progress: Box<[Vec<ProgressEntry>]>,
-    pub(crate) download_progress: Box<[Vec<ProgressEntry>]>,
+    pub(crate) write_entries: Box<[Vec<ProgressEntry>]>,
+    pub(crate) download_entries: Box<[Vec<ProgressEntry>]>,
+    pub(crate) written: u64,
+    pub(crate) downloaded: u64,
+    pub(crate) total: u64,
 }
 
 impl Statistics {
-    pub fn new(count: usize) -> Statistics {
+    pub fn new(count: usize, total: u64) -> Statistics {
         Statistics {
             state: vec![FDWorkerState::None; count].into_boxed_slice(),
-            write_progress: vec![Vec::new(); count].into_boxed_slice(),
-            download_progress: vec![Vec::new(); count].into_boxed_slice(),
+            write_entries: vec![Vec::new(); count].into_boxed_slice(),
+            download_entries: vec![Vec::new(); count].into_boxed_slice(),
+            written: 0,
+            downloaded: 0,
+            total,
         }
     }
 
@@ -53,12 +59,14 @@ impl Statistics {
         self.state[id] = state;
     }
 
-    pub fn write_progress(&mut self, id: usize, entry: ProgressEntry) {
-        self.write_progress[id].merge_progress(entry);
+    pub fn update_write(&mut self, id: usize, entry: ProgressEntry) {
+        self.written += entry.total();
+        self.write_entries[id].merge_progress(entry);
     }
 
-    pub fn download_progress(&mut self, id: usize, entry: ProgressEntry) {
-        self.download_progress[id].merge_progress(entry);
+    pub fn update_download(&mut self, id: usize, entry: ProgressEntry) {
+        self.downloaded += entry.total();
+        self.download_entries[id].merge_progress(entry);
     }
 }
 

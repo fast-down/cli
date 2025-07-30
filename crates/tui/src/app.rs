@@ -1,10 +1,9 @@
 use crate::client::{Client, ClientId};
 use crate::common::ClientOptions;
-use crate::render::draw_main;
 use crate::state::{
     DownloadErrors, DownloadTask, FDWorkerState, Statistics, TaskId, TaskState, TaskUrlInfo,
 };
-use crate::worker;
+use crate::{render, worker};
 use arboard::Clipboard;
 use crossterm::event as term;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
@@ -45,6 +44,7 @@ impl Default for AppFocus {
 pub struct App {
     pub exit: bool,
 
+    pub(crate) states: type_map::TypeMap,
     pub(crate) capture: Option<Box<dyn FnMut(KeyEvent)>>,
     pub(crate) focus: AppFocus,
     pub(crate) scroll: Option<usize>,
@@ -72,6 +72,7 @@ impl Default for App {
         Self {
             clients,
             worker: tx,
+            states: Default::default(),
             scroll: Default::default(),
             selected: Default::default(),
             tasks: Default::default(),
@@ -86,6 +87,7 @@ impl Default for App {
 impl App {
     /// runs the application's main loop until the user quits
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
+        render::init_state(self);
         while !self.exit {
             terminal.draw(|frame| self.draw(frame))?;
             self.handle_events()?;
@@ -98,7 +100,7 @@ impl App {
         use self::Page::*;
 
         match &self.focus {
-            AppFocus::Page(Main) => draw_main(self, frame),
+            AppFocus::Page(Main) => render::draw_main(self, frame),
             AppFocus::Overlay => todo!(),
         }
     }
@@ -156,10 +158,10 @@ impl App {
                                 statistics.worker_state(id, FDWorkerState::Downloading);
                             }
                             Event::DownloadProgress(id, progress) => {
-                                statistics.download_progress(id, progress);
+                                statistics.update_download(id, progress);
                             }
                             Event::WriteProgress(id, progress) => {
-                                statistics.write_progress(id, progress);
+                                statistics.update_write(id, progress);
                             }
                             Event::Finished(id) => {
                                 statistics.worker_state(id, FDWorkerState::Finished);
@@ -237,6 +239,7 @@ impl App {
         task.state = TaskState::Request(
             Some(Statistics::new(
                 options.concurrent.map(NonZeroUsize::get).unwrap_or(1),
+                info.file_size,
             )),
             rx,
         );

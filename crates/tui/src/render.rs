@@ -1,8 +1,28 @@
 use crate::app::App;
+use crate::state::{FDWorkerState, TaskState};
+use crate::widget::stats::WorkerStats;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
-fn stat() {}
+pub struct MainPageState {
+    widget_pool: swimmer::Pool<WorkerStats>,
+}
+
+impl MainPageState {
+    pub fn new() -> MainPageState {
+        MainPageState {
+            widget_pool: swimmer::Pool::with_size(2),
+        }
+    }
+
+    pub(crate) fn fetch_stats_widget(&self) -> swimmer::Recycled<WorkerStats> {
+        self.widget_pool.get()
+    }
+}
+
+pub fn init_state(app: &mut App) {
+    app.states.insert(MainPageState::new());
+}
 
 pub fn draw_main(app: &App, frame: &mut Frame) {
     let layout = Layout::default()
@@ -31,10 +51,39 @@ pub fn draw_main(app: &App, frame: &mut Frame) {
     let statistics_block = Block::bordered()
         .title(" Statistics ")
         .border_type(BorderType::Rounded);
-    let statistics = if let Some(_) = app.selected {
-        statistics_block
+    if let Some(id) = app.selected {
+        frame.render_widget(&statistics_block, layout[1]);
+        let task = app.tasks.get(&id).unwrap();
+        match &task.state {
+            TaskState::Pending(_) => { /* todo */ }
+            TaskState::Request(_, _) => { /* todo */ }
+            TaskState::Download(statistics, _, _) => {
+                let mut s_rect = statistics_block.inner(layout[1]);
+                frame.render_widget(statistics_block, layout[1]);
+                let state = app.states.get::<MainPageState>().unwrap();
+                let mut wid = state.fetch_stats_widget();
+                for idx in 0..statistics.state.len() {
+                    s_rect = wid.render(
+                        s_rect,
+                        false,
+                        Span::raw("[Worker 0]"),
+                        &statistics.state[idx],
+                        &statistics.download_entries[idx],
+                        &[0..756],
+                        statistics.written,
+                        statistics.downloaded,
+                        statistics.total,
+                        frame.buffer_mut(),
+                    );
+                }
+            }
+            TaskState::Completed => {}
+            TaskState::IoError(_) => { /* todo */ }
+        }
     } else {
-        statistics_block.style(Style::default().bg(Color::DarkGray))
+        frame.render_widget(
+            statistics_block.style(Style::default().bg(Color::DarkGray)),
+            layout[1],
+        );
     };
-    frame.render_widget(statistics, layout[1]);
 }

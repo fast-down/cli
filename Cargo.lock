@@ -1882,8 +1882,10 @@ dependencies = [
  "rkyv",
  "slab",
  "smallvec",
+ "swimmer",
  "thiserror 2.0.12",
  "tokio",
+ "type-map",
 ]
 
 [[package]]
@@ -5629,6 +5631,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "swimmer"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "963def60929892c4b13817d852a02ae7516d43e5aa8e0eeb560f580b1ce1e157"
+dependencies = [
+ "thread_local 0.3.6",
+]
+
+[[package]]
 name = "syn"
 version = "2.0.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5785,6 +5796,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "thread_local"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6b53e329000edc2b34dbe8545fd20e55a333362d0a321909685a19bd28c3f1b"
+dependencies = [
+ "lazy_static",
 ]
 
 [[package]]
@@ -6102,7 +6122,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8189decb5ac0fa7bc8b96b7cb9b2701d60d48805aca84a238004d665fcc4008"
 dependencies = [
  "sharded-slab",
- "thread_local",
+ "thread_local 1.1.9",
  "tracing-core",
 ]
 
@@ -6149,6 +6169,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
 dependencies = [
  "core_maths",
+]
+
+[[package]]
+name = "type-map"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb30dbbd9036155e74adad6812e9898d03ec374946234fbcebd5dfc7b9187b90"
+dependencies = [
+ "rustc-hash 2.1.1",
 ]
 
 [[package]]

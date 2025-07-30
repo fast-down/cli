@@ -1,9 +1,9 @@
 mod app;
 mod client;
 mod common;
-mod progress;
 mod render;
 mod state;
+mod widget;
 mod worker;
 
 use crate::app::App;

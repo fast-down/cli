@@ -12,7 +12,6 @@ use tokio::{
     task::{JoinError, JoinHandle},
 };
 
-pub mod auto;
 pub mod multi;
 pub mod prefetch;
 pub mod single;
@@ -44,6 +43,7 @@ impl DownloadResult {
         Ok(())
     }
 
+    /// 取消后记得调用 `self.join().await` 等待真正的退出
     pub fn cancel(&self) {
         self.is_running.store(false, Ordering::Relaxed);
     }

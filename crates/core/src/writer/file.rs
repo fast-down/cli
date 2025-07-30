@@ -203,7 +203,7 @@ mod tests {
             .await?
             .read_to_end(&mut file_content)
             .await?;
-        assert_eq!(file_content, b"\0\0234\0\0\0\0\0");
+        assert_eq!(file_content, b"\0\x00234\0\0\0\0\0");
 
         Ok(())
     }

@@ -1,6 +1,6 @@
 use super::DownloadResult;
 use crate::{ConnectErrorKind, Event, SeqWriter};
-use reqwest::{Client, Url};
+use reqwest::{Client, Error, IntoUrl};
 use std::{
     sync::{
         Arc,
@@ -15,81 +15,94 @@ pub struct DownloadOptions {
     pub write_channel_size: usize,
 }
 
-pub async fn download(
-    client: Client,
-    url: Url,
-    mut writer: impl SeqWriter + 'static,
-    options: DownloadOptions,
-) -> DownloadResult {
-    let (tx, event_chain) = async_channel::unbounded();
-    let (tx_write, rx_write) = async_channel::bounded(options.write_channel_size);
-    let tx_clone = tx.clone();
-    let handle = tokio::spawn(async move {
-        while let Ok((spin, data)) = rx_write.recv().await {
-            loop {
-                match writer.write_sequentially(&data).await {
-                    Ok(_) => break,
-                    Err(e) => tx_clone.send(Event::WriteError(e)).await.unwrap(),
+pub trait DownloadSingle {
+    fn download_single(
+        &self,
+        url: impl IntoUrl + Send,
+        writer: impl SeqWriter + 'static,
+        options: DownloadOptions,
+    ) -> impl Future<Output = Result<DownloadResult, Error>> + Send;
+}
+
+impl DownloadSingle for Client {
+    async fn download_single(
+        &self,
+        url: impl IntoUrl + Send,
+        mut writer: impl SeqWriter + 'static,
+        options: DownloadOptions,
+    ) -> Result<DownloadResult, Error> {
+        let url = url.into_url()?;
+        let (tx, event_chain) = async_channel::unbounded();
+        let (tx_write, rx_write) = async_channel::bounded(options.write_channel_size);
+        let tx_clone = tx.clone();
+        let handle = tokio::spawn(async move {
+            while let Ok((spin, data)) = rx_write.recv().await {
+                loop {
+                    match writer.write_sequentially(&data).await {
+                        Ok(_) => break,
+                        Err(e) => tx_clone.send(Event::WriteError(0, e)).await.unwrap(),
+                    }
+                    tokio::time::sleep(options.retry_gap).await;
                 }
+                tx_clone.send(Event::WriteProgress(0, spin)).await.unwrap();
+            }
+            loop {
+                match writer.flush().await {
+                    Ok(_) => break,
+                    Err(e) => tx_clone.send(Event::WriteError(0, e)).await.unwrap(),
+                };
                 tokio::time::sleep(options.retry_gap).await;
             }
-            tx_clone.send(Event::WriteProgress(0, spin)).await.unwrap();
-        }
-        loop {
-            match writer.flush().await {
-                Ok(_) => break,
-                Err(e) => tx_clone.send(Event::WriteError(e)).await.unwrap(),
-            };
-            tokio::time::sleep(options.retry_gap).await;
-        }
-    });
-    let running = Arc::new(AtomicBool::new(true));
-    let running_clone = running.clone();
-    tokio::spawn(async move {
-        let mut downloaded: u64 = 0;
-        let mut response = loop {
-            if !running.load(Ordering::Relaxed) {
-                tx.send(Event::Abort(0)).await.unwrap();
-                return;
-            }
-            tx.send(Event::Connecting(0)).await.unwrap();
-            match client.get(url.clone()).send().await {
-                Ok(response) => break response,
-                Err(e) => tx
-                    .send(Event::ConnectError(0, ConnectErrorKind::Reqwest(e)))
-                    .await
-                    .unwrap(),
-            }
-            tokio::time::sleep(options.retry_gap).await;
-        };
-        tx.send(Event::Downloading(0)).await.unwrap();
-        loop {
-            let chunk = loop {
+        });
+        let running = Arc::new(AtomicBool::new(true));
+        let running_clone = running.clone();
+        let client = self.clone();
+        tokio::spawn(async move {
+            let mut downloaded: u64 = 0;
+            let mut response = loop {
                 if !running.load(Ordering::Relaxed) {
                     tx.send(Event::Abort(0)).await.unwrap();
                     return;
                 }
-                match response.chunk().await {
-                    Ok(chunk) => break chunk,
-                    Err(e) => tx.send(Event::DownloadError(0, e)).await.unwrap(),
+                tx.send(Event::Connecting(0)).await.unwrap();
+                match client.get(url.clone()).send().await {
+                    Ok(response) => break response,
+                    Err(e) => tx
+                        .send(Event::ConnectError(0, ConnectErrorKind::Reqwest(e)))
+                        .await
+                        .unwrap(),
                 }
                 tokio::time::sleep(options.retry_gap).await;
             };
-            if chunk.is_none() {
-                break;
+            tx.send(Event::Downloading(0)).await.unwrap();
+            loop {
+                let chunk = loop {
+                    if !running.load(Ordering::Relaxed) {
+                        tx.send(Event::Abort(0)).await.unwrap();
+                        return;
+                    }
+                    match response.chunk().await {
+                        Ok(chunk) => break chunk,
+                        Err(e) => tx.send(Event::DownloadError(0, e)).await.unwrap(),
+                    }
+                    tokio::time::sleep(options.retry_gap).await;
+                };
+                if chunk.is_none() {
+                    break;
+                }
+                let chunk = chunk.unwrap();
+                let len = chunk.len() as u64;
+                let span = downloaded..(downloaded + len);
+                tx.send(Event::DownloadProgress(0, span.clone()))
+                    .await
+                    .unwrap();
+                tx_write.send((span, chunk)).await.unwrap();
+                downloaded += len;
             }
-            let chunk = chunk.unwrap();
-            let len = chunk.len() as u64;
-            let span = downloaded..(downloaded + len);
-            tx.send(Event::DownloadProgress(0, span.clone()))
-                .await
-                .unwrap();
-            tx_write.send((span, chunk)).await.unwrap();
-            downloaded += len as u64;
-        }
-        tx.send(Event::Finished(0)).await.unwrap();
-    });
-    DownloadResult::new(event_chain, handle, running_clone)
+            tx.send(Event::Finished(0)).await.unwrap();
+        });
+        Ok(DownloadResult::new(event_chain, handle, running_clone))
+    }
 }
 
 #[cfg(test)]
@@ -104,6 +117,31 @@ mod tests {
 
     fn build_mock_data(size: usize) -> Vec<u8> {
         (0..size).map(|i| (i % 256) as u8).collect()
+    }
+
+    fn assert_progress(events: Vec<Event>, len: usize) {
+        assert_eq!(
+            events
+                .iter()
+                .map(|m| if let Event::DownloadProgress(0, p) = m {
+                    p.total()
+                } else {
+                    0
+                })
+                .sum::<u64>(),
+            len as u64
+        );
+        assert_eq!(
+            events
+                .iter()
+                .map(|m| if let Event::WriteProgress(0, p) = m {
+                    p.total()
+                } else {
+                    0
+                })
+                .sum::<u64>(),
+            len as u64
+        );
     }
 
     #[tokio::test]
@@ -122,16 +160,17 @@ mod tests {
         let file = temp_file.reopen().unwrap().into();
 
         let client = Client::new();
-        let result = download(
-            client,
-            format!("{}/small", server.url()).parse().unwrap(),
-            SeqFileWriter::new(file, 8 * 1024 * 1024),
-            DownloadOptions {
-                retry_gap: Duration::from_secs(1),
-                write_channel_size: 1024,
-            },
-        )
-        .await;
+        let result = client
+            .download_single(
+                format!("{}/small", server.url()),
+                SeqFileWriter::new(file, 8 * 1024 * 1024),
+                DownloadOptions {
+                    retry_gap: Duration::from_secs(1),
+                    write_channel_size: 1024,
+                },
+            )
+            .await
+            .unwrap();
 
         let mut progress_events = Vec::new();
         while let Ok(event) = result.event_chain.recv().await {
@@ -148,29 +187,7 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(file_content, mock_body);
-
-        assert_eq!(
-            progress_events
-                .iter()
-                .map(|m| if let Event::DownloadProgress(_, p) = m {
-                    p.total()
-                } else {
-                    0
-                })
-                .sum::<u64>(),
-            mock_body.len() as u64
-        );
-        assert_eq!(
-            progress_events
-                .iter()
-                .map(|m| if let Event::WriteProgress(_, p) = m {
-                    p.total()
-                } else {
-                    0
-                })
-                .sum::<u64>(),
-            mock_body.len() as u64
-        );
+        assert_progress(progress_events, mock_body.len());
         mock.assert_async().await;
     }
 
@@ -190,16 +207,17 @@ mod tests {
         let file = temp_file.reopen().unwrap().into();
 
         let client = Client::new();
-        let result = download(
-            client,
-            format!("{}/empty", server.url()).parse().unwrap(),
-            SeqFileWriter::new(file, 8 * 1024 * 1024),
-            DownloadOptions {
-                retry_gap: Duration::from_secs(1),
-                write_channel_size: 1024,
-            },
-        )
-        .await;
+        let result = client
+            .download_single(
+                format!("{}/empty", server.url()),
+                SeqFileWriter::new(file, 8 * 1024 * 1024),
+                DownloadOptions {
+                    retry_gap: Duration::from_secs(1),
+                    write_channel_size: 1024,
+                },
+            )
+            .await
+            .unwrap();
 
         let mut progress_events = Vec::new();
         while let Ok(event) = result.event_chain.recv().await {
@@ -219,28 +237,7 @@ mod tests {
         assert!(file_content.is_empty());
 
         // 验证无进度事件
-        assert_eq!(
-            progress_events
-                .iter()
-                .map(|m| if let Event::DownloadProgress(_, p) = m {
-                    p.total()
-                } else {
-                    0
-                })
-                .sum::<u64>(),
-            mock_body.len() as u64
-        );
-        assert_eq!(
-            progress_events
-                .iter()
-                .map(|m| if let Event::WriteProgress(_, p) = m {
-                    p.total()
-                } else {
-                    0
-                })
-                .sum::<u64>(),
-            mock_body.len() as u64
-        );
+        assert_progress(progress_events, mock_body.len());
         mock.assert_async().await;
     }
 
@@ -259,16 +256,17 @@ mod tests {
         let file = temp_file.reopen().unwrap().into();
 
         let client = Client::new();
-        let result = download(
-            client,
-            format!("{}/large", server.url()).parse().unwrap(),
-            SeqFileWriter::new(file, 8 * 1024 * 1024),
-            DownloadOptions {
-                retry_gap: Duration::from_secs(1),
-                write_channel_size: 1024,
-            },
-        )
-        .await;
+        let result = client
+            .download_single(
+                format!("{}/large", server.url()),
+                SeqFileWriter::new(file, 8 * 1024 * 1024),
+                DownloadOptions {
+                    retry_gap: Duration::from_secs(1),
+                    write_channel_size: 1024,
+                },
+            )
+            .await
+            .unwrap();
 
         let mut progress_events = Vec::new();
         while let Ok(event) = result.event_chain.recv().await {
@@ -288,28 +286,7 @@ mod tests {
         assert_eq!(file_content, mock_body);
 
         // 验证进度事件总和
-        assert_eq!(
-            progress_events
-                .iter()
-                .map(|m| if let Event::DownloadProgress(_, p) = m {
-                    p.total()
-                } else {
-                    0
-                })
-                .sum::<u64>(),
-            mock_body.len() as u64
-        );
-        assert_eq!(
-            progress_events
-                .iter()
-                .map(|m| if let Event::WriteProgress(_, p) = m {
-                    p.total()
-                } else {
-                    0
-                })
-                .sum::<u64>(),
-            mock_body.len() as u64
-        );
+        assert_progress(progress_events, mock_body.len());
         mock.assert_async().await;
     }
 
@@ -328,18 +305,17 @@ mod tests {
         let file = temp_file.reopen().unwrap().into();
 
         let client = Client::new();
-        let result = download(
-            client,
-            format!("{}/exact_buffer_size_file", server.url())
-                .parse()
-                .unwrap(),
-            SeqFileWriter::new(file, 8 * 1024 * 1024),
-            DownloadOptions {
-                retry_gap: Duration::from_secs(1),
-                write_channel_size: 1024,
-            },
-        )
-        .await;
+        let result = client
+            .download_single(
+                format!("{}/exact_buffer_size_file", server.url()),
+                SeqFileWriter::new(file, 8 * 1024 * 1024),
+                DownloadOptions {
+                    retry_gap: Duration::from_secs(1),
+                    write_channel_size: 1024,
+                },
+            )
+            .await
+            .unwrap();
 
         let mut progress_events = Vec::new();
         while let Ok(event) = result.event_chain.recv().await {
@@ -359,28 +335,7 @@ mod tests {
         assert_eq!(file_content, mock_body);
 
         // 验证进度事件完整性
-        assert_eq!(
-            progress_events
-                .iter()
-                .map(|m| if let Event::DownloadProgress(_, p) = m {
-                    p.total()
-                } else {
-                    0
-                })
-                .sum::<u64>(),
-            mock_body.len() as u64
-        );
-        assert_eq!(
-            progress_events
-                .iter()
-                .map(|m| if let Event::WriteProgress(_, p) = m {
-                    p.total()
-                } else {
-                    0
-                })
-                .sum::<u64>(),
-            mock_body.len() as u64
-        );
+        assert_progress(progress_events, mock_body.len());
         mock.assert_async().await;
     }
 }

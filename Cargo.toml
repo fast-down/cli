@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/core", "crates/cli", "crates/gui", "crates/wasm", "crates/tui"]
+members = ["crates/core", "crates/cli", "crates/gui", "crates/tui"]
 resolver = "2"
 
 [workspace.package]
@@ -11,33 +11,33 @@ readme = "README.md"
 exclude = ["/.github"]
 
 [workspace.dependencies]
-fast-down = { version = "2.0.3", path = "crates/core" }
-color-eyre = "0.6.3"
-reqwest = { version = "0.12.12", features = [
-  "gzip",
-  "brotli",
-  "zstd",
-  "deflate",
-  "http2",
-  "rustls-tls",
-  "socks",
-  "macos-system-configuration",
+fast-down = { version = "2.0.4", path = "crates/core" }
+color-eyre = "0.6.5"
+reqwest = { version = "0.12.22", features = [
+    "gzip",
+    "brotli",
+    "zstd",
+    "deflate",
+    "http2",
+    "rustls-tls",
+    "socks",
+    "macos-system-configuration",
 ], default-features = false }
-clap = { version = "4.5.36", features = ["derive"] }
-tokio = { version = "1.46.1", default-features = false, features = [
-  "io-std",
-  "rt-multi-thread",
+clap = { version = "4.5.41", features = ["derive"] }
+tokio = { version = "1.47.0", default-features = false, features = [
+    "io-std",
+    "rt-multi-thread",
 ] }
 path-clean = "1.0.1"
-ctrlc = "3.4.6"
+ctrlc = "3.4.7"
 url = "2.5.4"
-config = { version = "0.15.11", default-features = false, features = [
-  "toml",
-  "convert-case",
+config = { version = "0.15.13", default-features = false, features = [
+    "toml",
+    "convert-case",
 ] }
-mimalloc = "0.1.46"
+mimalloc = "0.1.47"
 tokio-rusqlite = { version = "0.6.0", features = ["bundled"] }
-tempfile = "3.18.0"
+tempfile = "3.20.0"
 async-channel = "2.5.0"
 
 [profile.release]

@@ -1,514 +1,524 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>fast-down 快下</title>
-    <style>
-      html {
-        scroll-behavior: smooth;
-      }
+    <head>
+        <meta charset="UTF-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>fast-down 快下</title>
+        <style>
+            html {
+                scroll-behavior: smooth;
+            }
 
-      :root {
-        --bg-color: #ffffff;
-        --text-color: #333333;
-        --accent-color: #007bff;
-        --secondary-bg-color: #fcfdff;
-        --border-color: #dee2e6;
-        --table-header-bg: #f4f6f8;
-        --link-color: var(--accent-color);
-        --button-text-color: #ffffff;
-      }
+            :root {
+                --bg-color: #ffffff;
+                --text-color: #333333;
+                --accent-color: #007bff;
+                --secondary-bg-color: #fcfdff;
+                --border-color: #dee2e6;
+                --table-header-bg: #f4f6f8;
+                --link-color: var(--accent-color);
+                --button-text-color: #ffffff;
+            }
 
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg-color: #1a1a1a;
-          --text-color: #e0e0e0;
-          --accent-color: #64b5f6;
-          --secondary-bg-color: #2c2c2c;
-          --border-color: #444444;
-          --table-header-bg: #333333;
-          --link-color: var(--accent-color);
-          --button-text-color: var(--bg-color);
-        }
-      }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg-color: #1a1a1a;
+                    --text-color: #e0e0e0;
+                    --accent-color: #64b5f6;
+                    --secondary-bg-color: #2c2c2c;
+                    --border-color: #444444;
+                    --table-header-bg: #333333;
+                    --link-color: var(--accent-color);
+                    --button-text-color: var(--bg-color);
+                }
+            }
 
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
 
-      body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-          Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-          "Segoe UI Symbol";
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        line-height: 1.6;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        transition: background-color 0.3s ease, color 0.3s ease;
-      }
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    Helvetica, Arial, sans-serif, "Apple Color Emoji",
+                    "Segoe UI Emoji", "Segoe UI Symbol";
+                background-color: var(--bg-color);
+                color: var(--text-color);
+                line-height: 1.6;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                transition: background-color 0.3s ease, color 0.3s ease;
+            }
 
-      .cli-img {
-        width: 100%;
-      }
+            .cli-img {
+                width: 100%;
+            }
 
-      .container {
-        width: 100%;
-        max-width: 960px;
-      }
+            .container {
+                width: 100%;
+                max-width: 960px;
+            }
 
-      .page-header {
-        margin-bottom: 1.5em;
-      }
+            .page-header {
+                margin-bottom: 1.5em;
+            }
 
-      h1 {
-        font-size: 2.8em;
-        margin-bottom: 0.3em;
-      }
+            h1 {
+                font-size: 2.8em;
+                margin-bottom: 0.3em;
+            }
 
-      h1 a {
-        color: var(--accent-color);
-        text-decoration: none;
-      }
+            h1 a {
+                color: var(--accent-color);
+                text-decoration: none;
+            }
 
-      h1 a:hover {
-        text-decoration: underline;
-      }
+            h1 a:hover {
+                text-decoration: underline;
+            }
 
-      h2.subtitle {
-        font-size: 1.5em;
-        color: var(--text-color);
-        opacity: 0.9;
-        font-weight: normal;
-      }
+            h2.subtitle {
+                font-size: 1.5em;
+                color: var(--text-color);
+                opacity: 0.9;
+                font-weight: normal;
+            }
 
-      .links-container {
-        margin-bottom: 2.5em;
-        display: flex;
-        gap: 15px;
-        justify-content: center;
-        flex-wrap: wrap;
-      }
+            .links-container {
+                margin-bottom: 2.5em;
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
 
-      .links-container a {
-        display: inline-block;
-        padding: 12px 20px;
-        background-color: var(--accent-color);
-        color: var(--button-text-color);
-        text-decoration: none;
-        border-radius: 6px;
-        transition: background-color 0.2s ease, transform 0.2s ease;
-        font-weight: 500;
-      }
+            .links-container a {
+                display: inline-block;
+                padding: 12px 20px;
+                background-color: var(--accent-color);
+                color: var(--button-text-color);
+                text-decoration: none;
+                border-radius: 6px;
+                transition: background-color 0.2s ease, transform 0.2s ease;
+                font-weight: 500;
+            }
 
-      .links-container a:hover {
-        transform: translateY(-2px);
-      }
+            .links-container a:hover {
+                transform: translateY(-2px);
+            }
 
-      .features {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 25px;
-        width: 100%;
-        margin-bottom: 2.5em;
-        text-align: left;
-      }
+            .features {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                gap: 25px;
+                width: 100%;
+                margin-bottom: 2.5em;
+                text-align: left;
+            }
 
-      .feature-item {
-        background-color: var(--secondary-bg-color);
-        padding: 25px;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        transition:
-          transform 0.2s ease,
-          box-shadow 0.2s ease,
-          background-color 0.3s ease,
-          border-color 0.3s ease;
-        min-width: 0;
-      }
+            .feature-item {
+                background-color: var(--secondary-bg-color);
+                padding: 25px;
+                border-radius: 8px;
+                border: 1px solid var(--border-color);
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+                transition:
+                    transform 0.2s ease,
+                    box-shadow 0.2s ease,
+                    background-color 0.3s ease,
+                    border-color 0.3s ease;
+                min-width: 0;
+            }
 
-      @media (prefers-color-scheme: dark) {
-        .feature-item {
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-        }
-      }
+            @media (prefers-color-scheme: dark) {
+                .feature-item {
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+                }
+            }
 
-      .feature-item:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-      }
+            .feature-item:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            }
 
-      @media (prefers-color-scheme: dark) {
-        .feature-item:hover {
-          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-        }
-      }
+            @media (prefers-color-scheme: dark) {
+                .feature-item:hover {
+                    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+                }
+            }
 
-      .feature-item h2 {
-        font-size: 1.4em;
-        color: var(--accent-color);
-        margin-bottom: 0.75em;
-      }
+            .feature-item h2 {
+                font-size: 1.4em;
+                color: var(--accent-color);
+                margin-bottom: 0.75em;
+            }
 
-      .feature-item p {
-        margin-bottom: 0.5em;
-        line-height: 1.7;
-      }
+            .feature-item p {
+                margin-bottom: 0.5em;
+                line-height: 1.7;
+            }
 
-      .feature-item a {
-        color: var(--link-color);
-        text-decoration: underline;
-        font-weight: 500;
-      }
+            .feature-item a {
+                color: var(--link-color);
+                text-decoration: underline;
+                font-weight: 500;
+            }
 
-      .feature-item a:hover {
-        text-decoration: none;
-      }
+            .feature-item a:hover {
+                text-decoration: none;
+            }
 
-      .feature-item strong {
-        color: var(--accent-color);
-        font-weight: bold;
-      }
+            .feature-item strong {
+                color: var(--accent-color);
+                font-weight: bold;
+            }
 
-      .feature-item.platform-support-item {
-        grid-column: 1 / -1;
-      }
+            .feature-item.platform-support-item {
+                grid-column: 1 / -1;
+            }
 
-      .feature-item.platform-support-item h2 {
-        text-align: center;
-      }
+            .feature-item.platform-support-item h2 {
+                text-align: center;
+            }
 
-      .feature-item.platform-support-item .platform-intro {
-        margin-bottom: 1em;
-        text-align: center;
-      }
+            .feature-item.platform-support-item .platform-intro {
+                margin-bottom: 1em;
+                text-align: center;
+            }
 
-      .table-wrapper {
-        overflow-x: auto;
-        width: 100%;
-        scrollbar-width: thin;
-        scrollbar-color: var(--border-color) var(--secondary-bg-color);
-      }
+            .table-wrapper {
+                overflow-x: auto;
+                width: 100%;
+                scrollbar-width: thin;
+                scrollbar-color: var(--border-color)
+                    var(--secondary-bg-color);
+            }
 
-      .table-wrapper::-webkit-scrollbar {
-        height: 10px;
-        width: 10px;
-      }
+            .table-wrapper::-webkit-scrollbar {
+                height: 10px;
+                width: 10px;
+            }
 
-      .table-wrapper::-webkit-scrollbar-track {
-        background: var(--secondary-bg-color);
-        border-radius: 5px;
-      }
+            .table-wrapper::-webkit-scrollbar-track {
+                background: var(--secondary-bg-color);
+                border-radius: 5px;
+            }
 
-      .table-wrapper::-webkit-scrollbar-thumb {
-        background-color: var(--border-color);
-        border-radius: 5px;
-        border: 2px solid var(--secondary-bg-color);
-      }
+            .table-wrapper::-webkit-scrollbar-thumb {
+                background-color: var(--border-color);
+                border-radius: 5px;
+                border: 2px solid var(--secondary-bg-color);
+            }
 
-      .table-wrapper::-webkit-scrollbar-corner {
-        background: var(--bg-color);
-      }
+            .table-wrapper::-webkit-scrollbar-corner {
+                background: var(--bg-color);
+            }
 
-      table {
-        width: 100%;
-        min-width: 380px;
-        border-collapse: collapse;
-        margin-top: 1em;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-      }
+            table {
+                width: 100%;
+                min-width: 380px;
+                border-collapse: collapse;
+                margin-top: 1em;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }
 
-      @media (prefers-color-scheme: dark) {
-        table {
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-      }
+            @media (prefers-color-scheme: dark) {
+                table {
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                }
+            }
 
-      th,
-      td {
-        border: 1px solid var(--border-color);
-        padding: 10px 12px;
-        text-align: center;
-      }
+            th,
+            td {
+                border: 1px solid var(--border-color);
+                padding: 10px 12px;
+                text-align: center;
+            }
 
-      thead {
-        background-color: var(--table-header-bg);
-      }
+            thead {
+                background-color: var(--table-header-bg);
+            }
 
-      thead th {
-        color: var(--text-color);
-        font-weight: 600;
-      }
+            thead th {
+                color: var(--text-color);
+                font-weight: 600;
+            }
 
-      @media (max-width: 768px) {
-        .container {
-          padding-left: 15px;
-          padding-right: 15px;
-        }
+            @media (max-width: 768px) {
+                .container {
+                    padding-left: 15px;
+                    padding-right: 15px;
+                }
 
-        .page-header {
-          margin-bottom: 1em;
-        }
+                .page-header {
+                    margin-bottom: 1em;
+                }
 
-        h1 {
-          font-size: 2.2em;
-        }
+                h1 {
+                    font-size: 2.2em;
+                }
 
-        h2.subtitle {
-          font-size: 1.3em;
-        }
+                h2.subtitle {
+                    font-size: 1.3em;
+                }
 
-        .links-container a {
-          padding: 10px 15px;
-          font-size: 0.95em;
-        }
+                .links-container a {
+                    padding: 10px 15px;
+                    font-size: 0.95em;
+                }
 
-        .features {
-          grid-template-columns: 1fr;
-          gap: 20px;
-        }
+                .features {
+                    grid-template-columns: 1fr;
+                    gap: 20px;
+                }
 
-        .feature-item {
-          padding: 20px;
-        }
+                .feature-item {
+                    padding: 20px;
+                }
 
-        th,
-        td {
-          padding: 8px;
-          font-size: 0.9em;
-        }
-      }
+                th,
+                td {
+                    padding: 8px;
+                    font-size: 0.9em;
+                }
+            }
 
-      @media (max-width: 480px) {
-        body {
-          padding: 10px;
-        }
+            @media (max-width: 480px) {
+                body {
+                    padding: 10px;
+                }
 
-        .container {
-          padding-left: 10px;
-          padding-right: 10px;
-        }
+                .container {
+                    padding-left: 10px;
+                    padding-right: 10px;
+                }
 
-        .page-header {
-          margin-bottom: 0.8em;
-        }
+                .page-header {
+                    margin-bottom: 0.8em;
+                }
 
-        h1 {
-          font-size: 1.9em;
-        }
+                h1 {
+                    font-size: 1.9em;
+                }
 
-        h2.subtitle {
-          font-size: 1.15em;
-        }
+                h2.subtitle {
+                    font-size: 1.15em;
+                }
 
-        .links-container {
-          flex-direction: column;
-          gap: 10px;
-        }
+                .links-container {
+                    flex-direction: column;
+                    gap: 10px;
+                }
 
-        .links-container a {
-          width: 100%;
-        }
+                .links-container a {
+                    width: 100%;
+                }
 
-        .feature-item h2 {
-          font-size: 1.25em;
-        }
+                .feature-item h2 {
+                    font-size: 1.25em;
+                }
 
-        .feature-item p {
-          font-size: 0.95em;
-        }
+                .feature-item p {
+                    font-size: 0.95em;
+                }
 
-        th,
-        td {
-          padding: 8px 6px;
-          font-size: 0.85em;
-        }
-      }
-    </style>
-  </head>
+                th,
+                td {
+                    padding: 8px 6px;
+                    font-size: 0.85em;
+                }
+            }
+        </style>
+    </head>
 
-  <body>
-    <div class="container">
-      <header class="page-header">
-        <h1>
-          <a
-            target="_blank"
-            href="https://github.com/share121/fast-down"
-            rel="noopener noreferrer"
-          >fast-down 快下</a>
-        </h1>
-        <h2 class="subtitle">
-          <span aria-hidden="true">🔥</span>全网最快下载器<span
-            aria-hidden="true"
-          >🔥</span>
-        </h2>
-      </header>
-      <main>
-        <div class="links-container">
-          <a href="#download">前往下载</a>
-          <a
-            target="_blank"
-            href="https://github.com/share121/fast-down"
-            rel="noopener noreferrer"
-          >前往 Github</a>
-          <a
-            target="_blank"
-            href="https://discord.gg/eSwjCrb5aE"
-            rel="noopener noreferrer"
-          >加入 Discord</a>
+    <body>
+        <div class="container">
+            <header class="page-header">
+                <h1>
+                    <a
+                        href="https://github.com/share121/fast-down"
+                        rel="noopener noreferrer"
+                        target="_blank"
+                    >fast-down 快下</a>
+                </h1>
+                <h2 class="subtitle">
+                    <span aria-hidden="true">🔥</span>全网最快下载器<span
+                        aria-hidden="true"
+                    >🔥</span>
+                </h2>
+            </header>
+            <main>
+                <div class="links-container">
+                    <a href="#download">前往下载</a>
+                    <a
+                        href="https://github.com/share121/fast-down"
+                        rel="noopener noreferrer"
+                        target="_blank"
+                    >前往 Github</a>
+                    <a
+                        href="https://discord.gg/eSwjCrb5aE"
+                        rel="noopener noreferrer"
+                        target="_blank"
+                    >加入 Discord</a>
+                </div>
+                <section class="features">
+                    <div class="feature-item">
+                        <h2><span aria-hidden="true">⚡️</span>极速下载</h2>
+                        <p>
+                            自研
+                            <a
+                                href="https://github.com/share121/fast-steal"
+                                rel="noopener noreferrer"
+                                target="_blank"
+                            >fast-steal</a>
+                            任务窃取算法，实测下载速度是 NDM 的 <strong>2.43
+                                倍</strong>
+                        </p>
+                    </div>
+                    <div class="feature-item">
+                        <h2><span aria-hidden="true">🔄</span>超强重试</h2>
+                        <p>
+                            下载时，切换 WiFi、关闭
+                            WiFi、切换代理，都能保证<strong
+                            >文件内容正确</strong>
+                        </p>
+                    </div>
+                    <div class="feature-item">
+                        <h2><span aria-hidden="true">⛓️‍💥</span>断点续传</h2>
+                        <p>
+                            下到一半<strong>随时暂停</strong>，之后还能<strong
+                            >继续传输</strong>
+                        </p>
+                    </div>
+                    <div class="feature-item">
+                        <h2><span aria-hidden="true">⛓️‍💥</span>增量续传</h2>
+                        <p>
+                            服务器日志今天下载完成，明天又多了 1000
+                            行，增量续传功能实现<strong>只传输新增的 1000
+                                行</strong>
+                        </p>
+                    </div>
+                    <div class="feature-item">
+                        <h2><span aria-hidden="true">💰</span>开源免费</h2>
+                        <p>
+                            所有代码全部公开，由
+                            <a
+                                href="https://github.com/share121"
+                                rel="noopener noreferrer"
+                                target="_blank"
+                            >share121</a>、<a
+                                href="https://github.com/CyanChanges"
+                                rel="noopener noreferrer"
+                                target="_blank"
+                            >Cyan</a>
+                            与其他贡献者一起维护
+                        </p>
+                    </div>
+                    <div class="feature-item">
+                        <h2><span aria-hidden="true">🌸</span>界面美观</h2>
+                        <p>
+                            <a href="cli_zhCN.png" target="_blank"><img
+                                    alt="命令行界面"
+                                    class="cli-img"
+                                    src="cli_zhCN.png"
+                                /></a>
+                        </p>
+                    </div>
+                    <div
+                        class="feature-item platform-support-item"
+                        id="download"
+                    >
+                        <h2><span aria-hidden="true">💻</span>跨平台</h2>
+                        <p class="platform-intro">
+                            支持 Windows 64 位、Windows 32 位、Windows
+                            Arm64、Linux 64 位、Linux 32 位、Linux Arm64、Mac OS
+                            64 位、Mac OS Arm64
+                        </p>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>架构</th>
+                                        <th>Windows</th>
+                                        <th>Linux</th>
+                                        <th>Mac OS</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>64 位</td>
+                                        <td>
+                                            <a
+                                                href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-64bit.zip"
+                                                target="_blank"
+                                            >下载</a>
+                                        </td>
+                                        <td>
+                                            <a
+                                                href="https://github.com/share121/fast-down/releases/latest/download/fast-down-linux-64bit.zip"
+                                                target="_blank"
+                                            >下载</a>
+                                        </td>
+                                        <td>
+                                            <a
+                                                href="https://github.com/share121/fast-down/releases/latest/download/fast-down-macos-64bit.zip"
+                                                target="_blank"
+                                            >下载</a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>32 位</td>
+                                        <td>
+                                            <a
+                                                href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-32bit.zip"
+                                                target="_blank"
+                                            >下载</a>
+                                        </td>
+                                        <td>
+                                            <span aria-hidden="true"
+                                            >❌</span><span
+                                                style="position: absolute; left: -9999px"
+                                            >不支持</span>
+                                        </td>
+                                        <td>
+                                            <span aria-hidden="true"
+                                            >❌</span><span
+                                                style="position: absolute; left: -9999px"
+                                            >不支持</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Arm64</td>
+                                        <td>
+                                            <a
+                                                href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-arm64.zip"
+                                                target="_blank"
+                                            >下载</a>
+                                        </td>
+                                        <td>
+                                            <a
+                                                href="https://github.com/share121/fast-down/releases/latest/download/fast-down-linux-arm64.zip"
+                                                target="_blank"
+                                            >下载</a>
+                                        </td>
+                                        <td>
+                                            <a
+                                                href="https://github.com/share121/fast-down/releases/latest/download/fast-down-macos-arm64.zip"
+                                                target="_blank"
+                                            >下载</a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </main>
         </div>
-        <section class="features">
-          <div class="feature-item">
-            <h2><span aria-hidden="true">⚡️</span>极速下载</h2>
-            <p>
-              自研
-              <a
-                target="_blank"
-                href="https://github.com/share121/fast-steal"
-                rel="noopener noreferrer"
-              >fast-steal</a>
-              任务窃取算法，实测下载速度是 NDM 的 <strong>2.43 倍</strong>
-            </p>
-          </div>
-          <div class="feature-item">
-            <h2><span aria-hidden="true">🔄</span>超强重试</h2>
-            <p>
-              下载时，切换 WiFi、关闭 WiFi、切换代理，都能保证<strong
-              >文件内容正确</strong>
-            </p>
-          </div>
-          <div class="feature-item">
-            <h2><span aria-hidden="true">⛓️‍💥</span>断点续传</h2>
-            <p>
-              下到一半<strong>随时暂停</strong>，之后还能<strong
-              >继续传输</strong>
-            </p>
-          </div>
-          <div class="feature-item">
-            <h2><span aria-hidden="true">⛓️‍💥</span>增量续传</h2>
-            <p>
-              服务器日志今天下载完成，明天又多了 1000
-              行，增量续传功能实现<strong>只传输新增的 1000 行</strong>
-            </p>
-          </div>
-          <div class="feature-item">
-            <h2><span aria-hidden="true">💰</span>开源免费</h2>
-            <p>
-              所有代码全部公开，由
-              <a
-                target="_blank"
-                href="https://github.com/share121"
-                rel="noopener noreferrer"
-              >share121</a>、<a
-                target="_blank"
-                href="https://github.com/CyanChanges"
-                rel="noopener noreferrer"
-              >Cyan</a>
-              与其他贡献者一起维护
-            </p>
-          </div>
-          <div class="feature-item">
-            <h2><span aria-hidden="true">🌸</span>界面美观</h2>
-            <p>
-              <a target="_blank" href="cli.png"><img
-                  class="cli-img"
-                  src="cli.png"
-                  alt="命令行界面"
-                /></a>
-            </p>
-          </div>
-          <div id="download" class="feature-item platform-support-item">
-            <h2><span aria-hidden="true">💻</span>跨平台</h2>
-            <p class="platform-intro">
-              支持 Windows 64 位、Windows 32 位、Windows Arm64、Linux 64
-              位、Linux 32 位、Linux Arm64、Mac OS 64 位、Mac OS Arm64
-            </p>
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>架构</th>
-                    <th>Windows</th>
-                    <th>Linux</th>
-                    <th>Mac OS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>64 位</td>
-                    <td>
-                      <a
-                        target="_blank"
-                        href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-64bit.zip"
-                      >下载</a>
-                    </td>
-                    <td>
-                      <a
-                        target="_blank"
-                        href="https://github.com/share121/fast-down/releases/latest/download/fast-down-linux-64bit.zip"
-                      >下载</a>
-                    </td>
-                    <td>
-                      <a
-                        target="_blank"
-                        href="https://github.com/share121/fast-down/releases/latest/download/fast-down-macos-64bit.zip"
-                      >下载</a>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>32 位</td>
-                    <td>
-                      <a
-                        target="_blank"
-                        href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-32bit.zip"
-                      >下载</a>
-                    </td>
-                    <td>
-                      <span aria-hidden="true">❌</span><span
-                        style="position: absolute; left: -9999px"
-                      >不支持</span>
-                    </td>
-                    <td>
-                      <span aria-hidden="true">❌</span><span
-                        style="position: absolute; left: -9999px"
-                      >不支持</span>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Arm64</td>
-                    <td>
-                      <a
-                        target="_blank"
-                        href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-arm64.zip"
-                      >下载</a>
-                    </td>
-                    <td>
-                      <a
-                        target="_blank"
-                        href="https://github.com/share121/fast-down/releases/latest/download/fast-down-linux-arm64.zip"
-                      >下载</a>
-                    </td>
-                    <td>
-                      <a
-                        target="_blank"
-                        href="https://github.com/share121/fast-down/releases/latest/download/fast-down-macos-arm64.zip"
-                      >下载</a>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
-  </body>
+    </body>
 </html>

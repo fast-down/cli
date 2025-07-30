@@ -1,14 +1,14 @@
 # fast-down 快下
 
-![Lastest commit (branch)](https://img.shields.io/github/last-commit/share121/fast-down/main)
+![Latest commit (branch)](https://img.shields.io/github/last-commit/share121/fast-down/main)
 [![Test](https://github.com/share121/fast-down/workflows/Test/badge.svg)](https://github.com/share121/fast-down/actions)
 [![Latest version](https://img.shields.io/crates/v/fast-down.svg)](https://crates.io/crates/fast-down)
 [![Documentation](https://docs.rs/fast-down/badge.svg)](https://docs.rs/fast-down)
 ![License](https://img.shields.io/crates/l/fast-down.svg)
 
-Languages: **zh-CN** [en](./README.md)
-
 `fast-down` **全网最快**多线程下载库
+
+语言: **中文简体** [en](./README.md)
 
 ![CLI 界面](/docs/cli_zhCN.png)
 
@@ -16,20 +16,16 @@ Languages: **zh-CN** [en](./README.md)
 
 ## 优势
 
-1. **⚡️ 极速下载**\
-   自研 [fast-steal](https://github.com/share121/fast-steal)
-   任务窃取算法，实测下载速度是 NDM 的 **2.43 倍**
-2. **🔄 超强重试**\
+1. **⚡️ 极速下载**  
+   自研 [fast-steal](https://github.com/share121/fast-steal) 任务窃取算法，实测下载速度是 NDM 的 **2.43 倍**
+2. **🔄 超强重试**  
    下载时，切换 WiFi、关闭 WiFi、切换代理，都能保证**文件内容正确**
-3. **⛓️‍💥 断点续传**\
+3. **⛓️‍💥 断点续传**  
    下到一半**随时暂停**，之后还能**继续传输**
-4. **⛓️‍💥 增量续传**\
-   服务器日志今天下载完成，明天又多了 1000 行，增量续传功能实现**只传输新增的
-   1000 行**
-5. **💰 开源免费**\
-   所有代码全部公开，由
-   [share121](https://github.com/share121)、[Cyan](https://github.com/CyanChanges)
-   与其他贡献者一起维护
+4. **⛓️‍💥 增量续传**  
+   服务器日志今天下载完成，明天又多了 1000 行，增量续传功能实现**只传输新增的 1000 行**
+5. **💰 开源免费**  
+   所有代码全部公开，由 [share121](https://github.com/share121)、[Cyan](https://github.com/CyanChanges) 与其他贡献者一起维护
 6. **💻 跨平台**
    <table>
         <thead>
@@ -136,6 +132,4 @@ Options:
           不详细输出
   -h, --help
           Print help
-  -V, --version
-          Print version
 ```

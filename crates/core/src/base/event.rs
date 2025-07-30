@@ -27,7 +27,7 @@ pub enum Event {
     /// download progress
     DownloadProgress(WorkerId, ProgressEntry),
     /// error writing
-    WriteError(std::io::Error),
+    WriteError(WorkerId, std::io::Error),
     /// write progress
     WriteProgress(WorkerId, ProgressEntry),
     /// worker finished given task

@@ -23,13 +23,13 @@ fn get_file_size(headers: &HeaderMap, status: &StatusCode) -> u64 {
             .and_then(|hv| hv.to_str().ok())
             .and_then(|s| s.rsplit('/').next())
             .and_then(|total| total.parse().ok())
-            .unwrap_or_default()
+            .unwrap_or(0)
     } else {
         headers
             .get(header::CONTENT_LENGTH)
             .and_then(|hv| hv.to_str().ok())
             .and_then(|s| s.parse().ok())
-            .unwrap_or_default()
+            .unwrap_or(0)
     }
 }
 
@@ -68,42 +68,51 @@ fn get_filename(headers: &HeaderMap, final_url: &Url) -> String {
     )
 }
 
-pub async fn get_url_info(url: impl IntoUrl, client: &Client) -> Result<UrlInfo, reqwest::Error> {
-    let url = url.into_url()?;
-    let resp = client.head(url.clone()).send().await?;
-    let resp = match resp.error_for_status() {
-        Ok(resp) => resp,
-        Err(_) => return get_url_info_fallback(url, client).await,
-    };
-
-    let status = resp.status();
-    let final_url = resp.url();
-
-    let resp_headers = resp.headers();
-    let file_size = get_file_size(resp_headers, &status);
-
-    let supports_range = match resp.headers().get(header::ACCEPT_RANGES) {
-        Some(accept_ranges) => accept_ranges
-            .to_str()
-            .ok()
-            .map(|v| v.split(' '))
-            .and_then(|supports| supports.into_iter().find(|&ty| ty == "bytes"))
-            .is_some(),
-        None => return get_url_info_fallback(url, client).await,
-    };
-
-    Ok(UrlInfo {
-        final_url: final_url.clone(),
-        file_name: get_filename(resp_headers, final_url),
-        file_size,
-        supports_range,
-        can_fast_download: file_size > 0 && supports_range,
-        etag: get_header_str(resp_headers, &header::ETAG),
-        last_modified: get_header_str(resp_headers, &header::LAST_MODIFIED),
-    })
+pub trait Prefetch {
+    fn prefetch(
+        &self,
+        url: impl IntoUrl + Send,
+    ) -> impl Future<Output = Result<UrlInfo, reqwest::Error>> + Send;
 }
 
-async fn get_url_info_fallback(url: Url, client: &Client) -> Result<UrlInfo, reqwest::Error> {
+impl Prefetch for Client {
+    async fn prefetch(&self, url: impl IntoUrl + Send) -> Result<UrlInfo, reqwest::Error> {
+        let url = url.into_url()?;
+        let resp = self.head(url.clone()).send().await?;
+        let resp = match resp.error_for_status() {
+            Ok(resp) => resp,
+            Err(_) => return prefetch_fallback(url, self).await,
+        };
+
+        let status = resp.status();
+        let final_url = resp.url();
+
+        let resp_headers = resp.headers();
+        let file_size = get_file_size(resp_headers, &status);
+
+        let supports_range = match resp.headers().get(header::ACCEPT_RANGES) {
+            Some(accept_ranges) => accept_ranges
+                .to_str()
+                .ok()
+                .map(|v| v.split(' '))
+                .and_then(|supports| supports.into_iter().find(|&ty| ty == "bytes"))
+                .is_some(),
+            None => return prefetch_fallback(url, self).await,
+        };
+
+        Ok(UrlInfo {
+            final_url: final_url.clone(),
+            file_name: get_filename(resp_headers, final_url),
+            file_size,
+            supports_range,
+            can_fast_download: file_size > 0 && supports_range,
+            etag: get_header_str(resp_headers, &header::ETAG),
+            last_modified: get_header_str(resp_headers, &header::LAST_MODIFIED),
+        })
+    }
+}
+
+async fn prefetch_fallback(url: Url, client: &Client) -> Result<UrlInfo, reqwest::Error> {
     let resp = client
         .get(url)
         .header(header::RANGE, "bytes=0-")
@@ -151,7 +160,8 @@ mod tests {
             .await;
 
         let client = Client::new();
-        let url_info = get_url_info(&format!("{}/redirect", server.url()), &client)
+        let url_info = client
+            .prefetch(&format!("{}/redirect", server.url()))
             .await
             .expect("Request should succeed");
 
@@ -178,7 +188,8 @@ mod tests {
             .await;
 
         let client = Client::new();
-        let url_info = get_url_info(&format!("{}/file", server.url()), &client)
+        let url_info = client
+            .prefetch(&format!("{}/file", server.url()))
             .await
             .expect("Request should succeed");
 
@@ -196,7 +207,8 @@ mod tests {
             .with_header("Content-Disposition", "attachment; filename=\"test.txt\"")
             .create_async()
             .await;
-        let url_info = get_url_info(&format!("{}/test1", server.url()), &Client::new())
+        let url_info = Client::new()
+            .prefetch(&format!("{}/test1", server.url()))
             .await
             .unwrap();
         assert_eq!(url_info.file_name, "test.txt");
@@ -204,7 +216,8 @@ mod tests {
 
         // Test URL path source
         let mock2 = server.mock("GET", "/test2/file.pdf").create_async().await;
-        let url_info = get_url_info(&format!("{}/test2/file.pdf", server.url()), &Client::new())
+        let url_info = Client::new()
+            .prefetch(&format!("{}/test2/file.pdf", server.url()))
             .await
             .unwrap();
         assert_eq!(url_info.file_name, "file.pdf");
@@ -219,7 +232,8 @@ mod tests {
       )
       .create_async()
       .await;
-        let url_info = get_url_info(&format!("{}/test3", server.url()), &Client::new())
+        let url_info = Client::new()
+            .prefetch(&format!("{}/test3", server.url()))
             .await
             .unwrap();
         assert_eq!(url_info.file_name, "悪い__ファイル_名.txt");
@@ -237,8 +251,8 @@ mod tests {
 
         let client = Client::new();
 
-        match get_url_info(&format!("{}/404", server.url()), &client).await {
-            Ok(info) => panic!("404 status code should not success: {:?}", info),
+        match client.prefetch(&format!("{}/404", server.url())).await {
+            Ok(info) => panic!("404 status code should not success: {info:?}"),
             Err(err) => {
                 assert!(err.is_status(), "should be error about status code");
                 assert_eq!(err.status(), Some(StatusCode::NOT_FOUND));

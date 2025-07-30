@@ -56,6 +56,7 @@ pub enum Message {
 
 #[derive(Debug)]
 pub struct Manager {
+    args: Arc<DownloadArgs>,
     data: Vec<ManagerData>,
     tx: Sender<Message>,
     pub rx: Receiver<Message>,
@@ -186,16 +187,21 @@ impl Manager {
         //     }
         // });
         // Self { tx_ctrl, rx_recv }
-        Self { data: init, tx, rx }
+        Self {
+            data: init,
+            tx,
+            rx,
+            args,
+        }
     }
 
-    pub async fn stop(&self, index: usize) -> Result<(), SendError<Action>> {}
+    pub async fn stop(&self, index: usize) -> Result<()> {}
 
-    pub async fn resume(&self, index: usize) -> Result<(), SendError<Action>> {}
+    pub async fn resume(&self, index: usize) -> Result<()> {}
 
-    pub async fn add_task(&self, url: String) -> Result<(), SendError<Action>> {}
+    pub async fn add_task(&self, url: String) -> Result<()> {}
 
-    pub async fn remove_task(&self, index: usize) -> Result<(), SendError<Action>> {}
+    pub async fn remove_task(&self, index: usize) -> Result<()> {}
 }
 
 async fn download(

@@ -1,6 +1,6 @@
 # fast-down
 
-![Lastest commit (branch)](https://img.shields.io/github/last-commit/share121/fast-down/main)
+![Latest commit (branch)](https://img.shields.io/github/last-commit/share121/fast-down/main)
 [![Test](https://github.com/share121/fast-down/workflows/Test/badge.svg)](https://github.com/share121/fast-down/actions)
 [![Latest version](https://img.shields.io/crates/v/fast-down.svg)](https://crates.io/crates/fast-down)
 [![Documentation](https://docs.rs/fast-down/badge.svg)](https://docs.rs/fast-down)
@@ -8,7 +8,7 @@
 
 `fast-down` **Fastest** concurrent downloader!
 
-Languages: **en** [zh-CN](./README_zhCN.md)
+Languages: **en** [中文简体](./README_zhCN.md)
 
 ![CLI Interface](/docs/cli_en.png)
 
@@ -16,22 +16,17 @@ Languages: **en** [zh-CN](./README_zhCN.md)
 
 ## Features
 
-1. **⚡️ Fastest Download**\
-   We created [fast-steal](https://github.com/share121/fast-steal)  
-   With optimized Work Stealing, **1.43x faster** than NDM.
-2. **🔄 File consistency**\
-   Switching Wi-Fi, Turn Off Wi-Fi, Switch proxies.  
-   We guarantee the consistency.
-3. **⛓️‍💥 Resuming Downloads**\
-   You can **interrupt** at any time,  
-   and **resume downloading** after.
-4. **⛓️‍💥 Incremental Downloads**\
-   1000 more lines server logs?  
-   Don't worry, we only download new lines.
-5. **💰 Free and open-source**\
-   The code stays free and open-source.  
-   Thanks to [share121](https://github.com/share121), [Cyan](https://github.com/CyanChanges)
-   and other fast-down contributors
+1. **⚡️ Fastest Download**  
+   We created [fast-steal](https://github.com/share121/fast-steal) With optimized Work Stealing, **1.43 x faster** than
+   NDM.
+2. **🔄 File consistency**  
+   Switching Wi-Fi, Turn Off Wi-Fi, Switch proxies. **We guarantee the consistency**.
+3. **⛓️‍💥 Resuming Downloads**  
+   You can **interrupt** at any time, and **resume downloading** after.
+4. **⛓️‍💥 Incremental Downloads**  
+   1000 more lines server logs? Don't worry, we **only download new lines**.
+5. **💰 Free and open-source**  
+   The code stays free and open-source. Thanks to [share121](https://github.com/share121), [Cyan](https://github.com/CyanChanges) and other fast-down contributors.
 6. **💻 Cross platform**
    <table>
         <thead>
@@ -46,19 +41,19 @@ Languages: **en** [zh-CN](./README_zhCN.md)
             <tr>
                 <td>64 bit</td>
                 <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-64bit.zip">Supported</a>
+                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-64bit.zip">Download</a>
                 </td>
                 <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-linux-64bit.zip">Supported</a>
+                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-linux-64bit.zip">Download</a>
                 </td>
                 <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-macos-64bit.zip">Supported</a>
+                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-macos-64bit.zip">Download</a>
                 </td>
             </tr>
             <tr>
                 <td>32 bit</td>
                 <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-32bit.zip">Supported</a>
+                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-32bit.zip">Download</a>
                 </td>
                 <td>
                     ❌ Not Supported
@@ -70,13 +65,13 @@ Languages: **en** [zh-CN](./README_zhCN.md)
             <tr>
                 <td>ARM 64</td>
                 <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-arm64.zip">Supported</a>
+                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-arm64.zip">Download</a>
                 </td>
                 <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-linux-arm64.zip">Supported</a>
+                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-linux-arm64.zip">Download</a>
                 </td>
                 <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-macos-arm64.zip">Supported</a>
+                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-macos-arm64.zip">Download</a>
                 </td>
             </tr>
         </tbody>
@@ -138,6 +133,4 @@ Options:
           不详细输出
   -h, --help
           Print help
-  -V, --version
-          Print version
 ```

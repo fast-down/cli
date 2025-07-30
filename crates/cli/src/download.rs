@@ -131,12 +131,15 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     let mut write_progress: Vec<ProgressEntry> =
         Vec::with_capacity(concurrent.map(NonZeroUsize::get).unwrap_or(1));
 
-    if save_path.try_exists()? && args.resume && info.can_fast_download {
-        if let Ok(Some(progress)) = db.get_entry(save_path_str.clone()).await {
-            let downloaded = progress.progress.total();
+    if save_path.try_exists()? {
+        if args.resume
+            && info.can_fast_download
+            && let Ok(Some(entry)) = db.get_entry(save_path_str.clone()).await
+        {
+            let downloaded = entry.progress.total();
             if downloaded < info.file_size {
-                download_chunks = progress::invert(&progress.progress, info.file_size);
-                write_progress = progress.progress.clone();
+                download_chunks = progress::invert(&entry.progress, info.file_size);
+                write_progress = entry.progress.clone();
                 resume_download = true;
                 println!("{}", t!("msg.resume-download"));
                 println!(
@@ -149,12 +152,12 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                     ),
                 );
                 if !args.yes
-                    && progress.total_size != info.file_size
+                    && entry.total_size != info.file_size
                     && !confirm(
                         predicate!(args),
                         &t!(
                             "msg.size-mismatch",
-                            saved_size = progress.total_size,
+                            saved_size = entry.total_size,
                             new_size = info.file_size
                         ),
                         false,
@@ -163,12 +166,12 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 {
                     return cancel_expected();
                 }
-                if progress.etag != info.etag {
+                if entry.etag != info.etag {
                     if !confirm(
                         predicate!(args),
                         &format!(
                             "原文件 ETag: {:?}\n现文件 ETag: {:?}\n文件 ETag 不一致，是否继续？",
-                            progress.etag, info.etag
+                            entry.etag, info.etag
                         ),
                         false,
                     )
@@ -176,7 +179,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                     {
                         return cancel_expected();
                     }
-                } else if let Some(progress_etag) = progress.etag.as_ref()
+                } else if let Some(progress_etag) = entry.etag.as_ref()
                     && progress_etag.starts_with("W/")
                 {
                     if !confirm(
@@ -191,12 +194,12 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 } else if !confirm(predicate!(args), &t!("msg.no-etag"), false).await? {
                     return cancel_expected();
                 }
-                if progress.last_modified != info.last_modified
+                if entry.last_modified != info.last_modified
                     && !confirm(
                         predicate!(args),
                         &t!(
                           "msg.last-modified-mismatch",
-                          saved_last_modified = progress.last_modified : {:?},
+                          saved_last_modified = entry.last_modified : {:?},
                           new_last_modified = info.last_modified : {:?}
                         ),
                         false,

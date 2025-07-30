@@ -1852,7 +1852,6 @@ dependencies = [
  "clap",
  "color-eyre",
  "config",
- "ctrlc",
  "fast-down",
  "mimalloc",
  "path-clean",
@@ -1888,17 +1887,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "fast-down-wasm"
-version = "0.1.0"
-dependencies = [
- "wasm-bindgen",
-]
-
-[[package]]
 name = "fast-steal"
-version = "5.0.1"
+version = "5.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc46daaa11ee7790e40b51776ca0eb4322e4fd13bb47fd084b8aa56937ce0b82"
+checksum = "7642c21fc2fc7001a80e15fc2cdc0cbc70efc215f55e12587c8563763b4e4ace"
 
 [[package]]
 name = "fastrand"

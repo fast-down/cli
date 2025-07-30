@@ -48,6 +48,7 @@ mod tests {
 
     #[test]
     fn test_append_non_overlapping() {
+        #[allow(clippy::single_range_in_vec_init)]
         let mut v = vec![1..5];
         v.merge_progress(6..10);
         assert_eq!(v, vec![1..5, 6..10]);
@@ -55,6 +56,7 @@ mod tests {
 
     #[test]
     fn test_prepend_non_overlapping() {
+        #[allow(clippy::single_range_in_vec_init)]
         let mut v = vec![6..10];
         v.merge_progress(1..5);
         assert_eq!(v, vec![1..5, 6..10]);
@@ -62,6 +64,7 @@ mod tests {
 
     #[test]
     fn test_merge_with_last() {
+        #[allow(clippy::single_range_in_vec_init)]
         let mut v = vec![1..5];
         v.merge_progress(5..10);
         assert_eq!(v, vec![1..10]);
@@ -76,6 +79,7 @@ mod tests {
 
     #[test]
     fn test_merge_adjacent() {
+        #[allow(clippy::single_range_in_vec_init)]
         let mut v = vec![1..5];
         v.merge_progress(5..10);
         assert_eq!(v, vec![1..10]);

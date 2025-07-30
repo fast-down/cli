@@ -8,7 +8,6 @@ pub use base::merge_progress::*;
 pub use base::progress::*;
 pub use base::total::*;
 
-pub use core::auto;
 pub use core::multi;
 pub use core::prefetch::*;
 pub use core::single;

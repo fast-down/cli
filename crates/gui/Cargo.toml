@@ -20,23 +20,23 @@ color-eyre = { workspace = true }
 reqwest = { workspace = true }
 tokio = { workspace = true }
 path-clean = { workspace = true }
-ctrlc = { workspace = true }
 url = { workspace = true }
 config = { workspace = true }
 mimalloc = { workspace = true }
 tokio-rusqlite = { workspace = true }
 async-channel = { workspace = true }
-slint = "1.8.0"
+slint = "1.12.1"
 
 
 [dev-dependencies]
 tempfile = { workspace = true }
 
 [build-dependencies]
-slint-build = "1.8.0"
+slint-build = "1.12.1"
 
 [package.metadata.i18n]
-available-locales = ["en", "zh-CN"]
+available-locales = ["en", "zh-TW", "zh-CN"]
+default-locale = "en"
 
 [[bin]]
 name = "fast-down"

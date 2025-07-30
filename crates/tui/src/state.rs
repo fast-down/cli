@@ -19,7 +19,7 @@ pub enum DownloadErrors {
     #[error("[Worker {0}] download error: {1}")]
     Download(WorkerId, reqwest::Error),
     #[error("write error: {0}")]
-    Write(#[from] io::Error),
+    Write(WorkerId, io::Error),
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]

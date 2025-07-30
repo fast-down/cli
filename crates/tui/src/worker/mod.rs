@@ -33,7 +33,7 @@ macro_rules! try_send {
 
 async fn task_fetch(client: Client, url: Url, tx: flume::Sender<Result<UrlInfo, reqwest::Error>>) {
     loop {
-        match fast_down::get_url_info(url.clone(), &client).await {
+        match fast_down::prefetch::Prefetch::prefetch(&client, url.clone()).await {
             result @ Ok(..) => {
                 try_send!(tx, result);
                 break;
@@ -55,7 +55,9 @@ async fn task_download(
     tx: oneshot::Sender<io::Result<DownloadResult>>,
 ) {
     let _ = tx.send(
-        fast_down::file::download(client, url, download_chunks, file_size, &path, options).await,
+        fast_down::file::DownloadFile::download_file(
+            &client, url, file_size, download_chunks, &path, options
+        ).await
     );
 }
 

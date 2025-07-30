@@ -134,10 +134,10 @@ impl App {
                     }
                     TaskUrlInfo::Ready(_) => {}
                 },
-                TaskState::Request(statstics, rx) => match rx.try_recv() {
+                TaskState::Request(statistics, rx) => match rx.try_recv() {
                     Ok(Ok(result)) => {
                         task.state = TaskState::Download(
-                            statstics.take().unwrap(),
+                            statistics.take().unwrap(),
                             Default::default(),
                             result,
                         )
@@ -146,26 +146,26 @@ impl App {
                     Err(oneshot::TryRecvError::Empty) => {}
                     Err(oneshot::TryRecvError::Disconnected) => panic!("worker disconnect"),
                 },
-                TaskState::Download(statstics, failures, result) => loop {
+                TaskState::Download(statistics, failures, result) => loop {
                     match result.event_chain.try_recv() {
                         Ok(ev) => match ev {
                             Event::Connecting(id) => {
-                                statstics.worker_state(id, FDWorkerState::Connecting)
+                                statistics.worker_state(id, FDWorkerState::Connecting)
                             }
                             Event::Downloading(id) => {
-                                statstics.worker_state(id, FDWorkerState::Downloading);
+                                statistics.worker_state(id, FDWorkerState::Downloading);
                             }
                             Event::DownloadProgress(id, progress) => {
-                                statstics.download_progress(id, progress);
+                                statistics.download_progress(id, progress);
                             }
                             Event::WriteProgress(id, progress) => {
-                                statstics.write_progress(id, progress);
+                                statistics.write_progress(id, progress);
                             }
                             Event::Finished(id) => {
-                                statstics.worker_state(id, FDWorkerState::Finished);
+                                statistics.worker_state(id, FDWorkerState::Finished);
                             }
                             Event::Abort(id) => {
-                                statstics.worker_state(id, FDWorkerState::Abort);
+                                statistics.worker_state(id, FDWorkerState::Abort);
                             }
                             Event::ConnectError(id, err) => {
                                 failures.push_back(DownloadErrors::Connect(id, err))
@@ -173,8 +173,8 @@ impl App {
                             Event::DownloadError(id, err) => {
                                 failures.push_back(DownloadErrors::Download(id, err))
                             }
-                            Event::WriteError(err) => {
-                                failures.push_back(DownloadErrors::Write(err))
+                            Event::WriteError(id, err) => {
+                                failures.push_back(DownloadErrors::Write(id, err))
                             }
                         },
                         Err(async_channel::TryRecvError::Empty) => break,

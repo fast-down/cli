@@ -2,6 +2,10 @@ use crate::app::App;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
+fn stat() {
+
+}
+
 pub fn draw_main(app: &App, frame: &mut Frame) {
     let layout = Layout::default()
         .direction(Direction::Horizontal)
@@ -25,13 +29,14 @@ pub fn draw_main(app: &App, frame: &mut Frame) {
         .block(tasks_block),
         layout[0],
     );
-    let statistics = Block::bordered()
+
+    let statistics_block = Block::bordered()
         .title(" Statistics ")
         .border_type(BorderType::Rounded);
     let statistics = if let Some(_) = app.selected {
-        statistics
+        statistics_block
     } else {
-        statistics.style(Style::default().bg(Color::DarkGray))
+        statistics_block.style(Style::default().bg(Color::DarkGray))
     };
     frame.render_widget(statistics, layout[1]);
 }

@@ -1,7 +1,9 @@
 use crate::client::{Client, ClientId};
 use crate::common::ClientOptions;
 use crate::render::draw_main;
-use crate::state::{DownloadErrors, DownloadTask, TaskId, TaskState, TaskUrlInfo};
+use crate::state::{
+    DownloadErrors, DownloadTask, FDWorkerState, Statistics, TaskId, TaskState, TaskUrlInfo,
+};
 use crate::worker;
 use arboard::Clipboard;
 use crossterm::event as term;
@@ -41,7 +43,7 @@ impl Default for AppFocus {
 }
 
 pub struct App {
-    pub(crate) exit: bool,
+    pub exit: bool,
 
     pub(crate) capture: Option<Box<dyn FnMut(KeyEvent)>>,
     pub(crate) focus: AppFocus,
@@ -115,61 +117,73 @@ impl App {
                         Ok(Ok(value)) => {
                             task.info = TaskUrlInfo::Ready(value.into());
                         }
-                        Ok(Err(err)) => failures.push_back(err),
+                        Ok(Err(err)) => {
+                            if let Some(retry) = task.retry
+                                && failures.len() + 1 > retry.get()
+                            {
+                                task.info = TaskUrlInfo::Failed;
+                            }
+                            failures.push_back(err)
+                        }
                         Err(flume::TryRecvError::Empty) => {}
                         Err(flume::TryRecvError::Disconnected) => panic!("worker disconnect"),
                     },
+                    TaskUrlInfo::Failed => {}
                     TaskUrlInfo::Ready(_) if task.auto => {
                         pending_downloads.push(task.id);
                     }
                     TaskUrlInfo::Ready(_) => {}
                 },
-                TaskState::Request(rx) => match rx.try_recv() {
-                    Ok(Ok(result)) => task.state = TaskState::Download(Default::default(), result),
+                TaskState::Request(statstics, rx) => match rx.try_recv() {
+                    Ok(Ok(result)) => {
+                        task.state = TaskState::Download(
+                            statstics.take().unwrap(),
+                            Default::default(),
+                            result,
+                        )
+                    }
                     Ok(Err(err)) => task.state = TaskState::IoError(err),
                     Err(oneshot::TryRecvError::Empty) => {}
                     Err(oneshot::TryRecvError::Disconnected) => panic!("worker disconnect"),
                 },
-                TaskState::Download(failures, result) => {
-                    loop {
-                        match result.event_chain.try_recv() {
-                            Ok(ev) => match ev {
-                                Event::Connecting(id) => {
-                                    // eprintln!("{}: connected", id);
-                                }
-                                Event::ConnectError(id, err) => {
-                                    failures.push_back(DownloadErrors::Connect(id, err))
-                                }
-                                Event::Downloading(id) => {
-                                    // eprintln!("{}: downloading", id);
-                                }
-                                Event::DownloadError(id, err) => {
-                                    failures.push_back(DownloadErrors::Download(id, err))
-                                }
-                                Event::DownloadProgress(id, progress) => {
-                                    // eprintln!("{}: download progress {:?}", id, progress);
-                                }
-                                Event::WriteError(err) => {
-                                    failures.push_back(DownloadErrors::Write(err))
-                                }
-                                Event::WriteProgress(_, progress) => {
-                                    // eprintln!("write progress {:?}", progress);
-                                }
-                                Event::Finished(id) => {
-                                    // eprintln!("{}: finished", id);
-                                }
-                                Event::Abort(id) => {
-                                    // eprintln!("{}: aborted", id);
-                                }
-                            },
-                            Err(async_channel::TryRecvError::Empty) => break,
-                            Err(async_channel::TryRecvError::Closed) => {
-                                pending_completes.push(task.id);
-                                break;
+                TaskState::Download(statstics, failures, result) => loop {
+                    match result.event_chain.try_recv() {
+                        Ok(ev) => match ev {
+                            Event::Connecting(id) => {
+                                statstics.worker_state(id, FDWorkerState::Connecting)
                             }
+                            Event::Downloading(id) => {
+                                statstics.worker_state(id, FDWorkerState::Downloading);
+                            }
+                            Event::DownloadProgress(id, progress) => {
+                                statstics.download_progress(id, progress);
+                            }
+                            Event::WriteProgress(id, progress) => {
+                                statstics.write_progress(id, progress);
+                            }
+                            Event::Finished(id) => {
+                                statstics.worker_state(id, FDWorkerState::Finished);
+                            }
+                            Event::Abort(id) => {
+                                statstics.worker_state(id, FDWorkerState::Abort);
+                            }
+                            Event::ConnectError(id, err) => {
+                                failures.push_back(DownloadErrors::Connect(id, err))
+                            }
+                            Event::DownloadError(id, err) => {
+                                failures.push_back(DownloadErrors::Download(id, err))
+                            }
+                            Event::WriteError(err) => {
+                                failures.push_back(DownloadErrors::Write(err))
+                            }
+                        },
+                        Err(async_channel::TryRecvError::Empty) => break,
+                        Err(async_channel::TryRecvError::Closed) => {
+                            pending_completes.push(task.id);
+                            break;
                         }
                     }
-                }
+                },
                 TaskState::IoError(_) => {}
                 TaskState::Completed => {}
             }
@@ -203,22 +217,29 @@ impl App {
         info: &UrlInfo,
         client: reqwest::Client,
         task: &mut DownloadTask,
-        path: Option<PathBuf>,
-        options: Option<DownloadOptions>,
+        maybe_path: Option<PathBuf>,
+        maybe_options: Option<DownloadOptions>,
     ) -> worker::Task {
         assert!(
             matches!(task.state, TaskState::Pending(..)),
             "can only transition from Pending"
         );
         let (tx, rx) = oneshot::channel();
-        task.state = TaskState::Request(rx);
-        let path = path
+        let path = maybe_path
             .or_else(|| task.path.take())
             .unwrap_or_else(|| (&info.file_name).into());
-        let mut options = options.or_else(|| task.download_options.take()).unwrap();
+        let mut options = maybe_options
+            .or_else(|| task.download_options.take())
+            .unwrap();
         if !info.can_fast_download {
             options.concurrent = None;
         }
+        task.state = TaskState::Request(
+            Some(Statistics::new(
+                options.concurrent.map(NonZeroUsize::get).unwrap_or(1),
+            )),
+            rx,
+        );
         #[allow(clippy::single_range_in_vec_init)]
         worker::Task::Download(
             client,

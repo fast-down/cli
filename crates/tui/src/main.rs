@@ -4,6 +4,7 @@ mod common;
 mod render;
 mod state;
 mod worker;
+mod progress;
 
 use crate::app::App;
 use std::io;

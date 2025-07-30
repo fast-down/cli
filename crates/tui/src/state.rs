@@ -1,6 +1,6 @@
 use crate::client::ClientId;
 use fast_down::file::DownloadOptions;
-use fast_down::{ConnectErrorKind, DownloadResult, UrlInfo, WorkerId};
+use fast_down::{ConnectErrorKind, DownloadResult, MergeProgress, ProgressEntry, UrlInfo, WorkerId};
 use reqwest::Url;
 use std::collections::VecDeque;
 use std::io;
@@ -22,11 +22,49 @@ pub enum DownloadErrors {
     Write(#[from] io::Error),
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum FDWorkerState {
+    None,
+    Connecting,
+    Downloading,
+    Finished,
+    Abort,
+}
+
+#[derive(Debug)]
+pub struct Statistics {
+    pub(crate) state: Box<[FDWorkerState]>,
+    pub(crate) write_progress: Box<[Vec<ProgressEntry>]>,
+    pub(crate) download_progress: Box<[Vec<ProgressEntry>]>,
+}
+
+impl Statistics {
+    pub fn new(count: usize) -> Statistics {
+        Statistics {
+            state: vec![FDWorkerState::None; count].into_boxed_slice(),
+            write_progress: vec![Vec::new(); count].into_boxed_slice(),
+            download_progress: vec![Vec::new(); count].into_boxed_slice(),
+        }
+    }
+
+    pub fn worker_state(&mut self, id: usize, state: FDWorkerState) {
+        self.state[id] = state;
+    }
+
+    pub fn write_progress(&mut self, id: usize, entry: ProgressEntry) {
+        self.write_progress[id].merge_progress(entry);
+    }
+
+    pub fn download_progress(&mut self, id: usize, entry: ProgressEntry) {
+        self.download_progress[id].merge_progress(entry);
+    }
+}
+
 #[derive(Debug)]
 pub enum TaskState {
     Pending(Failures<reqwest::Error>),
-    Request(oneshot::Receiver<Result<DownloadResult, io::Error>>),
-    Download(Failures<DownloadErrors>, DownloadResult),
+    Request(Option<Statistics>, oneshot::Receiver<Result<DownloadResult, io::Error>>),
+    Download(Statistics, Failures<DownloadErrors>, DownloadResult),
     Completed,
     IoError(io::Error),
 }
@@ -40,25 +78,36 @@ impl Default for TaskState {
 #[derive(Debug)]
 pub enum TaskUrlInfo {
     Pending(flume::Receiver<Result<UrlInfo, reqwest::Error>>),
+    Failed,
     Ready(Rc<UrlInfo>),
 }
 
 impl TaskUrlInfo {
+    /// Unwraps if `Ready`,
+    /// otherwise it panics
+    ///
     pub fn unwrap(&self) -> Rc<UrlInfo> {
         match self {
             TaskUrlInfo::Pending(_) => {
                 panic!("called TaskUrlInfo::unwrap on a Pending TaskUrlInfo")
             }
+            TaskUrlInfo::Failed => {
+                panic!("called TaskUrlInfo::unwrap on a Failed TaskUrlInfo")
+            }
             TaskUrlInfo::Ready(rc) => rc.clone(),
         }
     }
 
+    /// Unwraps a `Ready` variant of TaskUrlInfo
+    ///
     /// # Safety
     ///
-    /// Calling this method on an `Pending` variant is undefined behavior  .
+    /// Calling this method on `Pending` or `Failed` variant is undefined behavior.
     pub unsafe fn unwrap_unchecked(&self) -> Rc<UrlInfo> {
         match self {
-            TaskUrlInfo::Pending(_) => unsafe { std::hint::unreachable_unchecked() },
+            TaskUrlInfo::Failed | TaskUrlInfo::Pending(_) => unsafe {
+                std::hint::unreachable_unchecked()
+            },
             TaskUrlInfo::Ready(rc) => rc.clone(),
         }
     }
@@ -91,10 +140,11 @@ impl DownloadTask {
         match self.state {
             TaskState::Pending(_) => match self.info {
                 TaskUrlInfo::Pending(_) => "🔍",
+                TaskUrlInfo::Failed => "🛑",
                 TaskUrlInfo::Ready(_) => "🫧",
             },
-            TaskState::Request(_) => "⏳",
-            TaskState::Download(_, _) => "🚚",
+            TaskState::Request(_, _) => "⏳",
+            TaskState::Download(_, _, _) => "🚚",
             TaskState::Completed => "✅",
             TaskState::IoError(_) => "💥",
         }

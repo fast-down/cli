@@ -2,9 +2,7 @@ use crate::app::App;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
-fn stat() {
-
-}
+fn stat() {}
 
 pub fn draw_main(app: &App, frame: &mut Frame) {
     let layout = Layout::default()

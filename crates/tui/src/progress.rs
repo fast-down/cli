@@ -1,7 +1,5 @@
 use ratatui::symbols;
 
-
-
 fn get_unicode_block<'a>(variant: u8) -> &'a str {
     match variant {
         1 => symbols::block::ONE_EIGHTH,

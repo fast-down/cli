@@ -56,8 +56,14 @@ async fn task_download(
 ) {
     let _ = tx.send(
         fast_down::file::DownloadFile::download_file(
-            &client, url, file_size, download_chunks, &path, options
-        ).await
+            &client,
+            url,
+            file_size,
+            download_chunks,
+            &path,
+            options,
+        )
+        .await,
     );
 }
 

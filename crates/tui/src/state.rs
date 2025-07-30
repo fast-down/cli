@@ -1,6 +1,8 @@
 use crate::client::ClientId;
 use fast_down::file::DownloadOptions;
-use fast_down::{ConnectErrorKind, DownloadResult, MergeProgress, ProgressEntry, UrlInfo, WorkerId};
+use fast_down::{
+    ConnectErrorKind, DownloadResult, MergeProgress, ProgressEntry, UrlInfo, WorkerId,
+};
 use reqwest::Url;
 use std::collections::VecDeque;
 use std::io;
@@ -63,7 +65,10 @@ impl Statistics {
 #[derive(Debug)]
 pub enum TaskState {
     Pending(Failures<reqwest::Error>),
-    Request(Option<Statistics>, oneshot::Receiver<Result<DownloadResult, io::Error>>),
+    Request(
+        Option<Statistics>,
+        oneshot::Receiver<Result<DownloadResult, io::Error>>,
+    ),
     Download(Statistics, Failures<DownloadErrors>, DownloadResult),
     Completed,
     IoError(io::Error),

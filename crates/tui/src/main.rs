@@ -1,10 +1,10 @@
 mod app;
 mod client;
 mod common;
+mod progress;
 mod render;
 mod state;
 mod worker;
-mod progress;
 
 use crate::app::App;
 use std::io;

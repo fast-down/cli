@@ -14,13 +14,13 @@ pub struct DownloadOptions {
     pub write_buffer_size: usize,
     pub write_channel_size: usize,
     pub retry_gap: Duration,
-    pub file_size: u64,
 }
 
 pub trait DownloadFile {
     fn download_file(
         &self,
         url: Url,
+        file_size: u64,
         download_chunks: Vec<ProgressEntry>,
         save_path: &Path,
         options: DownloadOptions,
@@ -31,6 +31,7 @@ impl DownloadFile for Client {
     async fn download_file(
         &self,
         url: Url,
+        file_size: u64,
         download_chunks: Vec<ProgressEntry>,
         save_path: &Path,
         options: DownloadOptions,
@@ -52,14 +53,14 @@ impl DownloadFile for Client {
             #[cfg(target_pointer_width = "64")]
             let rand_file_writer = file::rand_file_writer_mmap::RandFileWriter::new(
                 file,
-                options.file_size,
+                file_size,
                 options.write_buffer_size,
             )
             .await?;
             #[cfg(not(target_pointer_width = "64"))]
             let rand_file_writer = file::rand_file_writer_std::RandFileWriter::new(
                 file,
-                options.file_size,
+                file_size,
                 options.write_buffer_size,
             )
             .await?;

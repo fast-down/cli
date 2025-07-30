@@ -1,6 +1,6 @@
 use super::DownloadResult;
 use crate::{ConnectErrorKind, Event, SeqWriter};
-use reqwest::{Client, Error, IntoUrl};
+use reqwest::{Client, Url};
 use std::{
     sync::{
         Arc,
@@ -18,20 +18,19 @@ pub struct DownloadOptions {
 pub trait DownloadSingle {
     fn download_single(
         &self,
-        url: impl IntoUrl + Send,
+        url: Url,
         writer: impl SeqWriter + 'static,
         options: DownloadOptions,
-    ) -> impl Future<Output = Result<DownloadResult, Error>> + Send;
+    ) -> impl Future<Output = DownloadResult> + Send;
 }
 
 impl DownloadSingle for Client {
     async fn download_single(
         &self,
-        url: impl IntoUrl + Send,
+        url: Url,
         mut writer: impl SeqWriter + 'static,
         options: DownloadOptions,
-    ) -> Result<DownloadResult, Error> {
-        let url = url.into_url()?;
+    ) -> DownloadResult {
         let (tx, event_chain) = async_channel::unbounded();
         let (tx_write, rx_write) = async_channel::bounded(options.write_channel_size);
         let tx_clone = tx.clone();
@@ -101,7 +100,7 @@ impl DownloadSingle for Client {
             }
             tx.send(Event::Finished(0)).await.unwrap();
         });
-        Ok(DownloadResult::new(event_chain, handle, running_clone))
+        DownloadResult::new(event_chain, handle, running_clone)
     }
 }
 
@@ -162,15 +161,14 @@ mod tests {
         let client = Client::new();
         let result = client
             .download_single(
-                format!("{}/small", server.url()),
+                format!("{}/small", server.url()).parse().unwrap(),
                 SeqFileWriter::new(file, 8 * 1024 * 1024),
                 DownloadOptions {
                     retry_gap: Duration::from_secs(1),
                     write_channel_size: 1024,
                 },
             )
-            .await
-            .unwrap();
+            .await;
 
         let mut progress_events = Vec::new();
         while let Ok(event) = result.event_chain.recv().await {
@@ -209,15 +207,14 @@ mod tests {
         let client = Client::new();
         let result = client
             .download_single(
-                format!("{}/empty", server.url()),
+                format!("{}/empty", server.url()).parse().unwrap(),
                 SeqFileWriter::new(file, 8 * 1024 * 1024),
                 DownloadOptions {
                     retry_gap: Duration::from_secs(1),
                     write_channel_size: 1024,
                 },
             )
-            .await
-            .unwrap();
+            .await;
 
         let mut progress_events = Vec::new();
         while let Ok(event) = result.event_chain.recv().await {
@@ -258,15 +255,14 @@ mod tests {
         let client = Client::new();
         let result = client
             .download_single(
-                format!("{}/large", server.url()),
+                format!("{}/large", server.url()).parse().unwrap(),
                 SeqFileWriter::new(file, 8 * 1024 * 1024),
                 DownloadOptions {
                     retry_gap: Duration::from_secs(1),
                     write_channel_size: 1024,
                 },
             )
-            .await
-            .unwrap();
+            .await;
 
         let mut progress_events = Vec::new();
         while let Ok(event) = result.event_chain.recv().await {
@@ -307,15 +303,16 @@ mod tests {
         let client = Client::new();
         let result = client
             .download_single(
-                format!("{}/exact_buffer_size_file", server.url()),
+                format!("{}/exact_buffer_size_file", server.url())
+                    .parse()
+                    .unwrap(),
                 SeqFileWriter::new(file, 8 * 1024 * 1024),
                 DownloadOptions {
                     retry_gap: Duration::from_secs(1),
                     write_channel_size: 1024,
                 },
             )
-            .await
-            .unwrap();
+            .await;
 
         let mut progress_events = Vec::new();
         while let Ok(event) = result.event_chain.recv().await {

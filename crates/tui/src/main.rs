@@ -3,7 +3,7 @@ mod client;
 mod common;
 mod render;
 mod state;
-mod widget;
+mod widgets;
 mod worker;
 
 use crate::app::App;

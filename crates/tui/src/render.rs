@@ -1,17 +1,21 @@
 use crate::app::App;
 use crate::state::{FDWorkerState, TaskState};
-use crate::widget::stats::WorkerStats;
+use crate::widgets::stats::WorkerStats;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
+use std::cell::RefCell;
+use std::time::{Duration, Instant};
 
 pub struct MainPageState {
     widget_pool: swimmer::Pool<WorkerStats>,
+    last_call: Instant,
 }
 
 impl MainPageState {
     pub fn new() -> MainPageState {
         MainPageState {
-            widget_pool: swimmer::Pool::with_size(2),
+            widget_pool: swimmer::Pool::new(),
+            last_call: Instant::now(),
         }
     }
 
@@ -24,7 +28,11 @@ pub fn init_state(app: &mut App) {
     app.states.insert(MainPageState::new());
 }
 
-pub fn draw_main(app: &App, frame: &mut Frame) {
+pub fn draw_main(app: &mut App, frame: &mut Frame) {
+    let state = app.states.get_mut::<MainPageState>().unwrap();
+    let last_call = state.last_call.clone();
+    state.last_call = Instant::now();
+    let delta_time = Instant::now() - last_call;
     let layout = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(vec![Constraint::Percentage(25), Constraint::Percentage(75)])
@@ -38,7 +46,7 @@ pub fn draw_main(app: &App, frame: &mut Frame) {
     frame.render_widget(
         List::new(tasks.map(|task| {
             let style = if app.selected == Some(task.id) {
-                Style::default().fg(Color::White).bg(Color::Cyan)
+                Style::default().fg(Color::Yellow).bg(Color::Cyan)
             } else {
                 Style::default().fg(Color::Cyan)
             };
@@ -53,23 +61,38 @@ pub fn draw_main(app: &App, frame: &mut Frame) {
         .border_type(BorderType::Rounded);
     if let Some(id) = app.selected {
         frame.render_widget(&statistics_block, layout[1]);
-        let task = app.tasks.get(&id).unwrap();
-        match &task.state {
+        let task = app.tasks.get_mut(&id).unwrap();
+        match &mut task.state {
             TaskState::Pending(_) => { /* todo */ }
             TaskState::Request(_, _) => { /* todo */ }
             TaskState::Download(statistics, _, _) => {
                 let mut s_rect = statistics_block.inner(layout[1]);
                 frame.render_widget(statistics_block, layout[1]);
-                let state = app.states.get::<MainPageState>().unwrap();
                 let mut wid = state.fetch_stats_widget();
+                let begin_span = last_call - Duration::from_secs(5);
+                let dur = Instant::now().duration_since(begin_span);
                 for idx in 0..statistics.state.len() {
+                    statistics.purge_write_spans(idx, &begin_span);
+                    statistics.purge_download_spans(idx, &begin_span);
+                    let mut delta_download = 0;
+                    let mut delta_write = 0;
+                    for (_, cnt) in statistics.write_spans(idx) {
+                        delta_write += cnt;
+                    }
+                    for (_, cnt) in statistics.download_spans(idx) {
+                        delta_download += cnt;
+                    }
+
                     s_rect = wid.render(
                         s_rect,
                         false,
-                        Span::raw("[Worker 0]"),
+                        Span::styled(format!("{idx}"), Style::default().fg(Color::LightCyan)),
                         &statistics.state[idx],
-                        &statistics.download_entries[idx],
-                        &[0..756],
+                        statistics.write_entries(idx),
+                        statistics.download_entries(idx),
+                        delta_write,
+                        delta_download,
+                        dur,
                         statistics.written,
                         statistics.downloaded,
                         statistics.total,

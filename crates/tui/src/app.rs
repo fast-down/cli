@@ -96,7 +96,7 @@ impl App {
         Ok(())
     }
 
-    fn draw(&self, frame: &mut Frame) {
+    fn draw(&mut self, frame: &mut Frame) {
         use self::Page::*;
 
         match &self.focus {

@@ -5,11 +5,12 @@ use ratatui::prelude::*;
 use ratatui::symbols;
 use ratatui::widgets::WidgetRef;
 use std::ops::RangeInclusive;
+use std::time::Duration;
 use swimmer::Recyclable;
 
 // https://github.com/ratatui/ratatui/blob/0afb1a99af8310c29c738bd092e4d08c668955bf/ratatui-widgets/src/gauge.rs
 pub(crate) struct WorkerStats {
-    use_unicode: bool,
+    // use_unicode: bool,
     style: Style,
     download_color: Color,
     write_color: Color,
@@ -58,10 +59,30 @@ fn calculate_value(entries: &[ProgressEntry], idx: &mut usize, range: RangeInclu
     block_total
 }
 
+// todo(CyanChanges): use the same one from cli
+pub fn format_size(mut size: f64) -> String {
+    const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    const LEN: usize = UNITS.len();
+
+    let mut unit_index = 0;
+    while size >= 700.0 && unit_index < LEN - 1 {
+        size /= 1024.0;
+        unit_index += 1;
+    }
+    format!("{:.2} {}", size, UNITS[unit_index])
+}
+
+macro_rules! render_span {
+    ($rect:expr, $buf:expr, $widget:expr) => {
+        $widget.render_ref($rect, $buf);
+        $rect.x += 1 + $widget.width() as u16;
+    };
+}
+
 impl WorkerStats {
     pub(crate) fn new() -> WorkerStats {
         Self {
-            use_unicode: false,
+            // use_unicode: false,
             style: Style::default().bg(Color::Black),
             download_color: Color::Green,
             write_color: Color::Cyan,
@@ -79,6 +100,9 @@ impl WorkerStats {
         state: &FDWorkerState,
         write_entries: &[ProgressEntry],
         download_entries: &[ProgressEntry],
+        delta_write: u64,
+        delta_download: u64,
+        duration: Duration,
         written: u64,
         downloaded: u64,
         total: u64,
@@ -94,34 +118,41 @@ impl WorkerStats {
         // compute label value and its position
         // label is put at the center of the gauge_area
 
+        let status_indicator = Span::styled(
+            format!(
+                "{}", state,
+            ), Color::Reset
+        );
+
         let written_label = Span::styled(
             format!(
-                "💾 {:>3}%",
+                "🚚 {:>7}/s {:>3}%",
+                format_size(delta_write as f64 / duration.as_secs_f64()),
                 Precision::round((written as Precision) / (total as Precision) * 100.0)
             ),
             Color::White,
         );
         let downloaded_label = Span::styled(
             format!(
-                "🚚 {:>3}%",
+                "💾 {:>7}/s {:>3}%",
+                format_size(delta_download as f64 / duration.as_secs_f64()),
                 Precision::round((downloaded as Precision) / (total as Precision) * 100.0)
             ),
             Color::White,
         );
 
         let labels_width = (label.width() as u16)
+            + (status_indicator.width() as u16)
             + (downloaded_label.width() as u16)
             + (written_label.width() as u16)
-            + 3;
+            + 6 + PADDING;
         {
             let mut rect = rect;
-            rect.x += 1;
-            label.render_ref(rect, buf);
-            rect.x += label.width() as u16;
-            rect.x += 1;
-            downloaded_label.render_ref(rect, buf);
-            rect.x += 1 + downloaded_label.width() as u16;
-            written_label.render_ref(rect, buf);
+            rect.x += PADDING;
+            render_span!(rect, buf, status_indicator);
+            render_span!(rect, buf, label);
+            render_span!(rect, buf, downloaded_label);
+            render_span!(rect, buf, written_label);
         }
 
         let width = if shrink {

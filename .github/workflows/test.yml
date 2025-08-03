@@ -33,11 +33,14 @@ jobs:
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
 
-      - name: Clippy
-        run: cargo clippy --all-targets --all-features --verbose -- -Dwarnings
-
       - name: Test
-        run: cargo test --all-targets --all-features --verbose
+        run: cargo test --all --verbose
+
+      - name: Build
+        run: cargo build --all --verbose
+
+      - name: Clippy
+        run: cargo clippy --all --verbose -- -Dwarnings
 
   check-minimal:
     name: Check minimal versions

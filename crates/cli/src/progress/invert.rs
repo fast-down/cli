@@ -1,4 +1,4 @@
-use fast_down::ProgressEntry;
+use fast_pull::ProgressEntry;
 
 pub fn invert(progress: &[ProgressEntry], total_size: u64) -> Vec<ProgressEntry> {
     if progress.is_empty() {

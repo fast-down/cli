@@ -1,7 +1,7 @@
 # fast-down
 
-![Latest commit (branch)](https://img.shields.io/github/last-commit/share121/fast-down/main)
-[![Test](https://github.com/share121/fast-down/workflows/Test/badge.svg)](https://github.com/share121/fast-down/actions)
+![Latest commit (branch)](https://img.shields.io/github/last-commit/fast-down/fast-down/main)
+[![Test](https://github.com/fast-down/fast-down/workflows/Test/badge.svg)](https://github.com/fast-down/fast-down/actions)
 [![Latest version](https://img.shields.io/crates/v/fast-down.svg)](https://crates.io/crates/fast-down)
 [![Documentation](https://docs.rs/fast-down/badge.svg)](https://docs.rs/fast-down)
 ![License](https://img.shields.io/crates/l/fast-down.svg)
@@ -17,7 +17,7 @@ Languages: **en** [中文简体](./README_zhCN.md)
 ## Features
 
 1. **⚡️ Fastest Download**  
-   We created [fast-steal](https://github.com/share121/fast-steal) With optimized Work Stealing, **1.43 x faster** than
+   We created [fast-steal](https://github.com/fast-down/fast-steal) With optimized Work Stealing, **1.43 x faster** than
    NDM.
 2. **🔄 File consistency**  
    Switching Wi-Fi, Turn Off Wi-Fi, Switch proxies. **We guarantee the consistency**.
@@ -28,54 +28,20 @@ Languages: **en** [中文简体](./README_zhCN.md)
 5. **💰 Free and open-source**  
    The code stays free and open-source. Thanks to [share121](https://github.com/share121), [Cyan](https://github.com/CyanChanges) and other fast-down contributors.
 6. **💻 Cross platform**
-   <table>
-        <thead>
-            <tr>
-                <th>Arch</th>
-                <th>Windows</th>
-                <th>Linux</th>
-                <th>Mac OS</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>64 bit</td>
-                <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-64bit.zip">Download</a>
-                </td>
-                <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-linux-64bit.zip">Download</a>
-                </td>
-                <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-macos-64bit.zip">Download</a>
-                </td>
-            </tr>
-            <tr>
-                <td>32 bit</td>
-                <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-32bit.zip">Download</a>
-                </td>
-                <td>
-                    ❌ Not Supported
-                </td>
-                <td>
-                    ❌ Not Supported
-                </td>
-            </tr>
-            <tr>
-                <td>ARM 64</td>
-                <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-arm64.zip">Download</a>
-                </td>
-                <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-linux-arm64.zip">Download</a>
-                </td>
-                <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-macos-arm64.zip">Download</a>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+
+   | Arch   | Windows       | Linux            | Mac OS           |
+   | ------ | ------------- | ---------------- | ---------------- |
+   | 64 bit | [Download][1] | [Download][2]    | [Download][3]    |
+   | 32 bit | [Download][4] | ❌ Not Supported | ❌ Not Supported |
+   | Arm64  | [Download][5] | [Download][6]    | [Download][7]    |
+
+[1]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-windows-64bit.zip
+[2]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-linux-64bit.zip
+[3]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-macos-64bit.zip
+[4]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-windows-32bit.zip
+[5]: https://github.com/fast-downn/fast-down/releases/latest/download/fast-down-windows-arm64.zip
+[6]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-linux-arm64.zip
+[7]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-macos-arm64.zip
 
 ## Usage
 

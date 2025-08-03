@@ -4,7 +4,7 @@ use crossterm::{
     style::Print,
     terminal::{self, ClearType},
 };
-use fast_down::{MergeProgress, ProgressEntry, Total};
+use fast_pull::{MergeProgress, ProgressEntry, Total};
 use std::{
     io::{self, Stderr, Stdout},
     sync::{

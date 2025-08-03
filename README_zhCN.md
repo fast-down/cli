@@ -1,7 +1,7 @@
 # fast-down 快下
 
-![Latest commit (branch)](https://img.shields.io/github/last-commit/share121/fast-down/main)
-[![Test](https://github.com/share121/fast-down/workflows/Test/badge.svg)](https://github.com/share121/fast-down/actions)
+![Latest commit (branch)](https://img.shields.io/github/last-commit/fast-down/fast-down/main)
+[![Test](https://github.com/fast-down/fast-down/workflows/Test/badge.svg)](https://github.com/fast-down/fast-down/actions)
 [![Latest version](https://img.shields.io/crates/v/fast-down.svg)](https://crates.io/crates/fast-down)
 [![Documentation](https://docs.rs/fast-down/badge.svg)](https://docs.rs/fast-down)
 ![License](https://img.shields.io/crates/l/fast-down.svg)
@@ -17,7 +17,7 @@
 ## 优势
 
 1. **⚡️ 极速下载**  
-   自研 [fast-steal](https://github.com/share121/fast-steal) 任务窃取算法，实测下载速度是 NDM 的 **2.43 倍**
+   自研 [fast-steal](https://github.com/fast-down/fast-steal) 任务窃取算法，实测下载速度是 NDM 的 **2.43 倍**
 2. **🔄 超强重试**  
    下载时，切换 WiFi、关闭 WiFi、切换代理，都能保证**文件内容正确**
 3. **⛓️‍💥 断点续传**  
@@ -27,54 +27,20 @@
 5. **💰 开源免费**  
    所有代码全部公开，由 [share121](https://github.com/share121)、[Cyan](https://github.com/CyanChanges) 与其他贡献者一起维护
 6. **💻 跨平台**
-   <table>
-        <thead>
-            <tr>
-                <th>架构</th>
-                <th>Windows</th>
-                <th>Linux</th>
-                <th>Mac OS</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>64 位</td>
-                <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-64bit.zip">下载</a>
-                </td>
-                <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-linux-64bit.zip">下载</a>
-                </td>
-                <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-macos-64bit.zip">下载</a>
-                </td>
-            </tr>
-            <tr>
-                <td>32 位</td>
-                <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-32bit.zip">下载</a>
-                </td>
-                <td>
-                    ❌不支持
-                </td>
-                <td>
-                    ❌不支持
-                </td>
-            </tr>
-            <tr>
-                <td>ARM 64</td>
-                <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-windows-arm64.zip">下载</a>
-                </td>
-                <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-linux-arm64.zip">下载</a>
-                </td>
-                <td>
-                    <a target="_blank" href="https://github.com/share121/fast-down/releases/latest/download/fast-down-macos-arm64.zip">下载</a>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+
+   | 架构  | Windows   | Linux     | Mac OS    |
+   | ----- | --------- | --------- | --------- |
+   | 64 位 | [下载][1] | [下载][2] | [下载][3] |
+   | 32 位 | [下载][4] | ❌ 不支持 | ❌ 不支持 |
+   | Arm64 | [下载][5] | [下载][6] | [下载][7] |
+
+[1]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-windows-64bit.zip
+[2]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-linux-64bit.zip
+[3]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-macos-64bit.zip
+[4]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-windows-32bit.zip
+[5]: https://github.com/fast-downn/fast-down/releases/latest/download/fast-down-windows-arm64.zip
+[6]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-linux-arm64.zip
+[7]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-macos-arm64.zip
 
 ## 使用方法
 

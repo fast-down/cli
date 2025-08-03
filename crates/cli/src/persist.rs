@@ -1,5 +1,5 @@
 use color_eyre::Result;
-use fast_down::ProgressEntry;
+use fast_pull::ProgressEntry;
 use rkyv::{Archive, Deserialize, Serialize, rancor::Error};
 use std::{env, path::PathBuf, sync::Arc};
 use tokio::{fs, sync::Mutex};

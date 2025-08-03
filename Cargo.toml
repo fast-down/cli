@@ -1,17 +1,17 @@
 [workspace]
-members = ["crates/core", "crates/cli", "crates/gui"]
+members = ["crates/cli"]
 resolver = "2"
 
 [workspace.package]
 edition = "2024"
 license = "MIT"
 authors = ["share121 <2854631158@qq.com>"]
-repository = "https://github.com/share121/fast-down"
+repository = "https://github.com/fast-down/fast-down"
 readme = "README.md"
 exclude = ["/.github"]
 
 [workspace.dependencies]
-fast-down = { version = "2.0.4", path = "crates/core" }
+fast-pull = "2.1.1"
 color-eyre = "0.6.5"
 reqwest = { version = "0.12.22", features = [
     "gzip",
@@ -36,11 +36,10 @@ config = { version = "0.15.13", default-features = false, features = [
 ] }
 mimalloc = "0.1.47"
 tempfile = "3.20.0"
-async-channel = "2.5.0"
 rust-i18n = "3.1.5"
 sys-locale = "0.3.2"
 rkyv = "0.8.10"
-dashmap = "6.1.0"
+kanal = "0.1.1"
 
 [profile.release]
 codegen-units = 1

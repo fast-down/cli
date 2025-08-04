@@ -3,7 +3,11 @@ use fast_pull::UrlInfo;
 use std::num::{NonZero, NonZeroUsize};
 use std::path::PathBuf;
 
-pub fn format_download_info(info: &UrlInfo, save_path: &PathBuf, concurrent: Option<NonZero<usize>>) -> String {
+pub fn format_download_info(
+    info: &UrlInfo,
+    save_path: &PathBuf,
+    concurrent: Option<NonZero<usize>>,
+) -> String {
     let readable_info = format!(
         "{}",
         t!(

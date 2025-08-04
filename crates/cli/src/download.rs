@@ -4,7 +4,7 @@ use crate::{
     persist::Database,
     progress::{self, Painter as ProgressPainter},
 };
-use color_eyre::eyre::{Result, eyre};
+use color_eyre::eyre::Result;
 #[cfg(target_pointer_width = "64")]
 use fast_pull::file::RandFileWriterMmap;
 #[cfg(not(target_pointer_width = "64"))]
@@ -67,14 +67,24 @@ async fn confirm(predicate: impl Into<Option<bool>>, prompt: &str, default: bool
         return Ok(value);
     }
     stderr.flush().await?;
-    let mut input = String::with_capacity(4);
-    BufReader::new(io::stdin()).read_line(&mut input).await?;
-    match input.trim() {
-        "y" | "Y" => Ok(true),
-        "n" | "N" => Ok(false),
-        "" => Ok(default),
-        _ => Err(eyre!(t!("err.confirm.invalid-input"))),
+    let result;
+    loop {
+        let mut input = String::with_capacity(4);
+        BufReader::new(io::stdin()).read_line(&mut input).await?;
+        result = match input.trim() {
+            "y" | "Y" => Ok(true),
+            "n" | "N" => Ok(false),
+            "" => Ok(default),
+            _ => {
+                stderr.write_all(prompt.as_bytes()).await?;
+                stderr.write_all(text).await?;
+                stderr.flush().await?;
+                continue;
+            }
+        };
+        break;
     }
+    result
 }
 
 fn cancel_expected() -> Result<()> {
@@ -133,18 +143,8 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     let save_path_str = save_path.to_str().unwrap();
 
     println!(
-        // "文件名: {}\n文件大小: {} ({} 字节) \n文件路径: {}\n线程数量: {}\nETag: {:?}\nLast-Modified: {:?}\n",
         "{}",
-        t!(
-            "msg.url-info",
-            name = info.name,
-            size = fmt::format_size(info.size as f64),
-            size_in_bytes = info.size,
-            path = save_path.to_str().unwrap(),
-            concurrent = concurrent.unwrap_or(NonZeroUsize::new(1).unwrap()),
-            etag = info.etag : {:?},
-            last_modified = info.last_modified : {:?}
-        )
+        fmt::format_download_info(&info, &save_path, concurrent)
     );
 
     #[allow(clippy::single_range_in_vec_init)]

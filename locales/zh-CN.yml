@@ -8,7 +8,9 @@ msg:
     文件大小: %{size} (%{size_in_bytes} 字节)
     文件路径: %{path}
     并行数量: %{concurrent}
+  etag: |
     ETag: %{etag}
+  last-modified: |
     Last-Modified: %{last_modified}
   resume-download: 未完成的下载, 继续下载...
   download: 已下载 %{completed} / %{total} (%{percentage}%)
@@ -40,4 +42,4 @@ verbose:
   abort: 任务中断
 
 progress:
-  desc: "消耗时间: %{time_spent} | 速度: %{speed}/s | 剩余时间: %{time_left}"
+  desc: "已用时间: %{time_spent} | 速度: %{speed}/s | 剩余时间: %{time_left}"

@@ -34,6 +34,7 @@ msg:
     Received Last-Modified: %{new_last_modified}
     Last-Modified mismatch, continue?
   file-overwrite: File already exists, overwrite？
+  lack-of-space: There is not enough space left, and another %{need} is required to download this file.
 verbose:
   worker-id: Worker %{id}
   connect-error: Connect Failed

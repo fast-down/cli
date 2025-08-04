@@ -38,7 +38,7 @@ Languages: **en** [中文简体](./README_zhCN.md)
 [2]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-linux-64bit.zip
 [3]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-macos-64bit.zip
 [4]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-windows-32bit.zip
-[5]: https://github.com/fast-downn/fast-down/releases/latest/download/fast-down-windows-arm64.zip
+[5]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-windows-arm64.zip
 [6]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-linux-arm64.zip
 [7]: https://github.com/fast-down/fast-down/releases/latest/download/fast-down-macos-arm64.zip
 

@@ -20,7 +20,7 @@ extern crate rust_i18n;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
-i18n!("../../locales", fallback = "en");
+i18n!("./locales", fallback = "en");
 
 fn init_locale() {
     if let Some(ref locale) = sys_locale::get_locale() {

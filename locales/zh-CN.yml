@@ -40,4 +40,4 @@ verbose:
   abort: 任务中断
 
 progress:
-  desc: "消耗时间: %{time_spent} | 速度: %{speed}/s | 剩余时间: %{time_left}"
+  desc: "已用时间: %{time_spent} | 速度: %{speed}/s | 剩余时间: %{time_left}"

@@ -58,3 +58,7 @@ lto = true
 opt-level = 3
 panic = "abort"
 strip = true
+
+[[bin]]
+name = "fast"
+path = "src/main.rs"

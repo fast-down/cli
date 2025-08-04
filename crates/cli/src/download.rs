@@ -3,6 +3,7 @@ use crate::{
     fmt,
     persist::Database,
     progress::{self, Painter as ProgressPainter},
+    reader::{FastDownReader, build_client},
 };
 use color_eyre::eyre::Result;
 #[cfg(target_pointer_width = "64")]
@@ -13,13 +14,10 @@ use fast_pull::{
     Event, MergeProgress, ProgressEntry, Total,
     file::SeqFileWriter,
     multi::{self, download_multi},
-    reqwest::{Prefetch, ReqwestReader},
+    reqwest::Prefetch,
     single::{self, download_single},
 };
-use reqwest::{
-    Client, Proxy,
-    header::{self, HeaderValue},
-};
+use reqwest::header::{self, HeaderValue};
 use std::{
     env,
     num::NonZeroUsize,
@@ -104,17 +102,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     if args.verbose {
         dbg!(&args);
     }
-    let mut client = Client::builder()
-        .default_headers(args.headers)
-        .http1_only()
-        .brotli(true)
-        .gzip(true)
-        .deflate(true)
-        .zstd(true);
-    if let Some(ref proxy) = args.proxy {
-        client = client.proxy(Proxy::all(proxy)?);
-    }
-    let client = client.build()?;
+    let client = build_client(&args.headers, &args.proxy)?;
     let db = Database::new().await?;
 
     let info = loop {
@@ -242,7 +230,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         }
     }
 
-    let reader = ReqwestReader::new(info.final_url.clone(), client);
+    let reader = FastDownReader::new(info.final_url.clone(), args.headers, args.proxy)?;
     let file = OpenOptions::new()
         .read(true)
         .write(true)

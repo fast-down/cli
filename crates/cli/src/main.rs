@@ -5,6 +5,7 @@ mod fmt;
 mod list;
 mod persist;
 mod progress;
+mod reader;
 mod update;
 
 use args::Args;

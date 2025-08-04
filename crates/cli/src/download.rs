@@ -67,11 +67,10 @@ async fn confirm(predicate: impl Into<Option<bool>>, prompt: &str, default: bool
         return Ok(value);
     }
     stderr.flush().await?;
-    let result;
     loop {
         let mut input = String::with_capacity(4);
         BufReader::new(io::stdin()).read_line(&mut input).await?;
-        result = match input.trim() {
+        break match input.trim() {
             "y" | "Y" => Ok(true),
             "n" | "N" => Ok(false),
             "" => Ok(default),
@@ -82,9 +81,7 @@ async fn confirm(predicate: impl Into<Option<bool>>, prompt: &str, default: bool
                 continue;
             }
         };
-        break;
     }
-    result
 }
 
 fn cancel_expected() -> Result<()> {

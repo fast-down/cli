@@ -8,17 +8,15 @@ pub fn format_time(time: u64) -> String {
         let seconds = time % ONE_MINUTE;
         let minutes = (time / ONE_MINUTE) % ONE_MINUTE;
         let hours = time / ONE_HOUR;
-        return format!("{hours:02}:{minutes:02}:{seconds:02}");
+        format!("{hours:02}:{minutes:02}:{seconds:02}")
+    } else {
+        let remainder = time % ONE_DAY;
+        let days = time / ONE_DAY;
+        let seconds = remainder % ONE_MINUTE;
+        let minutes = (remainder / ONE_MINUTE) % ONE_MINUTE;
+        let hours = remainder / ONE_HOUR;
+        format!("{days}d {hours:02}:{minutes:02}:{seconds:02}")
     }
-
-    let remainder = time % ONE_DAY;
-
-    let days = time / ONE_DAY;
-    let seconds = remainder % ONE_MINUTE;
-    let minutes = (remainder / ONE_MINUTE) % ONE_MINUTE;
-    let hours = remainder / ONE_HOUR;
-
-    format!("{days}d {hours:02}:{minutes:02}:{seconds:02}")
 }
 
 #[cfg(test)]

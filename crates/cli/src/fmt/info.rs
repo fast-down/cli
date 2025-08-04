@@ -8,7 +8,7 @@ pub fn format_download_info(
     save_path: &Path,
     concurrent: Option<NonZero<usize>>,
 ) -> String {
-    let readable_info = format!(
+    let mut readable_info = format!(
         "{}",
         t!(
             "msg.url-info",
@@ -19,34 +19,11 @@ pub fn format_download_info(
             concurrent = concurrent.unwrap_or(NonZeroUsize::new(1).unwrap()),
         )
     );
-
-    if info.etag.is_none() && info.last_modified.is_none() {
-        return readable_info;
+    if let Some(ref etag) = info.etag {
+        readable_info += &t!("msg.etag", etag = etag);
     }
-
-    let readable_info = if info.etag.is_some() {
-        format!(
-            "{}{}",
-            readable_info,
-            t!(
-                "msg.etag",
-                etag = info.etag.as_ref().unwrap().trim_matches('"')
-            )
-        )
-    } else {
-        readable_info
-    };
-
-    if info.last_modified.is_some() {
-        format!(
-            "{}{}",
-            readable_info,
-            t!(
-                "msg.last-modified",
-                last_modified = info.last_modified.as_ref().unwrap().trim_matches('"')
-            )
-        )
-    } else {
-        readable_info
+    if let Some(ref last_modified) = info.last_modified {
+        readable_info += &t!("msg.last-modified", last_modified = last_modified);
     }
+    readable_info
 }

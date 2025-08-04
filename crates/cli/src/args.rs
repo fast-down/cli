@@ -82,7 +82,7 @@ struct DownloadCli {
 
     /// 写入通道长度
     #[arg(long)]
-    write_channel_size: Option<usize>,
+    write_queue_cap: Option<usize>,
 
     /// 进度条显示宽度
     #[arg(long)]
@@ -149,7 +149,7 @@ pub struct DownloadArgs {
     pub proxy: Option<String>,
     pub headers: HeaderMap,
     pub write_buffer_size: usize,
-    pub write_channel_size: usize,
+    pub write_queue_cap: usize,
     pub repaint_gap: Duration,
     pub progress_width: u16,
     pub retry_gap: Duration,
@@ -181,7 +181,7 @@ impl Args {
                         proxy: None,
                         headers: HeaderMap::new(),
                         write_buffer_size: 8 * 1024 * 1024,
-                        write_channel_size: 10240,
+                        write_queue_cap: 10240,
                         progress_width: terminal::size()
                             .ok()
                             .and_then(|s| s.0.checked_sub(36))
@@ -225,8 +225,8 @@ impl Args {
                     if let Ok(value) = config.get_int("General.write_buffer_size") {
                         args.write_buffer_size = value.try_into()?;
                     }
-                    if let Ok(value) = config.get_int("General.write_channel_size") {
-                        args.write_channel_size = value.try_into()?;
+                    if let Ok(value) = config.get_int("General.write_queue_cap") {
+                        args.write_queue_cap = value.try_into()?;
                     }
                     if let Ok(value) = config.get_int("General.progress_width") {
                         args.progress_width = value.try_into()?;
@@ -291,8 +291,8 @@ impl Args {
                     if let Some(value) = cli.write_buffer_size {
                         args.write_buffer_size = value;
                     }
-                    if let Some(value) = cli.write_channel_size {
-                        args.write_channel_size = value;
+                    if let Some(value) = cli.write_queue_cap {
+                        args.write_queue_cap = value;
                     }
                     if let Some(value) = cli.progress_width {
                         args.progress_width = value;

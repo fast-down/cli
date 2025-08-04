@@ -252,7 +252,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 download_chunks,
                 retry_gap: args.retry_gap,
                 concurrent: concurrent.unwrap(),
-                write_queue_cap: args.write_channel_size,
+                write_queue_cap: args.write_queue_cap,
             },
         )
         .await
@@ -263,7 +263,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             writer,
             single::DownloadOptions {
                 retry_gap: args.retry_gap,
-                write_queue_cap: args.write_channel_size,
+                write_queue_cap: args.write_queue_cap,
             },
         )
         .await

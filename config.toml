@@ -8,7 +8,7 @@ threads = 8       # 下载线程数
 
 # 高级设置
 write_buffer_size = 8388608 # 写入缓冲区大小 (单位: B)
-write_channel_size = 10240  # 写入通道长度
+write_queue_cap = 10240     # 写入通道长度
 # progress_width = 50         # 进度条显示宽度 (默认为自动宽度)
 retry_gap = 500   # 重试间隔 (单位: ms)
 repaint_gap = 100 # 重试间隔 (单位: ms)

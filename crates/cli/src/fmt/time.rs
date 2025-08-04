@@ -3,7 +3,6 @@ const ONE_MINUTE: u64 = ONE_SECOND * 60;
 const ONE_HOUR: u64 = ONE_MINUTE * 60;
 const ONE_DAY: u64 = ONE_HOUR * 24;
 
-
 pub fn format_time(time: u64) -> String {
     if time < ONE_DAY {
         let seconds = time % ONE_MINUTE;

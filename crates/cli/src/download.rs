@@ -5,9 +5,13 @@ use crate::{
     progress::{self, Painter as ProgressPainter},
 };
 use color_eyre::eyre::{Result, eyre};
+#[cfg(target_pointer_width = "64")]
+use fast_pull::file::RandFileWriterMmap;
+#[cfg(not(target_pointer_width = "64"))]
+use fast_pull::file::RandFileWriterStd;
 use fast_pull::{
     Event, MergeProgress, ProgressEntry, Total,
-    file::{RandFileWriterMmap, SeqFileWriter},
+    file::SeqFileWriter,
     multi::{self, download_multi},
     reqwest::{Prefetch, ReqwestReader},
     single::{self, download_single},
@@ -93,7 +97,13 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     if args.verbose {
         dbg!(&args);
     }
-    let mut client = Client::builder().default_headers(args.headers).http1_only();
+    let mut client = Client::builder()
+        .default_headers(args.headers)
+        .http1_only()
+        .brotli(true)
+        .gzip(true)
+        .deflate(true)
+        .zstd(true);
     if let Some(ref proxy) = args.proxy {
         client = client.proxy(Proxy::all(proxy)?);
     }
@@ -240,11 +250,14 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         .read(true)
         .write(true)
         .create(true)
-        .truncate(true)
+        .truncate(false)
         .open(&save_path)
         .await?;
     let result = if info.fast_download {
+        #[cfg(target_pointer_width = "64")]
         let writer = RandFileWriterMmap::new(file, info.size, args.write_buffer_size).await?;
+        #[cfg(not(target_pointer_width = "64"))]
+        let writer = RandFileWriterStd::new(file, info.size, args.write_buffer_size).await?;
         download_multi(
             reader,
             writer,

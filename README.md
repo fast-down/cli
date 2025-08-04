@@ -17,8 +17,7 @@ Languages: **en** [中文简体](./README_zhCN.md)
 ## Features
 
 1. **⚡️ Fastest Download**  
-   We created [fast-steal](https://github.com/fast-down/fast-steal) With optimized Work Stealing, **1.43 x faster** than
-   NDM.
+   We created [fast-steal](https://github.com/fast-down/fast-steal) With optimized Work Stealing, **1.43 x faster** than NDM.
 2. **🔄 File consistency**  
    Switching Wi-Fi, Turn Off Wi-Fi, Switch proxies. **We guarantee the consistency**.
 3. **⛓️‍💥 Resuming Downloads**  

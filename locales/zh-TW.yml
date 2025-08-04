@@ -8,7 +8,9 @@ msg:
     檔案大小: %{size} (%{size_in_bytes} 位元組)
     檔案路徑: %{path}
     並行數量: %{concurrent}
+  etag: |
     ETag: %{etag}
+  last-modified: |
     Last-Modified: %{last_modified}
   resume-download: 未完成的下載, 繼續下載...
   download: 已下載 %{completed} / %{total} (%{percentage}%)

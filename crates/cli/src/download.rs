@@ -132,20 +132,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     save_path = path_clean::clean(save_path);
     let save_path_str = save_path.to_str().unwrap();
 
-    println!(
-        // "文件名: {}\n文件大小: {} ({} 字节) \n文件路径: {}\n线程数量: {}\nETag: {:?}\nLast-Modified: {:?}\n",
-        "{}",
-        t!(
-            "msg.url-info",
-            name = info.name,
-            size = fmt::format_size(info.size as f64),
-            size_in_bytes = info.size,
-            path = save_path.to_str().unwrap(),
-            concurrent = concurrent.unwrap_or(NonZeroUsize::new(1).unwrap()),
-            etag = info.etag : {:?},
-            last_modified = info.last_modified : {:?}
-        )
-    );
+    println!("{}", fmt::format_download_info(&info, &save_path, concurrent));
 
     #[allow(clippy::single_range_in_vec_init)]
     let mut download_chunks = vec![0..info.size];
@@ -177,14 +164,14 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 );
                 if entry.file_size != info.size
                     && !confirm(
-                        predicate!(args),
-                        &t!(
+                    predicate!(args),
+                    &t!(
                             "msg.size-mismatch",
                             saved_size = entry.file_size,
                             new_size = info.size
                         ),
-                        false,
-                    )
+                    false,
+                )
                     .await?
                 {
                     return cancel_expected();
@@ -199,7 +186,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                         ),
                         false,
                     )
-                    .await?
+                        .await?
                     {
                         return cancel_expected();
                     }
@@ -211,7 +198,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                         &t!("msg.weak-etag", etag = progress_etag),
                         false,
                     )
-                    .await?
+                        .await?
                     {
                         return cancel_expected();
                     }
@@ -222,14 +209,14 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 }
                 if entry.last_modified != info.last_modified
                     && !confirm(
-                        predicate!(args),
-                        &t!(
+                    predicate!(args),
+                    &t!(
                             "msg.last-modified-mismatch",
                             saved_last_modified = entry.last_modified : {:?},
                             new_last_modified = info.last_modified : {:?}
                         ),
-                        false,
-                    )
+                    false,
+                )
                     .await?
                 {
                     return cancel_expected();
@@ -268,7 +255,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 write_queue_cap: args.write_queue_cap,
             },
         )
-        .await
+            .await
     } else {
         let writer = SeqFileWriter::new(file, args.write_buffer_size);
         download_single(
@@ -279,7 +266,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 write_queue_cap: args.write_queue_cap,
             },
         )
-        .await
+            .await
     };
 
     let result_clone = result.clone();
@@ -302,7 +289,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             info.last_modified,
             info.final_url.to_string(),
         )
-        .await?;
+            .await?;
     }
 
     let start = Instant::now() - Duration::from_millis(elapsed);
@@ -327,7 +314,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                         write_progress.clone(),
                         start.elapsed().as_millis() as u64,
                     )
-                    .await?;
+                        .await?;
                 }
             }
             Event::ReadError(id, err) => painter.lock().await.print(&format!(
@@ -378,7 +365,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         write_progress.clone(),
         start.elapsed().as_millis() as u64,
     )
-    .await?;
+        .await?;
     result.join().await?;
     painter.lock().await.update()?;
     painter_handle.cancel();

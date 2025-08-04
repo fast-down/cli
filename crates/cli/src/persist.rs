@@ -1,7 +1,7 @@
 use color_eyre::Result;
 use fast_pull::ProgressEntry;
-use rkyv::{Archive, Deserialize, Serialize, rancor::Error};
-use std::{env, path::PathBuf, sync::Arc};
+use rkyv::{rancor::Error, Archive, Deserialize, Serialize};
+use std::{env, path::Path, path::PathBuf, sync::Arc};
 use tokio::{fs, sync::Mutex};
 
 #[derive(Archive, Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -35,7 +35,10 @@ impl Database {
         if db_path.try_exists()? {
             let bytes = fs::read(&db_path).await?;
             let archived = rkyv::access::<ArchivedDatabaseInner, Error>(&bytes)?;
-            let deserialized = rkyv::deserialize::<_, Error>(archived)?;
+            let mut deserialized = rkyv::deserialize::<_, Error>(archived)?;
+            deserialized
+                .0
+                .retain(|e| Path::new(&e.file_path).try_exists().unwrap_or(false));
             return Ok(Self {
                 inner: Arc::new(Mutex::new(deserialized)),
                 db_path: Arc::new(db_path),
@@ -57,7 +60,7 @@ impl Database {
         url: String,
     ) -> Result<()> {
         let mut inner = self.inner.lock().await;
-        inner.0.retain_mut(|e| e.file_path != file_path);
+        inner.0.retain(|e| e.file_path != file_path);
         inner.0.push(DatabaseEntry {
             file_path,
             file_name,
@@ -102,13 +105,13 @@ impl Database {
         let mut inner = self.inner.lock().await;
         let origin_len = inner.0.len();
         #[allow(clippy::single_range_in_vec_init)]
-        inner.0.retain_mut(|e| e.progress != [0..e.file_size]);
+        inner.0.retain(|e| e.progress != [0..e.file_size]);
         self.flush(inner.clone()).await?;
         Ok(origin_len - inner.0.len())
     }
 
     async fn flush(&self, data: DatabaseInner) -> Result<()> {
-        let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&data)?;
+        let bytes = rkyv::to_bytes::<Error>(&data)?;
         fs::write(&*self.db_path, bytes).await?;
         Ok(())
     }

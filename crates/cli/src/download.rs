@@ -5,7 +5,13 @@ use crate::{
     progress::{self, Painter as ProgressPainter},
 };
 use color_eyre::eyre::{Result, eyre};
-use fast_pull::{Event, MergeProgress, ProgressEntry, Total, reqwest::Prefetch};
+use fast_pull::{
+    Event, MergeProgress, ProgressEntry, Total,
+    file::{RandFileWriterMmap, SeqFileWriter},
+    multi::{self, download_multi},
+    reqwest::{Prefetch, ReqwestReader},
+    single::{self, download_single},
+};
 use reqwest::{
     Client, Proxy,
     header::{self, HeaderValue},
@@ -18,6 +24,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::{
+    fs::OpenOptions,
     io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader},
     runtime::Handle,
     sync::Mutex,
@@ -228,20 +235,39 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         }
     }
 
-    let result = fast_pull::multi::download_multi(
-        client,
-        info.final_url.clone(),
-        download_chunks,
-        &save_path,
-        DownloadOptions {
-            concurrent,
-            file_size: info.file_size,
-            retry_gap: args.retry_gap,
-            write_buffer_size: args.write_buffer_size,
-            write_channel_size: args.write_channel_size,
-        },
-    )
-    .await?;
+    let reader = ReqwestReader::new(info.final_url.clone(), client);
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&save_path)
+        .await?;
+    let result = if info.fast_download {
+        let writer = RandFileWriterMmap::new(file, info.size, args.write_buffer_size).await?;
+        download_multi(
+            reader,
+            writer,
+            multi::DownloadOptions {
+                download_chunks,
+                retry_gap: args.retry_gap,
+                concurrent: concurrent.unwrap(),
+                write_queue_cap: args.write_channel_size,
+            },
+        )
+        .await
+    } else {
+        let writer = SeqFileWriter::new(file, args.write_buffer_size);
+        download_single(
+            reader,
+            writer,
+            single::DownloadOptions {
+                retry_gap: args.retry_gap,
+                write_queue_cap: args.write_channel_size,
+            },
+        )
+        .await
+    };
 
     let result_clone = result.clone();
     let rt_handle = Handle::current();
@@ -298,6 +324,11 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 err
             ))?,
             Event::WriteError(_, err) => painter.lock().await.print(&format!(
+                "{}\n{:?}\n",
+                t!("verbose.write-error"),
+                err
+            ))?,
+            Event::FlushError(err) => painter.lock().await.print(&format!(
                 "{}\n{:?}\n",
                 t!("verbose.write-error"),
                 err

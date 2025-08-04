@@ -4,21 +4,21 @@ use crate::{
     persist::Database,
     progress::{self, Painter as ProgressPainter},
 };
-use color_eyre::eyre::{Result, eyre};
+use color_eyre::eyre::Result;
 #[cfg(target_pointer_width = "64")]
 use fast_pull::file::RandFileWriterMmap;
 #[cfg(not(target_pointer_width = "64"))]
 use fast_pull::file::RandFileWriterStd;
 use fast_pull::{
-    Event, MergeProgress, ProgressEntry, Total,
-    file::SeqFileWriter,
-    multi::{self, download_multi},
-    reqwest::{Prefetch, ReqwestReader},
-    single::{self, download_single},
+    file::SeqFileWriter, multi::{self, download_multi}, reqwest::{Prefetch, ReqwestReader}, single::{self, download_single},
+    Event,
+    MergeProgress,
+    ProgressEntry,
+    Total,
 };
 use reqwest::{
-    Client, Proxy,
-    header::{self, HeaderValue},
+    header::{self, HeaderValue}, Client,
+    Proxy,
 };
 use std::{
     env,
@@ -67,14 +67,24 @@ async fn confirm(predicate: impl Into<Option<bool>>, prompt: &str, default: bool
         return Ok(value);
     }
     stderr.flush().await?;
-    let mut input = String::with_capacity(4);
-    BufReader::new(io::stdin()).read_line(&mut input).await?;
-    match input.trim() {
-        "y" | "Y" => Ok(true),
-        "n" | "N" => Ok(false),
-        "" => Ok(default),
-        _ => Err(eyre!(t!("err.confirm.invalid-input"))),
+    let result;
+    loop {
+        let mut input = String::with_capacity(4);
+        BufReader::new(io::stdin()).read_line(&mut input).await?;
+        result = match input.trim() {
+            "y" | "Y" => Ok(true),
+            "n" | "N" => Ok(false),
+            "" => Ok(default),
+            _ => {
+                stderr.write_all(prompt.as_bytes()).await?;
+                stderr.write_all(text).await?;
+                stderr.flush().await?;
+                continue;
+            }
+        };
+        break;
     }
+    result
 }
 
 fn cancel_expected() -> Result<()> {

@@ -1,39 +1,42 @@
-[workspace]
-members = ["crates/cli"]
-resolver = "2"
-
-[workspace.package]
+[package]
+name = "fast-down-cli"
+version = "2.1.0"
 edition = "2024"
 license = "MIT"
 authors = ["share121 <2854631158@qq.com>"]
 repository = "https://github.com/fast-down/fast-down"
 readme = "README.md"
 exclude = ["/.github"]
+description = "超级快的下载器命令行界面"
+documentation = "https://docs.rs/fast-down-cli"
+homepage = "https://github.com/fast-down/fast-down"
+keywords = ["downloader", "parallel", "thread", "concurrency", "performance"]
+categories = ["network-programming", "command-line-utilities"]
 
-[workspace.dependencies]
+[dependencies]
 fast-pull = "2.1.4"
 color-eyre = "0.6.5"
 reqwest = { version = "0.12.22", features = [
-    "brotli",
-    "deflate",
-    "gzip",
-    "macos-system-configuration",
-    "rustls-tls",
-    "socks",
-    "zstd",
-    "http2",
+  "brotli",
+  "deflate",
+  "gzip",
+  "macos-system-configuration",
+  "rustls-tls",
+  "socks",
+  "zstd",
+  "http2",
 ], default-features = false }
 clap = { version = "4.5.42", features = ["derive"] }
 tokio = { version = "1.47.1", default-features = false, features = [
-    "io-std",
-    "rt-multi-thread",
+  "io-std",
+  "rt-multi-thread",
 ] }
 path-clean = "1.0.1"
 ctrlc = "3.4.7"
 url = "2.5.4"
 config = { version = "0.15.13", default-features = false, features = [
-    "toml",
-    "convert-case",
+  "toml",
+  "convert-case",
 ] }
 mimalloc = "0.1.47"
 tempfile = "3.20.0"
@@ -41,6 +44,13 @@ rust-i18n = "3.1.5"
 sys-locale = "0.3.2"
 rkyv = "0.8.10"
 kanal = "0.1.1"
+crossterm = "0.29.0"
+futures = "0.3.31"
+bytes = "1.10.1"
+
+[package.metadata.i18n]
+available-locales = ["en", "zh-TW", "zh-CN"]
+default-locale = "en"
 
 [profile.release]
 codegen-units = 1

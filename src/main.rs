@@ -6,8 +6,8 @@ mod list;
 mod persist;
 mod progress;
 mod reader;
-mod update;
 mod space;
+mod update;
 
 use args::Args;
 use color_eyre::Result;

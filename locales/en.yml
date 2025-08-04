@@ -8,7 +8,9 @@ msg:
     File Size: %{size} (%{size_in_bytes} bytes)
     File Path: %{path}
     Concurrent: %{concurrent}
+  etag: |
     ETag: %{etag}
+  last-modified: |
     Last-Modified: %{last_modified}
   resume-download: Incomplete download. Resuming...
   download: Downloaded %{completed} / %{total} (%{percentage}%)

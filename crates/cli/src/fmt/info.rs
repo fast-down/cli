@@ -1,11 +1,11 @@
 use crate::fmt::format_size;
 use fast_pull::UrlInfo;
 use std::num::{NonZero, NonZeroUsize};
-use std::path::PathBuf;
+use std::path::Path;
 
 pub fn format_download_info(
     info: &UrlInfo,
-    save_path: &PathBuf,
+    save_path: &Path,
     concurrent: Option<NonZero<usize>>,
 ) -> String {
     let readable_info = format!(
@@ -24,7 +24,7 @@ pub fn format_download_info(
         return readable_info;
     }
 
-    let readable_info = if !info.etag.is_none() {
+    let readable_info = if info.etag.is_some() {
         format!(
             "{}{}",
             readable_info,
@@ -37,7 +37,7 @@ pub fn format_download_info(
         readable_info
     };
 
-    let readable_info = if !info.last_modified.is_none() {
+    if info.last_modified.is_some() {
         format!(
             "{}{}",
             readable_info,
@@ -48,7 +48,5 @@ pub fn format_download_info(
         )
     } else {
         readable_info
-    };
-
-    readable_info
+    }
 }

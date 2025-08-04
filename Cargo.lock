@@ -566,6 +566,8 @@ dependencies = [
 [[package]]
 name = "fast-pull"
 version = "2.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1cce2c1b4b6c6a747c04e9c6c814ce8ce3021094f67fb8d36d00d44d26e337f"
 dependencies = [
  "bytes",
  "content_disposition",

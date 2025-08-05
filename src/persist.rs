@@ -1,6 +1,6 @@
 use color_eyre::Result;
 use fast_pull::ProgressEntry;
-use rkyv::{rancor::Error, Archive, Deserialize, Serialize};
+use rkyv::{Archive, Deserialize, Serialize, rancor::Error};
 use std::ffi::OsStr;
 use std::hash::{Hash, Hasher};
 use std::sync::OnceLock;

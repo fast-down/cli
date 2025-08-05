@@ -133,14 +133,6 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         fmt::format_download_info(&info, &save_path, concurrent)
     );
 
-    if let Some(lack) = check_free_space(save_path_str, &info.size) {
-        eprintln!(
-            "{}",
-            t!("msg.lack-of-space", need = fmt::format_size(lack as f64),),
-        );
-        return cancel_expected();
-    }
-
     #[allow(clippy::single_range_in_vec_init)]
     let mut download_chunks = vec![0..info.size];
     let mut resume_download = false;
@@ -237,6 +229,14 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         {
             return cancel_expected();
         }
+    }
+
+    if let Some(size) = check_free_space(save_path_str, download_chunks.total())? {
+        eprintln!(
+            "{}",
+            t!("msg.lack-of-space", size = fmt::format_size(size as f64),),
+        );
+        return cancel_expected();
     }
 
     let reader = FastDownReader::new(info.final_url.clone(), args.headers, args.proxy)?;

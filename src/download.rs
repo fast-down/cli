@@ -136,10 +136,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     if let Some(lack) = check_free_space(save_path_str, &info.size) {
         eprintln!(
             "{}",
-            t!(
-            "msg.lack-of-space",
-            need = fmt::format_size(lack as f64),
-        ),
+            t!("msg.lack-of-space", need = fmt::format_size(lack as f64),),
         );
         return cancel_expected();
     }

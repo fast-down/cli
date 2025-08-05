@@ -41,7 +41,7 @@ async fn main() -> Result<()> {
     color_eyre::install()?;
     eprintln!("fast-down v{VERSION}");
     let args = Args::parse()?;
-    
+
     match args {
         Args::Download(download_args) => {
             if download_args.task {
@@ -53,25 +53,21 @@ async fn main() -> Result<()> {
         Args::Update => update::update().await,
         Args::Clean => clean::clean().await,
         Args::List => list::list().await,
-        Args::Task(task_args) => {
-            process_tasks(&PathBuf::from(&task_args.save_folder)).await
-        }
-        Args::TaskExample => {
-            create_example_config().await
-        }
+        Args::Task(task_args) => process_tasks(&PathBuf::from(&task_args.save_folder)).await,
+        Args::TaskExample => create_example_config().await,
     }
 }
 
 /// 处理任务队列
-/// 
+///
 /// 从指定目录读取fast-down.yaml配置文件，解析所有任务并并发执行
-/// 
+///
 /// # 参数
 /// * `save_folder` - 保存目录路径，用于查找fast-down.yaml和作为基础下载目录
-/// 
+///
 /// # 返回值
 /// * `Result<()>` - 成功返回Ok(())，失败返回错误信息
-/// 
+///
 /// # 功能特性
 /// * 支持并发下载，最多同时处理5个任务
 /// * 每个任务独立配置线程数、文件名等参数
@@ -92,23 +88,26 @@ async fn process_tasks(save_folder: &Path) -> Result<()> {
         eprintln!("No tasks found in fast-down.yaml");
         return Ok(());
     }
-    
+
     let total_tasks = tasks.len();
     eprintln!("Found {total_tasks} tasks in fast-down.yaml");
-    
+
     // 创建并发限制器，最多同时处理5个任务
     let semaphore = Arc::new(Semaphore::new(5));
     let mut handles = Vec::new();
-    
+
     for (index, task) in tasks.into_iter().enumerate() {
         let permit = semaphore.clone().acquire_owned().await.unwrap();
         let task_number = index + 1;
-        
+
         let handle = tokio::spawn(async move {
             let _permit = permit; // 保持permit直到任务完成
-            
-            eprintln!("Starting task {}/{}: {}", task_number, total_tasks, task.url);
-            
+
+            eprintln!(
+                "Starting task {}/{}: {}",
+                task_number, total_tasks, task.url
+            );
+
             // 创建下载参数
             let download_args = crate::args::DownloadArgs {
                 url: task.url.clone(),
@@ -122,7 +121,8 @@ async fn process_tasks(save_folder: &Path) -> Result<()> {
                     if let Some(task_headers) = &task.settings.headers {
                         for (key, value) in task_headers {
                             if let Ok(header_name) = reqwest::header::HeaderName::from_str(key)
-                                && let Ok(header_value) = value.parse() {
+                                && let Ok(header_value) = value.parse()
+                            {
                                 headers.insert(header_name, header_value);
                             }
                         }
@@ -141,22 +141,28 @@ async fn process_tasks(save_folder: &Path) -> Result<()> {
                 verbose: false,
                 task: false, // 避免递归调用
             };
-            
+
             match crate::download::download(download_args).await {
                 Ok(_) => {
-                    eprintln!("✓ Completed task {}/{}: {}", task_number, total_tasks, task.url);
+                    eprintln!(
+                        "✓ Completed task {}/{}: {}",
+                        task_number, total_tasks, task.url
+                    );
                     Ok::<(), color_eyre::Report>(())
                 }
                 Err(e) => {
-                    eprintln!("✗ Failed task {}/{}: {} - {}", task_number, total_tasks, task.url, e);
+                    eprintln!(
+                        "✗ Failed task {}/{}: {} - {}",
+                        task_number, total_tasks, task.url, e
+                    );
                     Err(e)
                 }
             }
         });
-        
+
         handles.push(handle);
     }
-    
+
     // 等待所有任务完成
     let mut failed_tasks = 0;
     for handle in handles {
@@ -164,18 +170,18 @@ async fn process_tasks(save_folder: &Path) -> Result<()> {
             failed_tasks += 1;
         }
     }
-    
+
     if failed_tasks > 0 {
         eprintln!("Completed with {failed_tasks} failed tasks");
     } else {
         eprintln!("All {total_tasks} tasks completed successfully");
     }
-    
+
     Ok(())
 }
 
 /// 创建示例任务配置文件
-/// 
+///
 /// 在当前目录下创建fast-down.yaml.example文件，包含完整的任务配置示例
 async fn create_example_config() -> Result<()> {
     let example_content = r#"# Fast-Down 任务配置文件示例
@@ -258,15 +264,15 @@ batch_tasks:
 "#;
 
     let example_path = std::path::Path::new("fast-down.yaml.example");
-    
+
     if example_path.exists() {
         eprintln!("示例文件已存在: {}", example_path.display());
         return Ok(());
     }
-    
+
     tokio::fs::write(example_path, example_content).await?;
     eprintln!("已创建示例配置文件: {}", example_path.display());
     eprintln!("请查看文件内容并根据需要修改后重命名为 fast-down.yaml",);
-    
+
     Ok(())
 }

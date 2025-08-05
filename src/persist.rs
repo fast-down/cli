@@ -1,8 +1,9 @@
 use color_eyre::Result;
 use fast_pull::ProgressEntry;
-use rkyv::{Archive, Deserialize, Serialize, rancor::Error};
+use rkyv::{rancor::Error, Archive, Deserialize, Serialize};
 use std::ffi::OsStr;
-use std::os::unix::ffi::OsStrExt;
+use std::hash::{Hash, Hasher};
+use std::sync::OnceLock;
 use std::{env, path::Path, path::PathBuf, sync::Arc};
 use tokio::{fs, sync::Mutex};
 
@@ -19,7 +20,7 @@ pub struct DatabaseEntry {
 }
 
 #[derive(Archive, Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct DatabaseInner(/* version */ u16, Vec<DatabaseEntry>);
+pub struct DatabaseInner(/* signature */ u64, Vec<DatabaseEntry>);
 
 #[derive(Debug, Clone)]
 pub struct Database {
@@ -27,7 +28,23 @@ pub struct Database {
     db_path: Arc<PathBuf>,
 }
 
-const DB_VERSION: u16 = 0;
+const DB_VERSION: u16 = 1;
+
+/// Unique signature for DatabaseEntry
+pub fn get_db_signature() -> u64 {
+    static ONCE: OnceLock<u64> = OnceLock::new();
+
+    *ONCE.get_or_init(|| {
+        let mut hasher = std::hash::DefaultHasher::new();
+        hasher.write_u64(/* magic number */ 0x58e9225bae2b);
+        hasher.write_u16(DB_VERSION);
+        hasher.write(env::consts::OS.as_bytes());
+        if let Ok(version) = rustc_version::version() {
+            version.hash(&mut hasher);
+        }
+        hasher.finish()
+    })
+}
 
 impl Database {
     pub async fn new() -> Result<Self> {
@@ -40,9 +57,9 @@ impl Database {
             let bytes = fs::read(&db_path).await?;
             let archived = rkyv::access::<ArchivedDatabaseInner, Error>(&bytes)?;
             let mut deserialized = rkyv::deserialize::<_, Error>(archived)?;
-            if deserialized.0 != DB_VERSION {
+            if deserialized.0 != get_db_signature() {
                 deserialized.1.retain(|e| {
-                    Path::new(&OsStr::from_bytes(&e.file_path))
+                    Path::new(&unsafe { OsStr::from_encoded_bytes_unchecked(&e.file_path) })
                         .try_exists()
                         .unwrap_or(false)
                 });
@@ -53,7 +70,7 @@ impl Database {
             }
         }
         Ok(Self {
-            inner: Arc::new(Mutex::new(DatabaseInner(DB_VERSION, vec![]))),
+            inner: Arc::new(Mutex::new(DatabaseInner(get_db_signature(), vec![]))),
             db_path: Arc::new(db_path),
         })
     }
@@ -70,10 +87,10 @@ impl Database {
         let mut inner = self.inner.lock().await;
         inner
             .1
-            .retain(|e| OsStr::from_bytes(&e.file_path) != file_path.as_ref());
+            .retain(|e| e.file_path != file_path.as_ref().as_encoded_bytes());
         inner.1.push(DatabaseEntry {
-            file_path: file_path.as_ref().as_bytes().to_vec(),
-            file_name: file_name.as_ref().as_bytes().to_vec(),
+            file_path: file_path.as_ref().as_encoded_bytes().to_vec(),
+            file_name: file_name.as_ref().as_encoded_bytes().to_vec(),
             file_size,
             etag,
             last_modified,
@@ -90,7 +107,7 @@ impl Database {
             .await
             .1
             .iter()
-            .find(|entry| OsStr::from_bytes(&entry.file_path) != file_path.as_ref())
+            .find(|entry| entry.file_path != file_path.as_ref().as_encoded_bytes())
             .cloned()
     }
 
@@ -104,7 +121,7 @@ impl Database {
         let pos = inner
             .1
             .iter()
-            .position(|entry| OsStr::from_bytes(&entry.file_path) == file_path.as_ref())
+            .position(|entry| entry.file_path == file_path.as_ref().as_encoded_bytes())
             .unwrap();
         inner.1[pos].progress = progress;
         inner.1[pos].elapsed = elapsed;

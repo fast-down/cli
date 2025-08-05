@@ -81,8 +81,8 @@ async fn process_tasks(save_folder: &Path) -> Result<()> {
     let task_config = match crate::config::TaskConfig::load_from_save_dir(save_folder) {
         Ok(config) => config,
         Err(e) => {
-            eprintln!("Error loading fast-down.yaml: {}", e);
-            return Err(color_eyre::eyre::eyre!("Failed to load config: {}", e));
+            eprintln!("Error loading fast-down.yaml: {e}");
+            return Err(color_eyre::eyre::eyre!("Failed to load config: {e}"));
         }
     };
 
@@ -93,7 +93,7 @@ async fn process_tasks(save_folder: &Path) -> Result<()> {
     }
     
     let total_tasks = tasks.len();
-    eprintln!("Found {} tasks in fast-down.yaml", total_tasks);
+    eprintln!("Found {total_tasks} tasks in fast-down.yaml");
     
     // 创建并发限制器，最多同时处理5个任务
     let semaphore = Arc::new(Semaphore::new(5));
@@ -120,10 +120,9 @@ async fn process_tasks(save_folder: &Path) -> Result<()> {
                     let mut headers = reqwest::header::HeaderMap::new();
                     if let Some(task_headers) = &task.settings.headers {
                         for (key, value) in task_headers {
-                            if let Ok(header_name) = reqwest::header::HeaderName::from_str(key) {
-                                if let Ok(header_value) = value.parse() {
-                                    headers.insert(header_name, header_value);
-                                }
+                            if let Ok(header_name) = reqwest::header::HeaderName::from_str(key)
+                                && let Ok(header_value) = value.parse() {
+                                headers.insert(header_name, header_value);
                             }
                         }
                     }
@@ -160,15 +159,15 @@ async fn process_tasks(save_folder: &Path) -> Result<()> {
     // 等待所有任务完成
     let mut failed_tasks = 0;
     for handle in handles {
-        if let Err(_) = handle.await {
+        if (handle.await).is_err() {
             failed_tasks += 1;
         }
     }
     
     if failed_tasks > 0 {
-        eprintln!("Completed with {} failed tasks", failed_tasks);
+        eprintln!("Completed with {failed_tasks} failed tasks");
     } else {
-        eprintln!("All {} tasks completed successfully", total_tasks);
+        eprintln!("All {total_tasks} tasks completed successfully");
     }
     
     Ok(())

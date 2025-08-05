@@ -1,13 +1,15 @@
 use color_eyre::Result;
 use fast_pull::ProgressEntry;
 use rkyv::{Archive, Deserialize, Serialize, rancor::Error};
+use std::ffi::OsStr;
+use std::os::unix::ffi::OsStrExt;
 use std::{env, path::Path, path::PathBuf, sync::Arc};
 use tokio::{fs, sync::Mutex};
 
 #[derive(Archive, Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct DatabaseEntry {
-    pub file_path: String,
-    pub file_name: String,
+    pub file_path: Vec<u8>,
+    pub file_name: Vec<u8>,
     pub file_size: u64,
     pub etag: Option<String>,
     pub last_modified: Option<String>,
@@ -17,13 +19,15 @@ pub struct DatabaseEntry {
 }
 
 #[derive(Archive, Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct DatabaseInner(Vec<DatabaseEntry>);
+pub struct DatabaseInner(/* version */ u16, Vec<DatabaseEntry>);
 
 #[derive(Debug, Clone)]
 pub struct Database {
     inner: Arc<Mutex<DatabaseInner>>,
     db_path: Arc<PathBuf>,
 }
+
+const DB_VERSION: u16 = 0;
 
 impl Database {
     pub async fn new() -> Result<Self> {
@@ -36,34 +40,40 @@ impl Database {
             let bytes = fs::read(&db_path).await?;
             let archived = rkyv::access::<ArchivedDatabaseInner, Error>(&bytes)?;
             let mut deserialized = rkyv::deserialize::<_, Error>(archived)?;
-            deserialized
-                .0
-                .retain(|e| Path::new(&e.file_path).try_exists().unwrap_or(false));
-            return Ok(Self {
-                inner: Arc::new(Mutex::new(deserialized)),
-                db_path: Arc::new(db_path),
-            });
+            if deserialized.0 != DB_VERSION {
+                deserialized.1.retain(|e| {
+                    Path::new(&OsStr::from_bytes(&e.file_path))
+                        .try_exists()
+                        .unwrap_or(false)
+                });
+                return Ok(Self {
+                    inner: Arc::new(Mutex::new(deserialized)),
+                    db_path: Arc::new(db_path),
+                });
+            }
         }
         Ok(Self {
-            inner: Arc::new(Mutex::new(DatabaseInner(Vec::new()))),
+            inner: Arc::new(Mutex::new(DatabaseInner(DB_VERSION, vec![]))),
             db_path: Arc::new(db_path),
         })
     }
 
     pub async fn init_entry(
         &self,
-        file_path: String,
-        file_name: String,
+        file_path: impl AsRef<OsStr>,
+        file_name: impl AsRef<OsStr>,
         file_size: u64,
         etag: Option<String>,
         last_modified: Option<String>,
         url: String,
     ) -> Result<()> {
         let mut inner = self.inner.lock().await;
-        inner.0.retain(|e| e.file_path != file_path);
-        inner.0.push(DatabaseEntry {
-            file_path,
-            file_name,
+        inner
+            .1
+            .retain(|e| OsStr::from_bytes(&e.file_path) != file_path.as_ref());
+        inner.1.push(DatabaseEntry {
+            file_path: file_path.as_ref().as_bytes().to_vec(),
+            file_name: file_name.as_ref().as_bytes().to_vec(),
             file_size,
             etag,
             last_modified,
@@ -74,40 +84,40 @@ impl Database {
         self.flush(inner.clone()).await
     }
 
-    pub async fn get_entry(&self, file_path: &str) -> Option<DatabaseEntry> {
+    pub async fn get_entry(&self, file_path: impl AsRef<OsStr>) -> Option<DatabaseEntry> {
         self.inner
             .lock()
             .await
-            .0
+            .1
             .iter()
-            .find(|entry| entry.file_path == file_path)
+            .find(|entry| OsStr::from_bytes(&entry.file_path) != file_path.as_ref())
             .cloned()
     }
 
     pub async fn update_entry(
         &self,
-        file_path: &str,
+        file_path: impl AsRef<OsStr>,
         progress: Vec<ProgressEntry>,
         elapsed: u64,
     ) -> Result<()> {
         let mut inner = self.inner.lock().await;
         let pos = inner
-            .0
+            .1
             .iter()
-            .position(|entry| entry.file_path == file_path)
+            .position(|entry| OsStr::from_bytes(&entry.file_path) == file_path.as_ref())
             .unwrap();
-        inner.0[pos].progress = progress;
-        inner.0[pos].elapsed = elapsed;
+        inner.1[pos].progress = progress;
+        inner.1[pos].elapsed = elapsed;
         self.flush(inner.clone()).await
     }
 
     pub async fn clean_finished(&self) -> Result<usize> {
         let mut inner = self.inner.lock().await;
-        let origin_len = inner.0.len();
+        let origin_len = inner.1.len();
         #[allow(clippy::single_range_in_vec_init)]
-        inner.0.retain(|e| e.progress != [0..e.file_size]);
+        inner.1.retain(|e| e.progress != [0..e.file_size]);
         self.flush(inner.clone()).await?;
-        Ok(origin_len - inner.0.len())
+        Ok(origin_len - inner.1.len())
     }
 
     async fn flush(&self, data: DatabaseInner) -> Result<()> {

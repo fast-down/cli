@@ -17,26 +17,26 @@ categories = ["network-programming", "command-line-utilities"]
 fast-pull = "2.1.4"
 color-eyre = "0.6.5"
 reqwest = { version = "0.12.22", features = [
-  "brotli",
-  "deflate",
-  "gzip",
-  "macos-system-configuration",
-  "rustls-tls",
-  "socks",
-  "zstd",
-  "http2",
+    "brotli",
+    "deflate",
+    "gzip",
+    "macos-system-configuration",
+    "rustls-tls",
+    "socks",
+    "zstd",
+    "http2",
 ], default-features = false }
 clap = { version = "4.5.42", features = ["derive"] }
 tokio = { version = "1.47.1", default-features = false, features = [
-  "io-std",
-  "rt-multi-thread",
+    "io-std",
+    "rt-multi-thread",
 ] }
 path-clean = "1.0.1"
 ctrlc = "3.4.7"
 url = "2.5.4"
 config = { version = "0.15.13", default-features = false, features = [
-  "toml",
-  "convert-case",
+    "toml",
+    "convert-case",
 ] }
 mimalloc = "0.1.47"
 tempfile = "3.20.0"
@@ -49,6 +49,7 @@ futures = "0.3.31"
 bytes = "1.10.1"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_yaml = "0.9.34"
+fs4 = "0.13.1"
 
 [package.metadata.i18n]
 available-locales = ["en", "zh-TW", "zh-CN"]

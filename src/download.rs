@@ -126,7 +126,6 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         save_path = current_dir.join(save_path);
     }
     save_path = path_clean::clean(save_path);
-    let save_path_str = save_path.to_str().unwrap();
 
     println!(
         "{}",
@@ -143,7 +142,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     if save_path.try_exists()? {
         if args.resume
             && info.fast_download
-            && let Some(entry) = db.get_entry(save_path_str).await
+            && let Some(entry) = db.get_entry(&save_path).await
         {
             let downloaded = entry.progress.total();
             if downloaded < info.size {
@@ -231,7 +230,15 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         }
     }
 
-    if let Some(size) = check_free_space(save_path_str, download_chunks.total())? {
+    if let Some(size) = check_free_space(&save_path, info.size)? {
+        eprintln!(
+            "{}",
+            t!("msg.lack-of-space", size = fmt::format_size(size as f64),),
+        );
+        return cancel_expected();
+    }
+
+    if let Some(size) = check_free_space(&save_path, download_chunks.total())? {
         eprintln!(
             "{}",
             t!("msg.lack-of-space", size = fmt::format_size(size as f64),),
@@ -289,7 +296,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
 
     if !resume_download {
         db.init_entry(
-            save_path_str.to_string(),
+            &save_path,
             info.name,
             info.size,
             info.etag,
@@ -317,7 +324,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 if last_db_update.elapsed().as_millis() >= 500 {
                     last_db_update = Instant::now();
                     db.update_entry(
-                        save_path_str,
+                        &save_path,
                         write_progress.clone(),
                         start.elapsed().as_millis() as u64,
                     )
@@ -368,7 +375,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         }
     }
     db.update_entry(
-        save_path_str,
+        &save_path,
         write_progress.clone(),
         start.elapsed().as_millis() as u64,
     )

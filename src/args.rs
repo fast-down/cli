@@ -32,6 +32,8 @@ enum Commands {
     Update,
     /// 显示数据库
     List,
+    /// 生成任务示例配置文件
+    TaskExample,
 }
 
 #[derive(clap::Args, Debug)]
@@ -127,15 +129,26 @@ struct DownloadCli {
     /// 不详细输出
     #[arg(long)]
     no_verbose: bool,
+
+    /// 启用任务模式，从fast-down.yaml读取任务
+    #[arg(long)]
+    task: bool,
 }
 
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum Args {
     Download(DownloadArgs),
+    Task(TaskArgs),
     Update,
     Clean,
     List,
+    TaskExample,
+}
+
+#[derive(Debug, Clone)]
+pub struct TaskArgs {
+    pub save_folder: String,
 }
 
 #[derive(Debug, Clone)]
@@ -157,6 +170,7 @@ pub struct DownloadArgs {
     pub yes: bool,
     pub no: bool,
     pub verbose: bool,
+    pub task: bool,
 }
 
 impl Args {
@@ -192,6 +206,7 @@ impl Args {
                         yes: false,
                         no: false,
                         verbose: false,
+                        task: false,
                     };
                     let self_config_path = env::current_exe()
                         .ok()
@@ -269,6 +284,11 @@ impl Args {
                             }
                         }
                     }
+                    if cli.task {
+                        // 任务模式，使用任务系统处理
+                        let save_folder = cli.save_folder.unwrap_or_else(|| ".".to_string());
+                        return Ok(Args::Task(TaskArgs { save_folder }));
+                    }
                     if cli.force {
                         args.force = true;
                     } else if cli.no_force {
@@ -337,6 +357,7 @@ impl Args {
                 Commands::Update => Ok(Args::Update),
                 Commands::Clean => Ok(Args::Clean),
                 Commands::List => Ok(Args::List),
+                Commands::TaskExample => Ok(Args::TaskExample),
             },
             Err(err) => err.exit(),
         }

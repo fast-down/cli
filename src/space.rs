@@ -1,4 +1,4 @@
-use fs2::available_space;
+use fs4::available_space;
 
 pub fn check_free_space(target_path: &str, size: &u64) -> Option<u64> {
     let free_space = &available_space(target_path).unwrap();

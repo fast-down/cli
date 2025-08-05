@@ -23,9 +23,10 @@ struct CliDefault {
 }
 
 #[derive(Subcommand, Debug)]
+#[allow(clippy::large_enum_variant)]
 enum Commands {
     /// 下载文件 (默认)
-    Download(Box<DownloadCli>),
+    Download(DownloadCli),
     /// 清除已下载完成的链接
     Clean,
     /// 更新 fast-down
@@ -34,6 +35,8 @@ enum Commands {
     List,
     /// 生成任务示例配置文件
     TaskExample,
+    /// 通过任务文件下载文件
+    Task(TaskCli),
 }
 
 #[derive(clap::Args, Debug)]
@@ -129,10 +132,6 @@ struct DownloadCli {
     /// 不详细输出
     #[arg(long)]
     no_verbose: bool,
-
-    /// 启用任务模式，从fast-down.yaml读取任务
-    #[arg(long)]
-    task: bool,
 }
 
 #[derive(Debug)]
@@ -146,9 +145,16 @@ pub enum Args {
     TaskExample,
 }
 
+#[derive(clap::Args, Debug)]
+pub struct TaskCli {
+    /// 任务文件路径
+    #[arg(required = true)]
+    pub file: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct TaskArgs {
-    pub save_folder: String,
+    pub file: String,
 }
 
 #[derive(Debug, Clone)]
@@ -170,7 +176,6 @@ pub struct DownloadArgs {
     pub yes: bool,
     pub no: bool,
     pub verbose: bool,
-    pub task: bool,
 }
 
 impl Args {
@@ -178,7 +183,7 @@ impl Args {
         match Cli::try_parse().or_else(|err| match err.kind() {
             clap::error::ErrorKind::InvalidSubcommand | clap::error::ErrorKind::UnknownArgument => {
                 CliDefault::try_parse().map(|cli_default| Cli {
-                    command: Commands::Download(Box::new(cli_default.cmd)),
+                    command: Commands::Download(cli_default.cmd),
                 })
             }
             _ => Err(err),
@@ -206,7 +211,6 @@ impl Args {
                         yes: false,
                         no: false,
                         verbose: false,
-                        task: false,
                     };
                     let self_config_path = env::current_exe()
                         .ok()
@@ -284,11 +288,6 @@ impl Args {
                             }
                         }
                     }
-                    if cli.task {
-                        // 任务模式，使用任务系统处理
-                        let save_folder = cli.save_folder.unwrap_or_else(|| ".".to_string());
-                        return Ok(Args::Task(TaskArgs { save_folder }));
-                    }
                     if cli.force {
                         args.force = true;
                     } else if cli.no_force {
@@ -358,6 +357,7 @@ impl Args {
                 Commands::Clean => Ok(Args::Clean),
                 Commands::List => Ok(Args::List),
                 Commands::TaskExample => Ok(Args::TaskExample),
+                Commands::Task(cli) => Ok(Args::Task(TaskArgs { file: cli.file })),
             },
             Err(err) => err.exit(),
         }

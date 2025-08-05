@@ -15,7 +15,7 @@ pub fn format_download_info(
             name = info.name,
             size = format_size(info.size as f64),
             size_in_bytes = info.size,
-            path = save_path.to_str().unwrap(),
+            path = save_path.display(),
             concurrent = concurrent.unwrap_or(NonZeroUsize::new(1).unwrap()),
         )
     );

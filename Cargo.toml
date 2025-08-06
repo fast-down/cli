@@ -21,7 +21,6 @@ reqwest = { version = "0.12.22", features = [
     "deflate",
     "gzip",
     "macos-system-configuration",
-    "rustls-tls",
     "socks",
     "zstd",
     "http2",

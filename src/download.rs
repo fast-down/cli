@@ -109,7 +109,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     let info = loop {
         match client.prefetch(&args.url).await {
             Ok(info) => break info,
-            Err(err) => println!("{}: {}", t!("err.url-info"), err),
+            Err(err) => println!("{}: {:#?}", t!("err.url-info"), err),
         }
         tokio::time::sleep(args.retry_gap).await;
     };

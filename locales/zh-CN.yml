@@ -2,6 +2,7 @@ err:
   confirm.invalid-input: 无效输入, 下载取消...
   url-info: 获取元数据失败
   cancel: 下载取消
+  database_load: 数据库加载失败
 msg:
   url-info: |
     文件名称: %{name}

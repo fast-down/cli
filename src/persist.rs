@@ -54,25 +54,34 @@ impl Database {
             .unwrap_or(PathBuf::from("."))
             .join("state.fd");
         if db_path.try_exists()? {
-            let bytes = fs::read(&db_path).await?;
-            let archived = rkyv::access::<ArchivedDatabaseInner, Error>(&bytes)?;
-            let mut deserialized = rkyv::deserialize::<_, Error>(archived)?;
-            if deserialized.0 != get_db_signature() {
-                deserialized.1.retain(|e| {
-                    Path::new(&unsafe { OsStr::from_encoded_bytes_unchecked(&e.file_path) })
-                        .try_exists()
-                        .unwrap_or(false)
-                });
-                return Ok(Self {
-                    inner: Arc::new(Mutex::new(deserialized)),
-                    db_path: Arc::new(db_path),
-                });
-            }
+            match Self::from_file(&db_path).await {
+                Ok(Some(db)) => return Ok(db),
+                Ok(None) => (),
+                Err(err) => eprintln!("{}: {:#?}", t!("err.database_load"), err),
+            };
         }
         Ok(Self {
             inner: Arc::new(Mutex::new(DatabaseInner(get_db_signature(), vec![]))),
             db_path: Arc::new(db_path),
         })
+    }
+
+    pub async fn from_file(file_path: impl AsRef<Path>) -> Result<Option<Self>> {
+        let bytes = fs::read(&file_path).await?;
+        let archived = rkyv::access::<ArchivedDatabaseInner, Error>(&bytes)?;
+        let mut deserialized = rkyv::deserialize::<_, Error>(archived)?;
+        if deserialized.0 == get_db_signature() {
+            return Ok(None);
+        }
+        deserialized.1.retain(|e| {
+            Path::new(&unsafe { OsStr::from_encoded_bytes_unchecked(&e.file_path) })
+                .try_exists()
+                .unwrap_or(false)
+        });
+        Ok(Some(Self {
+            inner: Arc::new(Mutex::new(deserialized)),
+            db_path: Arc::new(file_path.as_ref().to_path_buf()),
+        }))
     }
 
     pub async fn init_entry(

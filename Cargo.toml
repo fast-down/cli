@@ -4,12 +4,12 @@ version = "2.1.0"
 edition = "2024"
 license = "MIT"
 authors = ["share121 <2854631158@qq.com>"]
-repository = "https://github.com/fast-down/fast-down"
+repository = "https://github.com/fast-down/cli"
 readme = "README.md"
 exclude = ["/.github"]
 description = "超级快的下载器命令行界面"
 documentation = "https://docs.rs/fast-down-cli"
-homepage = "https://github.com/fast-down/fast-down"
+homepage = "https://github.com/fast-down/cli"
 keywords = ["downloader", "parallel", "thread", "concurrency", "performance"]
 categories = ["network-programming", "command-line-utilities"]
 

@@ -32,6 +32,7 @@ msg:
     Last-Modified 不匹配, 是否繼續?
   file-overwrite: 檔案已經存在, 是否覆蓋？
   lack-of-space: 剩餘空間不足, 下載此檔還需要 %{size}
+  clean: 已清除 %{count} 行連結
 verbose:
   worker-id: 執行緒 %{id}
   connect-error: 連接失敗

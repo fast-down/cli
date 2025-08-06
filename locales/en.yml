@@ -35,6 +35,7 @@ msg:
     Last-Modified mismatch, continue?
   file-overwrite: File already exists, overwrite？
   lack-of-space: There is not enough space left, and another %{size} is required to download this file.
+  clean: Cleaned %{count} lines of links.
 verbose:
   worker-id: Worker %{id}
   connect-error: Connect Failed

@@ -30,7 +30,7 @@ pub struct Database {
 
 const DB_VERSION: u16 = 1;
 
-/// Unique signature for DatabaseEntry
+/// Unique signature for DatabaseEntry structure
 pub fn get_db_signature() -> u64 {
     static ONCE: OnceLock<u64> = OnceLock::new();
 

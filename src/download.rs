@@ -109,7 +109,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     let info = loop {
         match client.prefetch(&args.url).await {
             Ok(info) => break info,
-            Err(err) => println!("{}: {:#?}", t!("err.url-info"), err),
+            Err(err) => eprintln!("{}: {:#?}", t!("err.url-info"), err),
         }
         tokio::time::sleep(args.retry_gap).await;
     };
@@ -127,7 +127,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     }
     save_path = path_clean::clean(save_path);
 
-    println!(
+    eprintln!(
         "{}",
         fmt::format_download_info(&info, &save_path, concurrent)
     );
@@ -150,8 +150,8 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 write_progress = entry.progress.clone();
                 resume_download = true;
                 elapsed = entry.elapsed;
-                println!("{}", t!("msg.resume-download"));
-                println!(
+                eprintln!("{}", t!("msg.resume-download"));
+                eprintln!(
                     "{}",
                     t!(
                         "msg.download",

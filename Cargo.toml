@@ -20,9 +20,9 @@ reqwest = { version = "0.12.22", features = [
     "brotli",
     "deflate",
     "gzip",
-    "macos-system-configuration",
-    "socks",
     "zstd",
+    "system-proxy",
+    "socks",
     "http2",
 ], default-features = false }
 clap = { version = "4.5.42", features = ["derive"] }
@@ -38,11 +38,9 @@ config = { version = "0.15.13", default-features = false, features = [
     "convert-case",
 ] }
 mimalloc = "0.1.47"
-tempfile = "3.20.0"
 rust-i18n = "3.1.5"
 sys-locale = "0.3.2"
 rkyv = "0.8.10"
-kanal = "0.1.1"
 crossterm = "0.29.0"
 futures = "0.3.31"
 bytes = "1.10.1"

@@ -6,7 +6,7 @@ use crossterm::{
 };
 use fast_pull::{MergeProgress, ProgressEntry, Total};
 use std::{
-    io::{self, Stderr, Stdout},
+    io::{self, Stderr},
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -39,7 +39,6 @@ pub struct Painter {
     pub last_repaint_time: Instant,
     has_progress: bool,
     stderr: Stderr,
-    stdout: Stdout,
 }
 
 impl Painter {
@@ -65,7 +64,6 @@ impl Painter {
             avg_speed: 0.0,
             last_repaint_time: Instant::now(),
             has_progress: false,
-            stdout: io::stdout(),
             stderr: io::stderr(),
         }
     }
@@ -189,7 +187,7 @@ impl Painter {
 
     pub fn print(&mut self, msg: &str) -> io::Result<()> {
         self.reset_pos()?;
-        self.stdout.queue(Print(msg))?;
+        self.stderr.queue(Print(msg))?;
         self.has_progress = false;
         self.update()?;
         Ok(())

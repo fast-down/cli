@@ -10,7 +10,7 @@ use tokio::{fs, sync::Mutex};
 #[derive(Archive, Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct DatabaseEntry {
     pub file_path: Vec<u8>,
-    pub file_name: Vec<u8>,
+    pub file_name: String,
     pub file_size: u64,
     pub etag: Option<String>,
     pub last_modified: Option<String>,
@@ -78,7 +78,7 @@ impl Database {
     pub async fn init_entry(
         &self,
         file_path: impl AsRef<OsStr>,
-        file_name: impl AsRef<OsStr>,
+        file_name: String,
         file_size: u64,
         etag: Option<String>,
         last_modified: Option<String>,
@@ -90,7 +90,7 @@ impl Database {
             .retain(|e| e.file_path != file_path.as_ref().as_encoded_bytes());
         inner.1.push(DatabaseEntry {
             file_path: file_path.as_ref().as_encoded_bytes().to_vec(),
-            file_name: file_name.as_ref().as_encoded_bytes().to_vec(),
+            file_name,
             file_size,
             etag,
             last_modified,
@@ -107,7 +107,7 @@ impl Database {
             .await
             .1
             .iter()
-            .find(|entry| entry.file_path != file_path.as_ref().as_encoded_bytes())
+            .find(|entry| entry.file_path == file_path.as_ref().as_encoded_bytes())
             .cloned()
     }
 

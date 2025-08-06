@@ -46,4 +46,4 @@ verbose:
   abort: Aborted
 
 progress:
-  desc: "Time Spent: %{time_spent} | Speed: %{speed}/s | Time Left: %{time_left}"
+  desc: "Time Elasped: %{time_spent} | Speed: %{speed}/s | Time Left: %{time_left}"

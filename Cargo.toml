@@ -24,7 +24,7 @@ reqwest = { version = "0.12.22", features = [
     "system-proxy",
     "socks",
     "http2",
-    "default-tls",
+    "rustls-tls",
 ], default-features = false }
 clap = { version = "4.5.42", features = ["derive"] }
 tokio = { version = "1.47.1", default-features = false, features = [
@@ -46,7 +46,6 @@ crossterm = "0.29.0"
 futures = "0.3.31"
 bytes = "1.10.1"
 fs4 = "0.13.1"
-openssl = { version = "0.10.73", features = ["vendored"] }
 
 [package.metadata.i18n]
 available-locales = ["en", "zh-TW", "zh-CN"]

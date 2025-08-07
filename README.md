@@ -3,7 +3,6 @@
 ![Latest commit (branch)](https://img.shields.io/github/last-commit/fast-down/cli/main)
 [![Test](https://github.com/fast-down/cli/workflows/Test/badge.svg)](https://github.com/fast-down/cli/actions)
 [![Latest version](https://img.shields.io/crates/v/fast-down-cli.svg)](https://crates.io/crates/fast-down-cli)
-[![Documentation](https://docs.rs/fast-down-cli/badge.svg)](https://docs.rs/fast-down-cli)
 ![License](https://img.shields.io/crates/l/fast-down-cli.svg)
 
 `fast-down` **Fastest** concurrent downloader!

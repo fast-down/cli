@@ -315,16 +315,24 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 write_progress.merge_progress(p);
                 if last_db_update.elapsed().as_millis() >= 500 {
                     last_db_update = Instant::now();
-                    db.update_entry(
-                        &save_path,
-                        write_progress.clone(),
-                        start.elapsed().as_millis() as u64,
-                    )
-                    .await?;
+                    let res = db
+                        .update_entry(
+                            &save_path,
+                            write_progress.clone(),
+                            start.elapsed().as_millis() as u64,
+                        )
+                        .await;
+                    if let Err(e) = res {
+                        painter.lock().await.print(&format!(
+                            "{}\n{:?}\n",
+                            t!("err.database-write"),
+                            e
+                        ))?;
+                    }
                 }
             }
             Event::ReadError(id, err) => painter.lock().await.print(&format!(
-                "{} {}\n {:?}\n",
+                "{} {}\n{:?}\n",
                 t!("verbose.worker-id", id = id),
                 t!("verbose.download-error"),
                 err

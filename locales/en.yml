@@ -4,6 +4,7 @@ err:
   cancel: Cancelling...
   database-load: Database load error
   database-version: Database version mismatch
+  database-write: Database write error
 msg:
   url-info: |
     File Name: %{name}

@@ -65,7 +65,10 @@ jobs:
 
       - name: Install dependencies (linux only)
         if: contains(matrix.build, 'linux')
-        run: sudo apt-get install musl-tools libssl-dev pkg-config
+        run: |
+          sudo apt-get install musl-tools openssl-dev
+          export OPENSSL_DIR=/usr/include/aarch64-linux-gnu
+          export OPENSSL_LIB_DIR=/usr/lib/aarch64-linux-gnu
 
       - name: Configure sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9

@@ -46,6 +46,7 @@ crossterm = "0.29.0"
 futures = "0.3.31"
 bytes = "1.10.1"
 fs4 = "0.13.1"
+openssl = { version = "0.10.73", features = ["vendored"] }
 
 [package.metadata.i18n]
 available-locales = ["en", "zh-TW", "zh-CN"]

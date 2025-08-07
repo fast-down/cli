@@ -2,7 +2,8 @@ err:
   confirm.invalid-input: 無效輸入, 下載取消...
   url-info: 獲取元數據失敗
   cancel: 下載取消
-  database_load: 載入下載記錄失敗
+  database-load: 載入下載記錄失敗
+  database-version: 資料庫版本不匹配
 msg:
   url-info: |
     檔案名稱: %{name}

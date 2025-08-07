@@ -2,8 +2,6 @@ use color_eyre::Result;
 use fast_pull::ProgressEntry;
 use rkyv::{Archive, Deserialize, Serialize, rancor::Error};
 use std::ffi::OsStr;
-use std::hash::{Hash, Hasher};
-use std::sync::OnceLock;
 use std::{env, path::Path, path::PathBuf, sync::Arc};
 use tokio::{fs, sync::Mutex};
 
@@ -20,7 +18,7 @@ pub struct DatabaseEntry {
 }
 
 #[derive(Archive, Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct DatabaseInner(/* signature */ u64, Vec<DatabaseEntry>);
+pub struct DatabaseInner(/* version */ u16, Vec<DatabaseEntry>);
 
 #[derive(Debug, Clone)]
 pub struct Database {
@@ -29,22 +27,6 @@ pub struct Database {
 }
 
 const DB_VERSION: u16 = 1;
-
-/// Unique signature for DatabaseEntry structure
-pub fn get_db_signature() -> u64 {
-    static ONCE: OnceLock<u64> = OnceLock::new();
-
-    *ONCE.get_or_init(|| {
-        let mut hasher = std::hash::DefaultHasher::new();
-        hasher.write_u64(/* magic number */ 0x58e9225bae2b);
-        hasher.write_u16(DB_VERSION);
-        hasher.write(env::consts::OS.as_bytes());
-        if let Ok(version) = rustc_version::version() {
-            version.hash(&mut hasher);
-        }
-        hasher.finish()
-    })
-}
 
 impl Database {
     pub async fn new() -> Result<Self> {
@@ -56,12 +38,12 @@ impl Database {
         if db_path.try_exists()? {
             match Self::from_file(&db_path).await {
                 Ok(Some(db)) => return Ok(db),
-                Ok(None) => (),
-                Err(err) => eprintln!("{}: {:#?}", t!("err.database_load"), err),
+                Ok(None) => eprintln!("{}", t!("err.database-version")),
+                Err(err) => eprintln!("{}: {:#?}", t!("err.database-load"), err),
             };
         }
         Ok(Self {
-            inner: Arc::new(Mutex::new(DatabaseInner(get_db_signature(), vec![]))),
+            inner: Arc::new(Mutex::new(DatabaseInner(DB_VERSION, vec![]))),
             db_path: Arc::new(db_path),
         })
     }
@@ -70,7 +52,7 @@ impl Database {
         let bytes = fs::read(&file_path).await?;
         let archived = rkyv::access::<ArchivedDatabaseInner, Error>(&bytes)?;
         let mut deserialized = rkyv::deserialize::<_, Error>(archived)?;
-        if deserialized.0 == get_db_signature() {
+        if deserialized.0 != DB_VERSION {
             return Ok(None);
         }
         deserialized.1.retain(|e| {

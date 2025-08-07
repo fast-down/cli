@@ -2,7 +2,8 @@ err:
   confirm.invalid-input: Invalid Input. Cancelling...
   url-info: Failed to fetch metadata
   cancel: Cancelling...
-  database_load: Database load error
+  database-load: Database load error
+  database-version: Database version mismatch
 msg:
   url-info: |
     File Name: %{name}

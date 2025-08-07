@@ -550,7 +550,7 @@ dependencies = [
 
 [[package]]
 name = "fast-down-cli"
-version = "2.1.0"
+version = "2.1.1"
 dependencies = [
  "bytes",
  "clap",

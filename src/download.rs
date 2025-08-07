@@ -230,14 +230,14 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         }
     }
 
-    if let Some(parent) = save_path.parent() {
-        if let Some(size) = check_free_space(parent, download_chunks.total())? {
-            eprintln!(
-                "{}",
-                t!("msg.lack-of-space", size = fmt::format_size(size as f64)),
-            );
-            return cancel_expected();
-        }
+    if let Some(parent) = save_path.parent()
+        && let Some(size) = check_free_space(parent, download_chunks.total())?
+    {
+        eprintln!(
+            "{}",
+            t!("msg.lack-of-space", size = fmt::format_size(size as f64)),
+        );
+        return cancel_expected();
     }
 
     let reader = FastDownReader::new(info.final_url.clone(), args.headers, args.proxy)?;

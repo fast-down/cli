@@ -23,9 +23,10 @@ struct CliDefault {
 }
 
 #[derive(Subcommand, Debug)]
+#[allow(clippy::large_enum_variant)]
 enum Commands {
     /// 下载文件 (默认)
-    Download(Box<DownloadCli>),
+    Download(DownloadCli),
     /// 清除已下载完成的链接
     Clean,
     /// 更新 fast-down
@@ -127,6 +128,14 @@ struct DownloadCli {
     /// 不详细输出
     #[arg(long)]
     no_verbose: bool,
+
+    /// 开启多路复用
+    #[arg(long)]
+    multiplexing: bool,
+
+    /// 关闭多路复用
+    #[arg(long)]
+    no_multiplexing: bool,
 }
 
 #[derive(Debug)]
@@ -157,6 +166,7 @@ pub struct DownloadArgs {
     pub yes: bool,
     pub no: bool,
     pub verbose: bool,
+    pub multiplexing: bool,
 }
 
 impl Args {
@@ -164,7 +174,7 @@ impl Args {
         match Cli::try_parse().or_else(|err| match err.kind() {
             clap::error::ErrorKind::InvalidSubcommand | clap::error::ErrorKind::UnknownArgument => {
                 CliDefault::try_parse().map(|cli_default| Cli {
-                    command: Commands::Download(Box::new(cli_default.cmd)),
+                    command: Commands::Download(cli_default.cmd),
                 })
             }
             _ => Err(err),
@@ -192,6 +202,7 @@ impl Args {
                         yes: false,
                         no: false,
                         verbose: false,
+                        multiplexing: true,
                     };
                     let self_config_path = env::current_exe()
                         .ok()
@@ -248,6 +259,9 @@ impl Args {
                     }
                     if let Ok(value) = config.get_bool("General.verbose") {
                         args.verbose = value;
+                    }
+                    if let Ok(value) = config.get_bool("General.multiplexing") {
+                        args.multiplexing = value;
                     }
                     if let Ok(table) = config.get_table("Headers") {
                         for (key, value) in table {
@@ -322,6 +336,11 @@ impl Args {
                         args.verbose = true;
                     } else if cli.no_verbose {
                         args.verbose = false;
+                    }
+                    if cli.multiplexing {
+                        args.multiplexing = true;
+                    } else if cli.no_multiplexing {
+                        args.multiplexing = false;
                     }
                     for header in cli.headers {
                         let parts: Vec<_> = header.splitn(2, ':').map(|t| t.trim()).collect();

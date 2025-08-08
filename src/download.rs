@@ -7,9 +7,6 @@ use crate::{
     reader::{FastDownReader, build_client},
 };
 use color_eyre::eyre::Result;
-#[cfg(target_pointer_width = "64")]
-use fast_pull::file::RandFileWriterMmap;
-#[cfg(not(target_pointer_width = "64"))]
 use fast_pull::file::RandFileWriterStd;
 use fast_pull::{
     Event, MergeProgress, ProgressEntry, Total,
@@ -26,6 +23,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
+use tokio::fs;
 use tokio::{
     fs::OpenOptions,
     io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader},
@@ -229,16 +227,18 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             return cancel_expected();
         }
     }
-
-    if let Some(size) = check_free_space(&save_path, download_chunks.total())? {
-        eprintln!(
-            "{}",
-            t!("msg.lack-of-space", size = fmt::format_size(size as f64)),
-        );
-        return cancel_expected();
+    let reader = FastDownReader::new(
+        info.final_url.clone(),
+        args.headers,
+        args.proxy,
+        args.multiplexing,
+    )?;
+    if let Some(parent) = save_path.parent()
+        && let Err(err) = fs::create_dir_all(parent).await
+        && err.kind() != std::io::ErrorKind::AlreadyExists
+    {
+        return Err(err.into());
     }
-
-    let reader = FastDownReader::new(info.final_url.clone(), args.headers, args.proxy)?;
     let file = OpenOptions::new()
         .read(true)
         .write(true)
@@ -246,10 +246,14 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         .truncate(false)
         .open(&save_path)
         .await?;
+    if let Some(size) = check_free_space(&save_path, download_chunks.total())? {
+        eprintln!(
+            "{}",
+            t!("msg.lack-of-space", size = fmt::format_size(size as f64)),
+        );
+        return cancel_expected();
+    }
     let result = if info.fast_download {
-        #[cfg(target_pointer_width = "64")]
-        let writer = RandFileWriterMmap::new(file, info.size, args.write_buffer_size).await?;
-        #[cfg(not(target_pointer_width = "64"))]
         let writer = RandFileWriterStd::new(file, info.size, args.write_buffer_size).await?;
         download_multi(
             reader,

@@ -31,6 +31,7 @@ pub struct FastDownReader {
     headers: Arc<HeaderMap<HeaderValue>>,
     proxy: Arc<Option<String>>,
     url: Arc<Url>,
+    multiplexing: bool,
 }
 
 impl FastDownReader {
@@ -38,6 +39,7 @@ impl FastDownReader {
         url: Url,
         headers: HeaderMap<HeaderValue>,
         proxy: Option<String>,
+        multiplexing: bool,
     ) -> Result<Self, reqwest::Error> {
         let client = build_client(&headers, &proxy)?;
         Ok(Self {
@@ -45,18 +47,30 @@ impl FastDownReader {
             headers: Arc::new(headers),
             proxy: Arc::new(proxy),
             url: Arc::new(url),
+            multiplexing,
         })
     }
 }
 
 impl Clone for FastDownReader {
     fn clone(&self) -> Self {
-        let client = build_client(&self.headers, &self.proxy).unwrap();
-        Self {
-            inner: ReqwestReader::new(self.url.as_ref().clone(), client),
-            headers: self.headers.clone(),
-            proxy: self.proxy.clone(),
-            url: self.url.clone(),
+        if self.multiplexing {
+            Self {
+                inner: self.inner.clone(),
+                headers: self.headers.clone(),
+                proxy: self.proxy.clone(),
+                url: self.url.clone(),
+                multiplexing: self.multiplexing,
+            }
+        } else {
+            let client = build_client(&self.headers, &self.proxy).unwrap();
+            Self {
+                inner: ReqwestReader::new(self.url.as_ref().clone(), client),
+                headers: self.headers.clone(),
+                proxy: self.proxy.clone(),
+                url: self.url.clone(),
+                multiplexing: self.multiplexing,
+            }
         }
     }
 }

@@ -253,13 +253,6 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     {
         return Err(err.into());
     }
-    let file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .truncate(false)
-        .open(&save_path)
-        .await?;
     let result = if info.fast_download {
         let writer = RandFileWriterMmap::new(&save_path, info.size, args.write_buffer_size)?;
         download_multi(
@@ -274,6 +267,13 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         )
         .await
     } else {
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(&save_path)
+            .await?;
         let writer = SeqFileWriter::new(file, args.write_buffer_size);
         download_single(
             reader,

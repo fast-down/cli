@@ -7,7 +7,10 @@ use crate::{
     reader::{FastDownReader, build_client},
 };
 use color_eyre::eyre::Result;
+#[cfg(target_pointer_width = "64")]
 use fast_pull::file::RandFileWriterMmap;
+#[cfg(not(target_pointer_width = "64"))]
+use fast_pull::file::RandFileWriterStd;
 use fast_pull::{
     Event, MergeProgress, ProgressEntry, Total,
     file::SeqFileWriter,
@@ -254,7 +257,19 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         return Err(err.into());
     }
     let result = if info.fast_download {
+        #[cfg(target_pointer_width = "64")]
         let writer = RandFileWriterMmap::new(&save_path, info.size, args.write_buffer_size)?;
+        #[cfg(not(target_pointer_width = "64"))]
+        let writer = {
+            let file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .read(true)
+                .truncate(false)
+                .open(&save_path)
+                .await?;
+            RandFileWriterStd::new(file, info.size, args.write_buffer_size).await?
+        };
         download_multi(
             reader,
             writer,

@@ -118,7 +118,7 @@ impl Painter {
         self.avg_speed = self.avg_speed * self.alpha + curr_speed * (1.0 - self.alpha);
         let progress_str = if self.file_size == 0 {
             format!(
-                "|{}| {:>6.2}% ({:>8}/Unknown)\n{}",
+                "|{}| {:>6.2}% ({:>8}/Unknown)\n{}\n",
                 BLOCK_CHARS[0].to_string().repeat(self.width as usize),
                 0.0,
                 fmt::format_size(self.curr_size as f64),

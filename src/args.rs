@@ -33,6 +33,10 @@ enum Commands {
     Update,
     /// 显示数据库
     List,
+    /// 生成任务示例配置文件
+    TaskExample,
+    /// 通过任务文件下载文件
+    Task(TaskCli),
 }
 
 #[derive(clap::Args, Debug)]
@@ -158,9 +162,23 @@ struct DownloadCli {
 #[allow(clippy::large_enum_variant)]
 pub enum Args {
     Download(DownloadArgs),
+    Task(TaskArgs),
     Update,
     Clean,
     List,
+    TaskExample,
+}
+
+#[derive(clap::Args, Debug)]
+pub struct TaskCli {
+    /// 任务文件路径
+    #[arg(required = true)]
+    pub file: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct TaskArgs {
+    pub file: String,
 }
 
 #[derive(Debug, Clone)]
@@ -392,6 +410,8 @@ impl Args {
                 Commands::Update => Ok(Args::Update),
                 Commands::Clean => Ok(Args::Clean),
                 Commands::List => Ok(Args::List),
+                Commands::TaskExample => Ok(Args::TaskExample),
+                Commands::Task(cli) => Ok(Args::Task(TaskArgs { file: cli.file })),
             },
             Err(err) => err.exit(),
         }

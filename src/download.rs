@@ -26,6 +26,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
+use tokio::fs;
 use tokio::{
     fs::OpenOptions,
     io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader},
@@ -103,13 +104,18 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     if args.verbose {
         dbg!(&args);
     }
-    let client = build_client(&args.headers, &args.proxy)?;
+    let client = build_client(
+        &args.headers,
+        &args.proxy,
+        args.accept_invalid_certs,
+        args.accept_invalid_hostnames,
+    )?;
     let db = Database::new().await?;
 
     let info = loop {
         match client.prefetch(&args.url).await {
             Ok(info) => break info,
-            Err(err) => println!("{}: {}", t!("err.url-info"), err),
+            Err(err) => eprintln!("{}: {:#?}", t!("err.url-info"), err),
         }
         tokio::time::sleep(args.retry_gap).await;
     };
@@ -127,7 +133,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     }
     save_path = path_clean::clean(save_path);
 
-    println!(
+    eprintln!(
         "{}",
         fmt::format_download_info(&info, &save_path, concurrent)
     );
@@ -150,8 +156,8 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 write_progress = entry.progress.clone();
                 resume_download = true;
                 elapsed = entry.elapsed;
-                println!("{}", t!("msg.resume-download"));
-                println!(
+                eprintln!("{}", t!("msg.resume-download"));
+                eprintln!(
                     "{}",
                     t!(
                         "msg.download",
@@ -229,28 +235,41 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             return cancel_expected();
         }
     }
-
     if let Some(size) = check_free_space(&save_path, download_chunks.total())? {
         eprintln!(
             "{}",
-            t!("msg.lack-of-space", size = fmt::format_size(size as f64),),
+            t!("msg.lack-of-space", size = fmt::format_size(size as f64)),
         );
         return cancel_expected();
     }
-
-    let reader = FastDownReader::new(info.final_url.clone(), args.headers, args.proxy)?;
-    let file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .truncate(false)
-        .open(&save_path)
-        .await?;
+    let reader = FastDownReader::new(
+        info.final_url.clone(),
+        args.headers,
+        args.proxy,
+        args.multiplexing,
+        args.accept_invalid_certs,
+        args.accept_invalid_hostnames,
+    )?;
+    if let Some(parent) = save_path.parent()
+        && let Err(err) = fs::create_dir_all(parent).await
+        && err.kind() != std::io::ErrorKind::AlreadyExists
+    {
+        return Err(err.into());
+    }
     let result = if info.fast_download {
         #[cfg(target_pointer_width = "64")]
-        let writer = RandFileWriterMmap::new(file, info.size, args.write_buffer_size).await?;
+        let writer = RandFileWriterMmap::new(&save_path, info.size, args.write_buffer_size).await?;
         #[cfg(not(target_pointer_width = "64"))]
-        let writer = RandFileWriterStd::new(file, info.size, args.write_buffer_size).await?;
+        let writer = {
+            let file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .read(true)
+                .truncate(false)
+                .open(&save_path)
+                .await?;
+            RandFileWriterStd::new(file, info.size, args.write_buffer_size).await?
+        };
         download_multi(
             reader,
             writer,
@@ -263,6 +282,13 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         )
         .await
     } else {
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(&save_path)
+            .await?;
         let writer = SeqFileWriter::new(file, args.write_buffer_size);
         download_single(
             reader,
@@ -315,16 +341,24 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 write_progress.merge_progress(p);
                 if last_db_update.elapsed().as_millis() >= 500 {
                     last_db_update = Instant::now();
-                    db.update_entry(
-                        &save_path,
-                        write_progress.clone(),
-                        start.elapsed().as_millis() as u64,
-                    )
-                    .await?;
+                    let res = db
+                        .update_entry(
+                            &save_path,
+                            write_progress.clone(),
+                            start.elapsed().as_millis() as u64,
+                        )
+                        .await;
+                    if let Err(e) = res {
+                        painter.lock().await.print(&format!(
+                            "{}\n{:?}\n",
+                            t!("err.database-write"),
+                            e
+                        ))?;
+                    }
                 }
             }
             Event::ReadError(id, err) => painter.lock().await.print(&format!(
-                "{} {}\n {:?}\n",
+                "{} {}\n{:?}\n",
                 t!("verbose.worker-id", id = id),
                 t!("verbose.download-error"),
                 err

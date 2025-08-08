@@ -2,6 +2,9 @@ err:
   confirm.invalid-input: Invalid Input. Cancelling...
   url-info: Failed to fetch metadata
   cancel: Cancelling...
+  database-load: Database load error
+  database-version: Database version mismatch
+  database-write: Database write error
 msg:
   url-info: |
     File Name: %{name}
@@ -35,6 +38,7 @@ msg:
     Last-Modified mismatch, continue?
   file-overwrite: File already exists, overwrite？
   lack-of-space: There is not enough space left, and another %{size} is required to download this file.
+  clean: Cleaned %{count} lines of links.
 verbose:
   worker-id: Worker %{id}
   connect-error: Connect Failed
@@ -46,4 +50,4 @@ verbose:
   abort: Aborted
 
 progress:
-  desc: "Time Spent: %{time_spent} | Speed: %{speed}/s | Time Left: %{time_left}"
+  desc: "Time Elapsed: %{time_spent} | Speed: %{speed}/s | Time Left: %{time_left}"

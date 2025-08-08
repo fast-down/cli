@@ -65,7 +65,9 @@ jobs:
 
       - name: Install dependencies (linux only)
         if: contains(matrix.build, 'linux')
-        run: sudo apt-get install musl-tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
 
       - name: Configure sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9

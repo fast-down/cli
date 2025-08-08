@@ -132,6 +132,30 @@ struct DownloadCli {
     /// 不详细输出
     #[arg(long)]
     no_verbose: bool,
+
+    /// 开启多路复用
+    #[arg(long)]
+    multiplexing: bool,
+
+    /// 关闭多路复用
+    #[arg(long)]
+    no_multiplexing: bool,
+
+    /// 允许无效证书
+    #[arg(long)]
+    accept_invalid_certs: bool,
+
+    /// 禁止无效证书
+    #[arg(long)]
+    no_accept_invalid_certs: bool,
+
+    /// 允许无效主机名
+    #[arg(long)]
+    accept_invalid_hostnames: bool,
+
+    /// 禁止无效主机名
+    #[arg(long)]
+    no_accept_invalid_hostnames: bool,
 }
 
 #[derive(Debug)]
@@ -176,6 +200,9 @@ pub struct DownloadArgs {
     pub yes: bool,
     pub no: bool,
     pub verbose: bool,
+    pub multiplexing: bool,
+    pub accept_invalid_certs: bool,
+    pub accept_invalid_hostnames: bool,
 }
 
 impl Args {
@@ -211,6 +238,9 @@ impl Args {
                         yes: false,
                         no: false,
                         verbose: false,
+                        multiplexing: true,
+                        accept_invalid_certs: false,
+                        accept_invalid_hostnames: false,
                     };
                     let self_config_path = env::current_exe()
                         .ok()
@@ -267,6 +297,15 @@ impl Args {
                     }
                     if let Ok(value) = config.get_bool("General.verbose") {
                         args.verbose = value;
+                    }
+                    if let Ok(value) = config.get_bool("General.multiplexing") {
+                        args.multiplexing = value;
+                    }
+                    if let Ok(value) = config.get_bool("General.accept_invalid_hostnames") {
+                        args.accept_invalid_hostnames = value;
+                    }
+                    if let Ok(value) = config.get_bool("General.accept_invalid_certs") {
+                        args.accept_invalid_certs = value;
                     }
                     if let Ok(table) = config.get_table("Headers") {
                         for (key, value) in table {
@@ -341,6 +380,21 @@ impl Args {
                         args.verbose = true;
                     } else if cli.no_verbose {
                         args.verbose = false;
+                    }
+                    if cli.multiplexing {
+                        args.multiplexing = true;
+                    } else if cli.no_multiplexing {
+                        args.multiplexing = false;
+                    }
+                    if cli.accept_invalid_hostnames {
+                        args.accept_invalid_hostnames = true;
+                    } else if cli.no_accept_invalid_hostnames {
+                        args.accept_invalid_hostnames = false;
+                    }
+                    if cli.accept_invalid_certs {
+                        args.accept_invalid_certs = true;
+                    } else if cli.no_accept_invalid_certs {
+                        args.accept_invalid_certs = false;
                     }
                     for header in cli.headers {
                         let parts: Vec<_> = header.splitn(2, ':').map(|t| t.trim()).collect();

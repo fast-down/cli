@@ -3,6 +3,6 @@ use color_eyre::Result;
 
 pub async fn list() -> Result<()> {
     let db = Database::new().await?;
-    println!("{db:#?}");
+    eprintln!("{db:#?}");
     Ok(())
 }

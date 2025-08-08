@@ -258,7 +258,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     }
     let result = if info.fast_download {
         #[cfg(target_pointer_width = "64")]
-        let writer = RandFileWriterMmap::new(&save_path, info.size, args.write_buffer_size)?;
+        let writer = RandFileWriterMmap::new(&save_path, info.size, args.write_buffer_size).await?;
         #[cfg(not(target_pointer_width = "64"))]
         let writer = {
             let file = OpenOptions::new()

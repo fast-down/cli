@@ -7,7 +7,7 @@ use crate::{
     reader::{FastDownReader, build_client},
 };
 use color_eyre::eyre::Result;
-use fast_pull::file::RandFileWriterStd;
+use fast_pull::file::RandFileWriterMmap;
 use fast_pull::{
     Event, MergeProgress, ProgressEntry, Total,
     file::SeqFileWriter,
@@ -227,6 +227,13 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             return cancel_expected();
         }
     }
+    if let Some(size) = check_free_space(&save_path, download_chunks.total())? {
+        eprintln!(
+            "{}",
+            t!("msg.lack-of-space", size = fmt::format_size(size as f64)),
+        );
+        return cancel_expected();
+    }
     let reader = FastDownReader::new(
         info.final_url.clone(),
         args.headers,
@@ -246,15 +253,8 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         .truncate(false)
         .open(&save_path)
         .await?;
-    if let Some(size) = check_free_space(&save_path, download_chunks.total())? {
-        eprintln!(
-            "{}",
-            t!("msg.lack-of-space", size = fmt::format_size(size as f64)),
-        );
-        return cancel_expected();
-    }
     let result = if info.fast_download {
-        let writer = RandFileWriterStd::new(file, info.size, args.write_buffer_size).await?;
+        let writer = RandFileWriterMmap::new(&save_path, info.size, args.write_buffer_size)?;
         download_multi(
             reader,
             writer,

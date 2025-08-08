@@ -101,7 +101,12 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     if args.verbose {
         dbg!(&args);
     }
-    let client = build_client(&args.headers, &args.proxy)?;
+    let client = build_client(
+        &args.headers,
+        &args.proxy,
+        args.accept_invalid_certs,
+        args.accept_invalid_hostnames,
+    )?;
     let db = Database::new().await?;
 
     let info = loop {
@@ -239,6 +244,8 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         args.headers,
         args.proxy,
         args.multiplexing,
+        args.accept_invalid_certs,
+        args.accept_invalid_hostnames,
     )?;
     if let Some(parent) = save_path.parent()
         && let Err(err) = fs::create_dir_all(parent).await

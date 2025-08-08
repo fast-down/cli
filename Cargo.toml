@@ -14,7 +14,7 @@ keywords = ["downloader", "parallel", "thread", "concurrency", "performance"]
 categories = ["network-programming", "command-line-utilities"]
 
 [dependencies]
-fast-pull = "2.2.0"
+fast-pull = "2.2.1"
 color-eyre = "0.6.5"
 reqwest = { version = "0.12.22", features = [
     "brotli",

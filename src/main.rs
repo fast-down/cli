@@ -1,6 +1,5 @@
 mod args;
 mod clean;
-mod config;
 mod download;
 mod fmt;
 mod list;
@@ -8,8 +7,6 @@ mod persist;
 mod progress;
 mod reader;
 mod space;
-mod task;
-mod task_example;
 mod update;
 
 use args::Args;
@@ -39,13 +36,10 @@ async fn main() -> Result<()> {
     color_eyre::install()?;
     eprintln!("fast-down v{VERSION}");
     let args = Args::parse()?;
-
     match args {
         Args::Download(download_args) => download::download(download_args).await,
         Args::Update => update::update().await,
         Args::Clean => clean::clean().await,
         Args::List => list::list().await,
-        Args::Task(task_args) => task::process_tasks(task_args).await,
-        Args::TaskExample => task_example::create_example_config().await,
     }
 }

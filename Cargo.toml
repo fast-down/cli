@@ -45,8 +45,6 @@ rkyv = "0.8.10"
 crossterm = "0.29.0"
 futures = "0.3.31"
 bytes = "1.10.1"
-serde = { version = "1.0.217", features = ["derive"] }
-serde_yaml = "0.9.34"
 fs4 = "0.13.1"
 
 [package.metadata.i18n]

@@ -8,6 +8,8 @@ use tokio::fs;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskConfig {
     pub download: HashMap<String, TaskSettings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_concurrent_tasks: Option<usize>,
 }
 
 /// 单个任务的设置

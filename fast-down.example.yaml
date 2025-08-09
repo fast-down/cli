@@ -1,11 +1,4 @@
-use color_eyre::Result;
-use std::path::Path;
-
-/// 创建示例任务配置文件
-///
-/// 在当前目录下创建 fast-down.example.yaml 文件，包含完整的任务配置示例
-pub async fn create_example_config() -> Result<()> {
-    let example_content = r#"# Fast-Down 任务配置文件示例
+# Fast-Down 任务配置文件示例
 # 保存为 fast-down.yaml 并放置在下载目录中
 
 # 最大并发任务数（可选，默认为5）
@@ -53,17 +46,3 @@ download:
 # 可以使用环境变量覆盖配置
 # export FD_GLOBAL_THREADS=16
 # export FD_TASKS_0_THREADS=32
-"#;
-
-    let example_path = Path::new("fast-down.example.yaml");
-    if example_path.try_exists()? {
-        eprintln!("示例文件已存在: {}", example_path.display());
-        return Ok(());
-    }
-
-    tokio::fs::write(example_path, example_content).await?;
-    eprintln!("已创建示例配置文件: {}", example_path.display());
-    eprintln!("请查看文件内容并根据需要修改后重命名为 fast-down.yaml",);
-
-    Ok(())
-}

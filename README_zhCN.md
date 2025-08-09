@@ -23,9 +23,11 @@
    下到一半**随时暂停**，之后还能**继续传输**
 4. **⛓️‍💥 增量续传**  
    服务器日志今天下载完成，明天又多了 1000 行，增量续传功能实现**只传输新增的 1000 行**
-5. **💰 开源免费**  
+5. **📝 任务模式**  
+    通过配置文件实现批量下载
+6. **💰 开源免费**  
    所有代码全部公开，由 [share121](https://github.com/share121)、[Cyan](https://github.com/CyanChanges) 与其他贡献者一起维护
-6. **💻 跨平台**
+7. **💻 跨平台**
 
    | 架构  | Windows   | Linux     | Mac OS   |
    | ----- | -------- | --------- | -------- |
@@ -77,4 +79,13 @@ Options:
   -v, --verbose                                详细输出
       --no-verbose                             不详细输出
   -h, --help                                   Print help
+
+Usage: fast.exe task <FILE>
+
+Arguments:
+  <FILE>  任务文件路径
+
+Usage: fast.exe task-example
+
+  生成任务配置文件示例
 ```

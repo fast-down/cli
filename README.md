@@ -23,9 +23,11 @@ Languages: **en** [中文简体](./README_zhCN.md)
    You can **interrupt** at any time, and **resume downloading** after.
 4. **⛓️‍💥 Incremental Downloads**  
    1000 more lines server logs? Don't worry, we **only download new lines**.
-5. **💰 Free and open-source**  
+5. **📝 Task Mode**  
+    Batch download with configurable task files.
+6. **💰 Free and open-source**  
    The code stays free and open-source. Thanks to [share121](https://github.com/share121), [Cyan](https://github.com/CyanChanges) and other fast-down contributors.
-6. **💻 Cross platform**
+7. **💻 Cross platform**
 
    | Arch   | Windows       | Linux            | Mac OS           |
    | ------ | ------------- | ---------------- | ---------------- |
@@ -77,4 +79,13 @@ Options:
   -v, --verbose                                详细输出
       --no-verbose                             不详细输出
   -h, --help                                   Print help
+
+Usage: fast.exe task <FILE>
+
+Arguments:
+  <FILE>  任务文件路径
+
+Usage: fast.exe task-example
+
+  生成任务配置文件示例
 ```

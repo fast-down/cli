@@ -1,6 +1,6 @@
 use color_eyre::Result;
 use reqwest::header::HeaderMap;
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{path::Path, sync::Arc};
 use tokio::sync::Semaphore;
 
 use crate::{
@@ -13,31 +13,38 @@ use crate::{
 /// 从指定目录读取fast-down.yaml配置文件，解析所有任务并并发执行
 ///
 /// # 参数
-/// * `save_folder` - 保存目录路径，用于查找fast-down.yaml和作为基础下载目录
+/// * `args` - 任务参数，包含配置文件路径
 ///
 /// # 返回值
 /// * `Result<()>` - 成功返回Ok(())，失败返回错误信息
 ///
 /// # 功能特性
-/// * 支持并发下载，最多同时处理5个任务
+/// * 支持并发下载，可配置最大并发任务数
 /// * 每个任务独立配置线程数、文件名等参数
 /// * 实时显示任务进度和完成状态
 /// * 失败任务不影响其他任务继续执行
 pub async fn process_tasks(args: TaskArgs) -> Result<()> {
     let path = Path::new(&args.file);
     let save_folder = path.parent().unwrap_or(".".as_ref());
+    
     // 加载任务配置
     let task_config = TaskConfig::load_from_file(path).await?;
     let tasks = task_config.get_tasks(save_folder);
+    
     if tasks.is_empty() {
-        eprintln!("No tasks found in fast-down.yaml");
+        eprintln!("No tasks found in configuration file");
         return Ok(());
     }
+    
     let total_tasks = tasks.len();
-    eprintln!("Found {total_tasks} tasks in fast-down.yaml");
-    // 创建并发限制器，最多同时处理5个任务
-    // TODO: 从配置文件读取并发数
-    let semaphore = Arc::new(Semaphore::new(5));
+    eprintln!("Found {total_tasks} tasks in configuration file");
+    
+    // 从配置文件读取并发数，默认5个任务
+    let max_concurrent = task_config.max_concurrent_tasks.unwrap_or(5);
+    eprintln!("Concurrent tasks limit: {max_concurrent}");
+    
+    // 创建并发限制器
+    let semaphore = Arc::new(Semaphore::new(max_concurrent));
     let mut handles = Vec::with_capacity(total_tasks);
     for (index, task) in tasks.into_iter().enumerate() {
         let permit = semaphore.clone().acquire_owned().await?;
@@ -59,7 +66,7 @@ pub async fn process_tasks(args: TaskArgs) -> Result<()> {
                 headers: task
                     .settings
                     .headers
-                    .unwrap_or(HashMap::new())
+                    .unwrap_or_default()
                     .into_iter()
                     .filter_map(|(k, v)| Some((k.parse().ok()?, v.parse().ok()?)))
                     .collect::<HeaderMap>(),
@@ -73,6 +80,9 @@ pub async fn process_tasks(args: TaskArgs) -> Result<()> {
                 yes: false,
                 no: false,
                 verbose: false,
+                accept_invalid_certs: false,
+                accept_invalid_hostnames: false,
+                multiplexing: true,
             };
             match crate::download::download(download_args).await {
                 Ok(_) => {

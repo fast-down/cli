@@ -30,8 +30,8 @@ enum Commands {
     Download(DownloadCli),
     /// 清除已下载完成的链接
     Clean,
-    /// 更新 fast-down
-    Update,
+    // /// 更新 fast-down
+    // Update,
     /// 显示数据库
     List,
 }
@@ -135,7 +135,7 @@ struct DownloadCli {
 #[allow(clippy::large_enum_variant)]
 pub enum Args {
     Download(DownloadArgs),
-    Update,
+    // Update,
     Clean,
     List,
 }
@@ -332,7 +332,7 @@ impl Args {
                     }
                     Ok(Args::Download(args))
                 }
-                Commands::Update => Ok(Args::Update),
+                // Commands::Update => Ok(Args::Update),
                 Commands::Clean => Ok(Args::Clean),
                 Commands::List => Ok(Args::List),
             },

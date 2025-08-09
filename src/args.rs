@@ -3,7 +3,7 @@ use color_eyre::Result;
 use config::{Config, Environment, File};
 use crossterm::terminal;
 use reqwest::header::{HeaderMap, HeaderName};
-use std::{env, str::FromStr, time::Duration};
+use std::{env, path::PathBuf, str::FromStr, time::Duration};
 
 /// 超级快的下载器
 #[derive(Parser, Debug)]
@@ -89,7 +89,7 @@ struct DownloadCli {
     #[arg(long)]
     write_queue_cap: Option<usize>,
 
-    /// 进度条显示宽度
+    /// 进度条显示宽度 (为0则不显示)
     #[arg(long)]
     progress_width: Option<u16>,
 
@@ -174,11 +174,16 @@ pub struct TaskCli {
     /// 任务文件路径
     #[arg(required = true)]
     pub file: String,
+
+    /// 详细输出
+    #[arg(short, long)]
+    verbose: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct TaskArgs {
     pub file: String,
+    pub verbose: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -186,7 +191,7 @@ pub struct DownloadArgs {
     pub url: String,
     pub force: bool,
     pub resume: bool,
-    pub save_folder: String,
+    pub save_folder: PathBuf,
     pub threads: usize,
     pub file_name: Option<String>,
     pub proxy: Option<String>,
@@ -221,7 +226,7 @@ impl Args {
                         url: cli.url,
                         force: false,
                         resume: false,
-                        save_folder: ".".to_string(),
+                        save_folder: PathBuf::from("."),
                         threads: 8,
                         file_name: cli.file_name,
                         proxy: None,
@@ -261,7 +266,7 @@ impl Args {
                         args.resume = value;
                     }
                     if let Ok(value) = config.get_string("General.save_folder") {
-                        args.save_folder = value;
+                        args.save_folder = PathBuf::from(value);
                     }
                     if let Ok(value) = config.get_int("General.threads") {
                         args.threads = value.try_into()?;
@@ -338,7 +343,7 @@ impl Args {
                         args.resume = false;
                     }
                     if let Some(value) = cli.save_folder {
-                        args.save_folder = value;
+                        args.save_folder = PathBuf::from(value);
                     }
                     if let Some(value) = cli.threads {
                         args.threads = value;
@@ -411,7 +416,10 @@ impl Args {
                 Commands::Clean => Ok(Args::Clean),
                 Commands::List => Ok(Args::List),
                 Commands::TaskExample => Ok(Args::TaskExample),
-                Commands::Task(cli) => Ok(Args::Task(TaskArgs { file: cli.file })),
+                Commands::Task(cli) => Ok(Args::Task(TaskArgs {
+                    file: cli.file,
+                    verbose: cli.verbose,
+                })),
             },
             Err(err) => err.exit(),
         }

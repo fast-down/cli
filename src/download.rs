@@ -22,7 +22,6 @@ use reqwest::header::{self, HeaderValue};
 use std::{
     env,
     num::NonZeroUsize,
-    path::Path,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -30,7 +29,6 @@ use tokio::fs;
 use tokio::{
     fs::OpenOptions,
     io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader},
-    runtime::Handle,
     sync::Mutex,
 };
 use url::Url;
@@ -124,8 +122,9 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     } else {
         None
     };
-    let mut save_path =
-        Path::new(&args.save_folder).join(args.file_name.as_ref().unwrap_or(&info.name));
+    let mut save_path = args
+        .save_folder
+        .join(args.file_name.as_ref().unwrap_or(&info.name));
     if save_path.is_relative()
         && let Ok(current_dir) = env::current_dir()
     {
@@ -302,13 +301,11 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     };
 
     let result_clone = result.clone();
-    let rt_handle = Handle::current();
-    ctrlc::set_handler(move || {
-        rt_handle.block_on(async {
-            result_clone.cancel();
-            result_clone.join().await.unwrap();
-        })
-    })?;
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c().await.unwrap();
+        result_clone.cancel();
+        result_clone.join().await.unwrap();
+    });
 
     let mut last_db_update = Instant::now();
 

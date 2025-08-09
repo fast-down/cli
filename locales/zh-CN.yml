@@ -5,6 +5,7 @@ err:
   database-load: 数据库加载失败
   database-version: 数据库版本不匹配
   database-write: 数据库写入失败
+  empty-tasks: 任务列表为空
 msg:
   url-info: |
     文件名称: %{name}
@@ -36,6 +37,13 @@ msg:
   file-overwrite: 文件已经存在, 是否覆盖？
   lack-of-space: 剩余空间不足, 下载此文件还需要 %{size}
   clean: 已清理 %{count} 行链接
+  find-tasks: 找到 %{count} 个任务
+  start-tasks: 开始任务 %{id}/${total}
+  finish-tasks: ✓ 任务完成 %{id}/${total}
+  error-tasks: ✗ 任务失败 %{id}/${total}
+  finish-all-tasks: "共计: %{total} | 成功: %{success} | 失败: %{failed}"
+  file-already-exists: 文件已存在
+  task-example-created: 已创建示例配置文件
 verbose:
   worker-id: 线程 %{id}
   connect-error: 连接失败

@@ -50,7 +50,6 @@ impl Painter {
         repaint_duration: Duration,
         start: Instant,
     ) -> Self {
-        debug_assert_ne!(progress_width, 0);
         let init_size = init_progress.total();
         Self {
             progress: init_progress,
@@ -73,6 +72,9 @@ impl Painter {
         let running_clone = running.clone();
         tokio::spawn(async move {
             let painter = painter_arc.lock().await;
+            if painter.width == 0 {
+                return;
+            }
             let duration = painter.repaint_duration;
             drop(painter);
             loop {
@@ -90,6 +92,9 @@ impl Painter {
     }
 
     pub fn add(&mut self, p: ProgressEntry) {
+        if self.width == 0 {
+            return;
+        }
         self.curr_size += p.total();
         self.progress.merge_progress(p);
     }
@@ -106,6 +111,9 @@ impl Painter {
     }
 
     pub fn update(&mut self) -> io::Result<()> {
+        if self.width == 0 {
+            return Ok(());
+        }
         let repaint_elapsed = self.last_repaint_time.elapsed().as_millis();
         self.last_repaint_time = Instant::now();
         let curr_dsize = self.curr_size - self.prev_size;

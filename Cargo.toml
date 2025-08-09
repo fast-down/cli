@@ -1,6 +1,6 @@
 [package]
 name = "fast-down-cli"
-version = "2.2.1"
+version = "2.3.0"
 edition = "2024"
 license = "MIT"
 authors = ["share121 <2854631158@qq.com>"]
@@ -30,9 +30,9 @@ clap = { version = "4.5.42", features = ["derive"] }
 tokio = { version = "1.47.1", default-features = false, features = [
     "io-std",
     "rt-multi-thread",
+    "signal",
 ] }
 path-clean = "1.0.1"
-ctrlc = "3.4.7"
 url = "2.5.4"
 config = { version = "0.15.13", default-features = false, features = [
     "toml",

@@ -5,6 +5,7 @@ err:
   database-load: 載入下載記錄失敗
   database-version: 資料庫版本不匹配
   database-write: 寫入資料庫失敗
+  empty-tasks: 無下載任務
 msg:
   url-info: |
     檔案名稱: %{name}
@@ -36,6 +37,13 @@ msg:
   file-overwrite: 檔案已經存在, 是否覆蓋？
   lack-of-space: 剩餘空間不足, 下載此檔還需要 %{size}
   clean: 已清除 %{count} 行連結
+  find-tasks: 找到 %{count} 个任務
+  start-tasks: 開始任務 %{id}/${total}
+  finish-tasks: ✓ 任務完成 %{id}/${total}
+  error-tasks: ✗ 任務失敗 %{id}/${total}
+  finish-all-tasks: "總計: %{total} | 成功: %{success} | 失敗: %{failed}"
+  file-already-exists: 檔案已經存在
+  task-example-created: 任務範例已建立於
 verbose:
   worker-id: 執行緒 %{id}
   connect-error: 連接失敗

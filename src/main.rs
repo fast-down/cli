@@ -1,18 +1,17 @@
 mod args;
-mod clean;
-mod download;
+mod commands;
 mod fmt;
-mod list;
 mod persist;
 mod progress;
 mod reader;
 mod space;
-mod update;
 
 use args::Args;
 use color_eyre::Result;
 use mimalloc::MiMalloc;
 use rust_i18n::set_locale;
+
+use commands::*;
 
 #[macro_use]
 extern crate rust_i18n;
@@ -37,7 +36,7 @@ async fn main() -> Result<()> {
     eprintln!("fast-down v{VERSION}");
     let args = Args::parse()?;
     match args {
-        Args::Download(download_args) => download::download(download_args).await,
+        Args::Download(args) => download::download(args).await,
         Args::Update => update::update().await,
         Args::Clean => clean::clean().await,
         Args::List => list::list().await,

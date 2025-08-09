@@ -3,8 +3,8 @@ use color_eyre::Result;
 use config::{Config, Environment, File};
 use crossterm::terminal;
 use reqwest::header::{HeaderMap, HeaderName};
-use std::{env, str::FromStr, time::Duration};
 use std::path::{Path, PathBuf};
+use std::{env, str::FromStr, time::Duration};
 
 /// 超级快的下载器
 #[derive(Parser, Debug)]
@@ -110,49 +110,25 @@ struct DownloadCli {
     #[arg(short, long)]
     yes: bool,
 
-    /// 不全部确认
-    #[arg(long)]
-    no_yes: bool,
-
     /// 全部拒绝
     #[arg(long)]
     no: bool,
-
-    /// 不全部拒绝
-    #[arg(long)]
-    no_no: bool,
 
     /// 详细输出
     #[arg(short, long)]
     verbose: bool,
 
-    /// 不详细输出
-    #[arg(long)]
-    no_verbose: bool,
-
     /// 开启多路复用
     #[arg(long)]
     multiplexing: bool,
-
-    /// 关闭多路复用
-    #[arg(long)]
-    no_multiplexing: bool,
 
     /// 允许无效证书
     #[arg(long)]
     accept_invalid_certs: bool,
 
-    /// 禁止无效证书
-    #[arg(long)]
-    no_accept_invalid_certs: bool,
-
     /// 允许无效主机名
     #[arg(long)]
     accept_invalid_hostnames: bool,
-
-    /// 禁止无效主机名
-    #[arg(long)]
-    no_accept_invalid_hostnames: bool,
 }
 
 #[derive(Debug)]
@@ -310,16 +286,8 @@ impl Args {
                             }
                         }
                     }
-                    if cli.force {
-                        args.force = true;
-                    } else if cli.no_force {
-                        args.force = false;
-                    }
-                    if cli.resume {
-                        args.resume = true;
-                    } else if cli.no_resume {
-                        args.resume = false;
-                    }
+                    args.force = cli.force;
+                    args.resume = cli.resume;
                     if let Some(value) = cli.save_folder {
                         args.save_folder = value.into();
                     }
@@ -346,39 +314,13 @@ impl Args {
                     }
                     if cli.browser {
                         args.browser = true;
-                    } else if cli.no_browser {
-                        args.browser = false;
                     }
-                    if cli.yes {
-                        args.yes = true;
-                    } else if cli.no_yes {
-                        args.yes = false;
-                    }
-                    if cli.no {
-                        args.no = true;
-                    } else if cli.no_no {
-                        args.no = false;
-                    }
-                    if cli.verbose {
-                        args.verbose = true;
-                    } else if cli.no_verbose {
-                        args.verbose = false;
-                    }
-                    if cli.multiplexing {
-                        args.multiplexing = true;
-                    } else if cli.no_multiplexing {
-                        args.multiplexing = false;
-                    }
-                    if cli.accept_invalid_hostnames {
-                        args.accept_invalid_hostnames = true;
-                    } else if cli.no_accept_invalid_hostnames {
-                        args.accept_invalid_hostnames = false;
-                    }
-                    if cli.accept_invalid_certs {
-                        args.accept_invalid_certs = true;
-                    } else if cli.no_accept_invalid_certs {
-                        args.accept_invalid_certs = false;
-                    }
+                    args.yes = cli.yes;
+                    args.no = cli.no;
+                    args.verbose = cli.verbose;
+                    args.multiplexing = cli.multiplexing;
+                    args.accept_invalid_hostnames = cli.accept_invalid_hostnames;
+                    args.accept_invalid_certs = cli.accept_invalid_hostnames;
                     for header in cli.headers {
                         let parts: Vec<_> = header.splitn(2, ':').map(|t| t.trim()).collect();
                         if parts.len() != 2 {

@@ -14,7 +14,7 @@ keywords = ["downloader", "parallel", "thread", "concurrency", "performance"]
 categories = ["network-programming", "command-line-utilities"]
 
 [dependencies]
-fast-pull = "2.2.3"
+fast-pull = { version = "2.2.4", path = "../fast-pull" }
 color-eyre = "0.6.5"
 reqwest = { version = "0.12.22", features = [
     "brotli",
@@ -48,6 +48,7 @@ bytes = "1.10.1"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_yaml = "0.9.34"
 fs4 = "0.13.1"
+tokio-util = "0.7.16"
 
 [package.metadata.i18n]
 available-locales = ["en", "zh-TW", "zh-CN"]

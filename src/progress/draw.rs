@@ -7,23 +7,12 @@ use crossterm::{
 use fast_pull::{MergeProgress, ProgressEntry, Total};
 use std::{
     io::{self, Stderr},
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-    },
+    sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::sync::Mutex;
+use tokio::{sync::Mutex, task::JoinHandle};
 
 const BLOCK_CHARS: [char; 9] = [' ', '▏', '▎', '▍', '▌', '▋', '▊', '▉', '█'];
-
-#[derive(Debug, Clone)]
-pub struct PainterHandle(Arc<AtomicBool>);
-impl PainterHandle {
-    pub fn cancel(&self) {
-        self.0.store(false, Ordering::Relaxed);
-    }
-}
 
 #[derive(Debug)]
 pub struct Painter {
@@ -67,9 +56,7 @@ impl Painter {
         }
     }
 
-    pub fn start_update_thread(painter_arc: Arc<Mutex<Self>>) -> PainterHandle {
-        let running = Arc::new(AtomicBool::new(true));
-        let running_clone = running.clone();
+    pub fn start_update_thread(painter_arc: Arc<Mutex<Self>>) -> JoinHandle<()> {
         tokio::spawn(async move {
             let painter = painter_arc.lock().await;
             if painter.width == 0 {
@@ -82,13 +69,12 @@ impl Painter {
                 painter.update().unwrap();
                 let should_stop = painter.file_size > 0 && painter.curr_size >= painter.file_size;
                 drop(painter);
-                if should_stop || !running.load(Ordering::Relaxed) {
+                if should_stop {
                     break;
                 }
                 tokio::time::sleep(duration).await;
             }
-        });
-        PainterHandle(running_clone)
+        })
     }
 
     pub fn add(&mut self, p: ProgressEntry) {

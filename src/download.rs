@@ -282,7 +282,6 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         .await
     } else {
         let file = OpenOptions::new()
-            .read(true)
             .write(true)
             .create(true)
             .truncate(false)
@@ -303,8 +302,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     let result_clone = result.clone();
     tokio::spawn(async move {
         tokio::signal::ctrl_c().await.unwrap();
-        result_clone.cancel();
-        result_clone.join().await.unwrap();
+        result_clone.abort();
     });
 
     let mut last_db_update = Instant::now();
@@ -388,13 +386,6 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                     ))?;
                 }
             }
-            Event::Abort(id) => {
-                painter.lock().await.print(&format!(
-                    "{} {}\n",
-                    t!("verbose.worker-id", id = id),
-                    t!("verbose.abort")
-                ))?;
-            }
         }
     }
     db.update_entry(
@@ -403,8 +394,17 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         start.elapsed().as_millis() as u64,
     )
     .await?;
-    result.join().await?;
+    if let Err(e) = result.join().await
+        && !e.is_cancelled()
+    {
+        Err(e)?
+    }
     painter.lock().await.update()?;
-    painter_handle.cancel();
+    painter_handle.abort();
+    if let Err(e) = painter_handle.await
+        && !e.is_cancelled()
+    {
+        Err(e)?
+    }
     Ok(())
 }

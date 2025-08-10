@@ -565,14 +565,13 @@ dependencies = [
  "serde_yaml",
  "sys-locale",
  "tokio",
+ "tokio-util",
  "url",
 ]
 
 [[package]]
 name = "fast-pull"
-version = "2.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9f927e36f0d5bac7a8f0e0e4b7389d353b5242013844f0703b1ed77fa5f2e44"
+version = "2.2.4"
 dependencies = [
  "bytes",
  "content_disposition",
@@ -582,6 +581,7 @@ dependencies = [
  "mmap-io",
  "reqwest",
  "sanitize-filename",
+ "spin",
  "thiserror 2.0.12",
  "tokio",
  "url",
@@ -1972,6 +1972,12 @@ dependencies = [
  "libc",
  "windows-sys 0.59.0",
 ]
+
+[[package]]
+name = "spin"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5fe4ccb98d9c292d56fec89a5e07da7fc4cf0dc11e156b41793132775d3e591"
 
 [[package]]
 name = "stable_deref_trait"

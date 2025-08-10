@@ -3,7 +3,8 @@ use color_eyre::Result;
 use config::{Config, Environment, File};
 use crossterm::terminal;
 use reqwest::header::{HeaderMap, HeaderName};
-use std::{env, path::PathBuf, str::FromStr, time::Duration};
+use std::path::{Path, PathBuf};
+use std::{env, str::FromStr, time::Duration};
 
 /// 超级快的下载器
 #[derive(Parser, Debug)]
@@ -29,14 +30,10 @@ enum Commands {
     Download(DownloadCli),
     /// 清除已下载完成的链接
     Clean,
-    /// 更新 fast-down
-    Update,
+    // /// 更新 fast-down
+    // Update,
     /// 显示数据库
     List,
-    /// 生成任务示例配置文件
-    TaskExample,
-    /// 通过任务文件下载文件
-    Task(TaskCli),
 }
 
 #[derive(clap::Args, Debug)]
@@ -89,7 +86,7 @@ struct DownloadCli {
     #[arg(long)]
     write_queue_cap: Option<usize>,
 
-    /// 进度条显示宽度 (为0则不显示)
+    /// 进度条显示宽度
     #[arg(long)]
     progress_width: Option<u16>,
 
@@ -113,77 +110,34 @@ struct DownloadCli {
     #[arg(short, long)]
     yes: bool,
 
-    /// 不全部确认
-    #[arg(long)]
-    no_yes: bool,
-
     /// 全部拒绝
     #[arg(long)]
     no: bool,
-
-    /// 不全部拒绝
-    #[arg(long)]
-    no_no: bool,
 
     /// 详细输出
     #[arg(short, long)]
     verbose: bool,
 
-    /// 不详细输出
-    #[arg(long)]
-    no_verbose: bool,
-
     /// 开启多路复用
     #[arg(long)]
     multiplexing: bool,
-
-    /// 关闭多路复用
-    #[arg(long)]
-    no_multiplexing: bool,
 
     /// 允许无效证书
     #[arg(long)]
     accept_invalid_certs: bool,
 
-    /// 禁止无效证书
-    #[arg(long)]
-    no_accept_invalid_certs: bool,
-
     /// 允许无效主机名
     #[arg(long)]
     accept_invalid_hostnames: bool,
-
-    /// 禁止无效主机名
-    #[arg(long)]
-    no_accept_invalid_hostnames: bool,
 }
 
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum Args {
     Download(DownloadArgs),
-    Task(TaskArgs),
-    Update,
+    // Update,
     Clean,
     List,
-    TaskExample,
-}
-
-#[derive(clap::Args, Debug)]
-pub struct TaskCli {
-    /// 任务文件路径
-    #[arg(required = true)]
-    pub file: String,
-
-    /// 详细输出
-    #[arg(short, long)]
-    verbose: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct TaskArgs {
-    pub file: String,
-    pub verbose: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -226,7 +180,7 @@ impl Args {
                         url: cli.url,
                         force: false,
                         resume: false,
-                        save_folder: PathBuf::from("."),
+                        save_folder: Path::new(".").to_path_buf(),
                         threads: 8,
                         file_name: cli.file_name,
                         proxy: None,
@@ -266,7 +220,7 @@ impl Args {
                         args.resume = value;
                     }
                     if let Ok(value) = config.get_string("General.save_folder") {
-                        args.save_folder = PathBuf::from(value);
+                        args.save_folder = value.into();
                     }
                     if let Ok(value) = config.get_int("General.threads") {
                         args.threads = value.try_into()?;
@@ -332,18 +286,10 @@ impl Args {
                             }
                         }
                     }
-                    if cli.force {
-                        args.force = true;
-                    } else if cli.no_force {
-                        args.force = false;
-                    }
-                    if cli.resume {
-                        args.resume = true;
-                    } else if cli.no_resume {
-                        args.resume = false;
-                    }
+                    args.force = cli.force;
+                    args.resume = cli.resume;
                     if let Some(value) = cli.save_folder {
-                        args.save_folder = PathBuf::from(value);
+                        args.save_folder = value.into();
                     }
                     if let Some(value) = cli.threads {
                         args.threads = value;
@@ -368,39 +314,13 @@ impl Args {
                     }
                     if cli.browser {
                         args.browser = true;
-                    } else if cli.no_browser {
-                        args.browser = false;
                     }
-                    if cli.yes {
-                        args.yes = true;
-                    } else if cli.no_yes {
-                        args.yes = false;
-                    }
-                    if cli.no {
-                        args.no = true;
-                    } else if cli.no_no {
-                        args.no = false;
-                    }
-                    if cli.verbose {
-                        args.verbose = true;
-                    } else if cli.no_verbose {
-                        args.verbose = false;
-                    }
-                    if cli.multiplexing {
-                        args.multiplexing = true;
-                    } else if cli.no_multiplexing {
-                        args.multiplexing = false;
-                    }
-                    if cli.accept_invalid_hostnames {
-                        args.accept_invalid_hostnames = true;
-                    } else if cli.no_accept_invalid_hostnames {
-                        args.accept_invalid_hostnames = false;
-                    }
-                    if cli.accept_invalid_certs {
-                        args.accept_invalid_certs = true;
-                    } else if cli.no_accept_invalid_certs {
-                        args.accept_invalid_certs = false;
-                    }
+                    args.yes = cli.yes;
+                    args.no = cli.no;
+                    args.verbose = cli.verbose;
+                    args.multiplexing = cli.multiplexing;
+                    args.accept_invalid_hostnames = cli.accept_invalid_hostnames;
+                    args.accept_invalid_certs = cli.accept_invalid_hostnames;
                     for header in cli.headers {
                         let parts: Vec<_> = header.splitn(2, ':').map(|t| t.trim()).collect();
                         if parts.len() != 2 {
@@ -412,14 +332,9 @@ impl Args {
                     }
                     Ok(Args::Download(args))
                 }
-                Commands::Update => Ok(Args::Update),
+                // Commands::Update => Ok(Args::Update),
                 Commands::Clean => Ok(Args::Clean),
                 Commands::List => Ok(Args::List),
-                Commands::TaskExample => Ok(Args::TaskExample),
-                Commands::Task(cli) => Ok(Args::Task(TaskArgs {
-                    file: cli.file,
-                    verbose: cli.verbose,
-                })),
             },
             Err(err) => err.exit(),
         }

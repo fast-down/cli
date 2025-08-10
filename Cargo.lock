@@ -561,8 +561,6 @@ dependencies = [
  "reqwest",
  "rkyv",
  "rust-i18n",
- "serde",
- "serde_yaml",
  "sys-locale",
  "tokio",
  "tokio-util",

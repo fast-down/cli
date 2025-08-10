@@ -27,9 +27,9 @@ Languages: **en** [中文简体](./README_zhCN.md)
    The code stays free and open-source. Thanks to [share121](https://github.com/share121), [Cyan](https://github.com/CyanChanges) and other fast-down contributors.
 6. **💻 Cross platform**
 
-   | Arch   | Windows       | Linux            | Mac OS           |
-   | ------ | ------------- | ---------------- | ---------------- |
-   | 64 bit | [Download][1] | [Download][2]    | [Download][3]    |
+   | Arch   | Windows       | Linux           | Mac OS          |
+   |--------|---------------|-----------------|-----------------|
+   | 64 bit | [Download][1] | [Download][2]   | [Download][3]   |
    | 32 bit | [Download][4] | ❌ Not Supported | ❌ Not Supported |
    | Arm64  | [Download][5] | [Download][6]    | [Download][7]    |
 

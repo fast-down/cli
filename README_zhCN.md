@@ -27,11 +27,11 @@
    所有代码全部公开，由 [share121](https://github.com/share121)、[Cyan](https://github.com/CyanChanges) 与其他贡献者一起维护
 6. **💻 跨平台**
 
-   | 架构  | Windows   | Linux     | Mac OS   |
-   | ----- | -------- | --------- | -------- |
-   | 64 位 | [下载][1] | [下载][2]  | [下载][3] |
-   | 32 位 | [下载][4] | ❌ 不支持  | ❌ 不支持 |
-   | Arm64 | [下载][5] | [下载][6]  | [下载][7] |
+   | 架构    | Windows | Linux   | Mac OS  |
+   |-------|---------|---------|---------|
+   | 64 位  | [下载][1] | [下载][2] | [下载][3] |
+   | 32 位  | [下载][4] | ❌ 不支持   | ❌ 不支持   |
+   | Arm64 | [下载][5] | [下载][6] | [下载][7] |
 
 [1]: https://github.com/fast-down/cli/releases/latest/download/fast-down-windows-64bit.zip
 [2]: https://github.com/fast-down/cli/releases/latest/download/fast-down-linux-64bit.zip

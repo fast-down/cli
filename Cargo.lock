@@ -546,7 +546,7 @@ dependencies = [
 
 [[package]]
 name = "fast-down-cli"
-version = "2.4.0"
+version = "2.5.0"
 dependencies = [
  "bytes",
  "clap",
@@ -569,9 +569,9 @@ dependencies = [
 
 [[package]]
 name = "fast-pull"
-version = "3.0.1"
+version = "3.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a29d3b0a2dfa7c36f97f6c9ac29d86de3fff7a7ab431a351b064b54425a62c4"
+checksum = "0c2fb01f50dd9490ce6fbb5237ed1a232b7b2a813958a2aa6ace0fb6e13ff6fb"
 dependencies = [
  "bytes",
  "content_disposition",
@@ -589,9 +589,9 @@ dependencies = [
 
 [[package]]
 name = "fast-steal"
-version = "6.0.1"
+version = "6.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad012d745501a5cee628a71dbc8e6f87200ce9584751bbcf5db7d800b60965c5"
+checksum = "934900420ce3fa42ca873c431e84aedb36139065a507f66db8c91d7d27da8697"
 dependencies = [
  "spin",
 ]

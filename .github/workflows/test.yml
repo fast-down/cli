@@ -15,7 +15,6 @@ jobs:
           - stable
           - beta
           - nightly
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -45,7 +44,6 @@ jobs:
   check-minimal:
     name: Check minimal versions
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

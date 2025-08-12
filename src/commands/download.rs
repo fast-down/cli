@@ -19,6 +19,7 @@ use fast_pull::{
     single::{self, download_single},
 };
 use reqwest::header::{self, HeaderValue};
+use std::num::NonZero;
 use std::{
     env,
     num::NonZeroUsize,
@@ -277,7 +278,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 retry_gap: args.retry_gap,
                 concurrent: concurrent.unwrap(),
                 push_queue_cap: args.write_queue_cap,
-                min_chunk_size: 8 * 1024,
+                min_chunk_size: NonZero::new(8 * 1024).unwrap(),
             },
         )
         .await

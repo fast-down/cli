@@ -1,6 +1,6 @@
 [package]
 name = "fast-down-cli"
-version = "2.3.0"
+version = "2.4.0"
 edition = "2024"
 license = "MIT"
 authors = ["share121 <2854631158@qq.com>"]
@@ -14,7 +14,7 @@ keywords = ["downloader", "parallel", "thread", "concurrency", "performance"]
 categories = ["network-programming", "command-line-utilities"]
 
 [dependencies]
-fast-pull = { version = "2.2.4", path = "../fast-pull" }
+fast-pull = "3.0.1"
 color-eyre = "0.6.5"
 reqwest = { version = "0.12.22", features = [
     "brotli",

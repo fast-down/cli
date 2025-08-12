@@ -4,16 +4,16 @@ use crate::{
     fmt,
     persist::Database,
     progress::{self, Painter as ProgressPainter},
-    reader::{FastDownReader, build_client},
+    puller::{FastDownPuller, build_client},
 };
 use color_eyre::eyre::Result;
 #[cfg(target_pointer_width = "64")]
-use fast_pull::file::RandFileWriterMmap;
+use fast_pull::file::RandFilePusherMmap;
 #[cfg(not(target_pointer_width = "64"))]
-use fast_pull::file::RandFileWriterStd;
+use fast_pull::file::RandFilePusherStd;
 use fast_pull::{
     Event, MergeProgress, ProgressEntry, Total,
-    file::SeqFileWriter,
+    file::SeqFilePusher,
     multi::{self, download_multi},
     reqwest::Prefetch,
     single::{self, download_single},
@@ -241,7 +241,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         );
         return cancel_expected();
     }
-    let reader = FastDownReader::new(
+    let puller = FastDownPuller::new(
         info.final_url.clone(),
         args.headers,
         args.proxy,
@@ -257,9 +257,9 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     }
     let result = if info.fast_download {
         #[cfg(target_pointer_width = "64")]
-        let writer = RandFileWriterMmap::new(&save_path, info.size, args.write_buffer_size).await?;
+        let pusher = RandFilePusherMmap::new(&save_path, info.size, args.write_buffer_size).await?;
         #[cfg(not(target_pointer_width = "64"))]
-        let writer = {
+        let pusher = {
             let file = OpenOptions::new()
                 .create(true)
                 .write(true)
@@ -267,16 +267,17 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 .truncate(false)
                 .open(&save_path)
                 .await?;
-            RandFileWriterStd::new(file, info.size, args.write_buffer_size).await?
+            RandFilePusherStd::new(file, info.size, args.write_buffer_size).await?
         };
         download_multi(
-            reader,
-            writer,
+            puller,
+            pusher,
             multi::DownloadOptions {
                 download_chunks,
                 retry_gap: args.retry_gap,
                 concurrent: concurrent.unwrap(),
-                write_queue_cap: args.write_queue_cap,
+                push_queue_cap: args.write_queue_cap,
+                min_chunk_size: 8 * 1024,
             },
         )
         .await
@@ -287,13 +288,13 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             .truncate(false)
             .open(&save_path)
             .await?;
-        let writer = SeqFileWriter::new(file, args.write_buffer_size);
+        let pusher = SeqFilePusher::new(file, args.write_buffer_size);
         download_single(
-            reader,
-            writer,
+            puller,
+            pusher,
             single::DownloadOptions {
                 retry_gap: args.retry_gap,
-                write_queue_cap: args.write_queue_cap,
+                push_queue_cap: args.write_queue_cap,
             },
         )
         .await
@@ -331,8 +332,8 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     let painter_handle = ProgressPainter::start_update_thread(painter.clone());
     while let Ok(e) = result.event_chain.recv().await {
         match e {
-            Event::ReadProgress(_, p) => painter.lock().await.add(p),
-            Event::WriteProgress(_, p) => {
+            Event::PullProgress(_, p) => painter.lock().await.add(p),
+            Event::PushProgress(_, p) => {
                 write_progress.merge_progress(p);
                 if last_db_update.elapsed().as_millis() >= 500 {
                     last_db_update = Instant::now();
@@ -352,13 +353,13 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                     }
                 }
             }
-            Event::ReadError(id, err) => painter.lock().await.print(&format!(
+            Event::PullError(id, err) => painter.lock().await.print(&format!(
                 "{} {}\n{:?}\n",
                 t!("verbose.worker-id", id = id),
                 t!("verbose.download-error"),
                 err
             ))?,
-            Event::WriteError(_, err) => painter.lock().await.print(&format!(
+            Event::PushError(_, err) => painter.lock().await.print(&format!(
                 "{}\n{:?}\n",
                 t!("verbose.write-error"),
                 err
@@ -368,7 +369,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 t!("verbose.write-error"),
                 err
             ))?,
-            Event::Reading(id) => {
+            Event::Pulling(id) => {
                 if args.verbose {
                     painter.lock().await.print(&format!(
                         "{} {}\n",

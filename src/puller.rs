@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use fast_pull::{RandReader, SeqReader, reqwest::ReqwestReader};
+use fast_pull::{RandPuller, SeqPuller, reqwest::ReqwestPuller};
 use futures::TryStream;
 use reqwest::{
     ClientBuilder, Proxy,
@@ -30,8 +30,8 @@ pub fn build_client(
     Ok(client)
 }
 
-pub struct FastDownReader {
-    inner: ReqwestReader,
+pub struct FastDownPuller {
+    inner: ReqwestPuller,
     headers: Arc<HeaderMap<HeaderValue>>,
     proxy: Arc<Option<String>>,
     url: Arc<Url>,
@@ -40,7 +40,7 @@ pub struct FastDownReader {
     accept_invalid_hostnames: bool,
 }
 
-impl FastDownReader {
+impl FastDownPuller {
     pub fn new(
         url: Url,
         headers: HeaderMap<HeaderValue>,
@@ -56,7 +56,7 @@ impl FastDownReader {
             accept_invalid_hostnames,
         )?;
         Ok(Self {
-            inner: ReqwestReader::new(url.clone(), client),
+            inner: ReqwestPuller::new(url.clone(), client),
             headers: Arc::new(headers),
             proxy: Arc::new(proxy),
             url: Arc::new(url),
@@ -67,7 +67,7 @@ impl FastDownReader {
     }
 }
 
-impl Clone for FastDownReader {
+impl Clone for FastDownPuller {
     fn clone(&self) -> Self {
         if self.multiplexing {
             Self {
@@ -88,7 +88,7 @@ impl Clone for FastDownReader {
             )
             .unwrap();
             Self {
-                inner: ReqwestReader::new(self.url.as_ref().clone(), client),
+                inner: ReqwestPuller::new(self.url.as_ref().clone(), client),
                 headers: self.headers.clone(),
                 proxy: self.proxy.clone(),
                 url: self.url.clone(),
@@ -100,19 +100,19 @@ impl Clone for FastDownReader {
     }
 }
 
-impl RandReader for FastDownReader {
+impl RandPuller for FastDownPuller {
     type Error = reqwest::Error;
-    fn read(
+    fn pull(
         &mut self,
         range: &fast_pull::ProgressEntry,
     ) -> impl TryStream<Ok = Bytes, Error = Self::Error> + Send + Unpin {
-        RandReader::read(&mut self.inner, range)
+        RandPuller::pull(&mut self.inner, range)
     }
 }
 
-impl SeqReader for FastDownReader {
+impl SeqPuller for FastDownPuller {
     type Error = reqwest::Error;
-    fn read(&mut self) -> impl TryStream<Ok = Bytes, Error = Self::Error> + Send + Unpin {
-        SeqReader::read(&mut self.inner)
+    fn pull(&mut self) -> impl TryStream<Ok = Bytes, Error = Self::Error> + Send + Unpin {
+        SeqPuller::pull(&mut self.inner)
     }
 }

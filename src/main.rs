@@ -3,7 +3,7 @@ mod commands;
 mod fmt;
 mod persist;
 mod progress;
-mod reader;
+mod puller;
 mod space;
 
 use args::Args;

@@ -33,13 +33,13 @@ Languages: **en** [中文简体](./README_zhCN.md)
    | 32 bit | [Download][4] | ❌ Not Supported | ❌ Not Supported |
    | Arm64  | [Download][5] | [Download][6]    | [Download][7]    |
 
-[1]: https://github.com/fast-down/cli/releases/latest/download/fast-down-windows-64bit.zip
-[2]: https://github.com/fast-down/cli/releases/latest/download/fast-down-linux-64bit.zip
-[3]: https://github.com/fast-down/cli/releases/latest/download/fast-down-macos-64bit.zip
-[4]: https://github.com/fast-down/cli/releases/latest/download/fast-down-windows-32bit.zip
-[5]: https://github.com/fast-down/cli/releases/latest/download/fast-down-windows-arm64.zip
-[6]: https://github.com/fast-down/cli/releases/latest/download/fast-down-linux-arm64.zip
-[7]: https://github.com/fast-down/cli/releases/latest/download/fast-down-macos-arm64.zip
+[1]: https://fast-down-update.s121.top/cli/download/latest/windows/64bit
+[2]: https://fast-down-update.s121.top/cli/download/latest/linux/64bit
+[3]: https://fast-down-update.s121.top/cli/download/latest/macos/64bit
+[4]: https://fast-down-update.s121.top/cli/download/latest/windows/32bit
+[5]: https://fast-down-update.s121.top/cli/download/latest/windows/arm64
+[6]: https://fast-down-update.s121.top/cli/download/latest/linux/arm64
+[7]: https://fast-down-update.s121.top/cli/download/latest/macos/arm64
 
 ## Usage
 

@@ -1,12 +1,12 @@
 err:
   confirm.invalid-input: Invalid Input. Cancelling...
   url-info: Failed to fetch metadata
-  cancel: Cancelling...
   database-load: Database load error
   database-version: Database version mismatch
   database-write: Database write error
   empty-tasks: No tasks to download
 msg:
+  cancel: Cancelling...
   url-info: |
     File Name: %{name}
     File Size: %{size} (%{size_in_bytes} bytes)
@@ -31,7 +31,7 @@ msg:
     Weak ETag: %{etag}, file integrity cannot be guaranteed.
     Continue?
   no-etag: |
-    Server doesn't provide an ETag, file integrity cannot be guaranteed. 
+    Server doesn't provide an ETag, file integrity cannot be guaranteed.
     Continue?
   last-modified-mismatch: |
     Original Last-Modified: %{saved_last_modified}

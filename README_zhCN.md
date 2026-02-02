@@ -44,11 +44,11 @@
 ## 使用方法
 
 ```bash
-> fast --help
+> fd --help
 fast-down v2.0.3
 超级快的下载器命令行界面
 
-Usage: fast.exe download [OPTIONS] <URL>
+Usage: fd.exe download [OPTIONS] <URL>
 
 Arguments:
   <URL>  要下载的URL

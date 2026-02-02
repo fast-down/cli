@@ -4,13 +4,14 @@ use crossterm::{
     style::Print,
     terminal::{self, ClearType},
 };
-use fast_pull::{MergeProgress, ProgressEntry, Total};
+use fast_down::{Merge, ProgressEntry, Total};
+use parking_lot::Mutex;
 use std::{
     io::{self, Stderr},
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::{sync::Mutex, task::JoinHandle};
+use tokio::task::JoinHandle;
 
 const BLOCK_CHARS: [char; 9] = [' ', '▏', '▎', '▍', '▌', '▋', '▊', '▉', '█'];
 
@@ -57,18 +58,18 @@ impl Painter {
     }
 
     pub fn start_update_thread(painter_arc: Arc<Mutex<Self>>) -> JoinHandle<()> {
+        let duration = {
+            let painter = painter_arc.lock();
+            assert_ne!(painter.width, 0);
+            painter.repaint_duration
+        };
         tokio::spawn(async move {
-            let painter = painter_arc.lock().await;
-            if painter.width == 0 {
-                return;
-            }
-            let duration = painter.repaint_duration;
-            drop(painter);
             loop {
-                let mut painter = painter_arc.lock().await;
-                painter.update().unwrap();
-                let should_stop = painter.file_size > 0 && painter.curr_size >= painter.file_size;
-                drop(painter);
+                let should_stop = {
+                    let mut painter = painter_arc.lock();
+                    painter.update().unwrap();
+                    painter.file_size > 0 && painter.curr_size >= painter.file_size
+                };
                 if should_stop {
                     break;
                 }

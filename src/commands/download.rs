@@ -1,53 +1,36 @@
-use crate::space::check_free_space;
 use crate::{
-    args::DownloadArgs,
-    fmt,
-    persist::Database,
-    progress::{self, Painter as ProgressPainter},
-    puller::{FastDownPuller, build_client},
+    args::DownloadArgs, fmt, persist::Database, progress::Painter as ProgressPainter,
+    space::check_free_space,
 };
 use color_eyre::eyre::Result;
-#[cfg(target_pointer_width = "64")]
-use fast_pull::file::RandFilePusherMmap;
 #[cfg(not(target_pointer_width = "64"))]
-use fast_pull::file::RandFilePusherStd;
-use fast_pull::{
-    Event, MergeProgress, ProgressEntry, Total,
-    file::SeqFilePusher,
+use fast_down::file::FilePusher;
+#[cfg(target_pointer_width = "64")]
+use fast_down::file::MmapFilePusher;
+use fast_down::{
+    BoxPusher, Event, Merge, ProgressEntry, Total,
+    file::FilePusher,
+    http::Prefetch,
+    invert,
     multi::{self, download_multi},
-    reqwest::Prefetch,
     single::{self, download_single},
+    utils::{FastDownPuller, FastDownPullerOptions, build_client},
 };
-use reqwest::header::{self, HeaderValue};
-use std::num::NonZero;
+use parking_lot::Mutex;
+use reqwest::header;
 use std::{
     env,
-    num::NonZeroUsize,
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::fs;
 use tokio::{
-    fs::OpenOptions,
+    fs::{self, OpenOptions},
     io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader},
-    sync::Mutex,
 };
 use url::Url;
 
-macro_rules! predicate {
-    ($args:expr) => {
-        if ($args.yes) {
-            Some(true)
-        } else if ($args.no) {
-            Some(false)
-        } else {
-            None
-        }
-    };
-}
-
 #[inline]
-async fn confirm(predicate: impl Into<Option<bool>>, prompt: &str, default: bool) -> Result<bool> {
+async fn confirm(yes: bool, prompt: &str, default: bool) -> Result<bool> {
     fn get_text(value: bool) -> u8 {
         match value {
             true => b'Y',
@@ -61,9 +44,9 @@ async fn confirm(predicate: impl Into<Option<bool>>, prompt: &str, default: bool
     let mut stderr = io::stderr();
     stderr.write_all(prompt.as_bytes()).await?;
     stderr.write_all(text).await?;
-    if let Some(value) = predicate.into() {
-        stderr.write_all(&[get_text(value), b'\n']).await?;
-        return Ok(value);
+    if yes {
+        stderr.write_all(&[get_text(true), b'\n']).await?;
+        return Ok(true);
     }
     stderr.flush().await?;
     loop {
@@ -84,21 +67,19 @@ async fn confirm(predicate: impl Into<Option<bool>>, prompt: &str, default: bool
 }
 
 fn cancel_expected() -> Result<()> {
-    eprintln!("{}", t!("err.cancel"));
+    eprintln!("{}", t!("msg.cancel"));
     Ok(())
 }
 
 pub async fn download(mut args: DownloadArgs) -> Result<()> {
+    let url = Url::parse(&args.url)?;
     if args.browser {
-        let url = Url::parse(&args.url)?;
         args.headers
             .entry(header::ORIGIN)
-            .or_insert(HeaderValue::from_str(
-                url.origin().ascii_serialization().as_str(),
-            )?);
+            .or_insert(url.origin().ascii_serialization().parse()?);
         args.headers
             .entry(header::REFERER)
-            .or_insert(HeaderValue::from_str(&args.url)?);
+            .or_insert(args.url.parse()?);
     }
     if args.verbose {
         dbg!(&args);
@@ -110,54 +91,49 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         args.accept_invalid_hostnames,
     )?;
     let db = Database::new().await?;
-
-    let info = loop {
-        match client.prefetch(&args.url).await {
+    let (info, resp) = loop {
+        match client.prefetch(url.clone()).await {
             Ok(info) => break info,
             Err(err) => eprintln!("{}: {:#?}", t!("err.url-info"), err),
         }
         tokio::time::sleep(args.retry_gap).await;
     };
-    let concurrent = if info.fast_download {
-        NonZeroUsize::new(args.threads)
+    let threads = if info.fast_download {
+        args.threads.max(1)
     } else {
-        None
+        1
     };
+    let filename = info.filename();
     let mut save_path = args
         .save_folder
-        .join(args.file_name.as_ref().unwrap_or(&info.name));
+        .join(args.file_name.as_ref().unwrap_or(&filename));
     if save_path.is_relative()
         && let Ok(current_dir) = env::current_dir()
     {
         save_path = current_dir.join(save_path);
     }
     save_path = path_clean::clean(save_path);
-
-    eprintln!(
-        "{}",
-        fmt::format_download_info(&info, &save_path, concurrent)
-    );
-
+    println!("{}", fmt::format_download_info(&info, &save_path, threads));
+    let temp_path = save_path.with_added_extension(".fdpart");
     #[allow(clippy::single_range_in_vec_init)]
     let mut download_chunks = vec![0..info.size];
     let mut resume_download = false;
-    let mut write_progress: Vec<ProgressEntry> =
-        Vec::with_capacity(concurrent.map(NonZeroUsize::get).unwrap_or(1));
+    let mut write_progress: Vec<ProgressEntry> = Vec::with_capacity(threads);
     let mut elapsed = 0;
 
-    if save_path.try_exists()? {
+    if fs::try_exists(&temp_path).await? {
         if args.resume
             && info.fast_download
-            && let Some(entry) = db.get_entry(&save_path).await
+            && let Some(entry) = db.get_entry(&save_path)
         {
-            let downloaded = entry.progress.total();
+            let downloaded: u64 = entry.progress.iter().map(|(a, b)| b - a).sum();
             if downloaded < info.size {
-                download_chunks = progress::invert(&entry.progress, info.size);
-                write_progress = entry.progress.clone();
+                write_progress.extend(entry.progress.iter().map(|(a, b)| *a..*b));
+                download_chunks = invert(write_progress.iter(), info.size, 1024).collect();
                 resume_download = true;
                 elapsed = entry.elapsed;
-                eprintln!("{}", t!("msg.resume-download"));
-                eprintln!(
+                println!("{}", t!("msg.resume-download"));
+                println!(
                     "{}",
                     t!(
                         "msg.download",
@@ -168,7 +144,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 );
                 if entry.file_size != info.size
                     && !confirm(
-                        predicate!(args),
+                        args.yes,
                         &t!(
                             "msg.size-mismatch",
                             saved_size = entry.file_size,
@@ -180,13 +156,13 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 {
                     return cancel_expected();
                 }
-                if entry.etag != info.etag {
+                if entry.etag.as_deref() != info.file_id.etag.as_deref() {
                     if !confirm(
-                        predicate!(args),
+                        args.yes,
                         &t!(
                             "msg.etag-mismatch",
                             saved_etag = entry.etag : {:?},
-                            new_etag = info.etag : {:?}
+                            new_etag = info.file_id.etag : {:?}
                         ),
                         false,
                     )
@@ -194,30 +170,24 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                     {
                         return cancel_expected();
                     }
-                } else if let Some(ref progress_etag) = entry.etag
-                    && progress_etag.starts_with("W/")
+                } else if let Some(ref etag) = entry.etag
+                    && etag.starts_with("W/")
                 {
-                    if !confirm(
-                        predicate!(args),
-                        &t!("msg.weak-etag", etag = progress_etag),
-                        false,
-                    )
-                    .await?
-                    {
+                    if !confirm(args.yes, &t!("msg.weak-etag", etag = etag), false).await? {
                         return cancel_expected();
                     }
                 } else if entry.etag.is_none()
-                    && !confirm(predicate!(args), &t!("msg.no-etag"), false).await?
+                    && !confirm(args.yes, &t!("msg.no-etag"), false).await?
                 {
                     return cancel_expected();
                 }
-                if entry.last_modified != info.last_modified
+                if entry.last_modified.as_deref() != info.file_id.last_modified.as_deref()
                     && !confirm(
-                        predicate!(args),
+                        args.yes,
                         &t!(
                             "msg.last-modified-mismatch",
                             saved_last_modified = entry.last_modified : {:?},
-                            new_last_modified = info.last_modified : {:?}
+                            new_last_modified = info.file_id.last_modified : {:?}
                         ),
                         false,
                     )
@@ -230,7 +200,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         if !args.yes
             && !resume_download
             && !args.force
-            && !confirm(predicate!(args), &t!("msg.file-overwrite"), false).await?
+            && !confirm(args.yes, &t!("msg.file-overwrite"), false).await?
         {
             return cancel_expected();
         }
@@ -242,14 +212,17 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         );
         return cancel_expected();
     }
-    let puller = FastDownPuller::new(
-        info.final_url.clone(),
-        args.headers,
-        args.proxy,
-        args.multiplexing,
-        args.accept_invalid_certs,
-        args.accept_invalid_hostnames,
-    )?;
+
+    let puller = FastDownPuller::new(FastDownPullerOptions {
+        url,
+        headers: Arc::new(args.headers),
+        proxy: &args.proxy,
+        multiplexing: args.multiplexing,
+        accept_invalid_certs: args.accept_invalid_certs,
+        accept_invalid_hostnames: args.accept_invalid_hostnames,
+        file_id: info.file_id.clone(),
+        resp: Some(Arc::new(Mutex::new(Some(resp)))),
+    })?;
     if let Some(parent) = save_path.parent()
         && let Err(err) = fs::create_dir_all(parent).await
         && err.kind() != std::io::ErrorKind::AlreadyExists
@@ -258,7 +231,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     }
     let result = if info.fast_download {
         #[cfg(target_pointer_width = "64")]
-        let pusher = RandFilePusherMmap::new(&save_path, info.size, args.write_buffer_size).await?;
+        let pusher = MmapFilePusher::new(&save_path, info.size).await?;
         #[cfg(not(target_pointer_width = "64"))]
         let pusher = {
             let file = OpenOptions::new()
@@ -268,20 +241,20 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 .truncate(false)
                 .open(&save_path)
                 .await?;
-            RandFilePusherStd::new(file, info.size, args.write_buffer_size).await?
+            FilePusher::new(file, info.size, args.write_buffer_size).await?
         };
+        let pusher = BoxPusher::new(pusher);
         download_multi(
             puller,
             pusher,
             multi::DownloadOptions {
-                download_chunks,
+                download_chunks: download_chunks.iter(),
                 retry_gap: args.retry_gap,
-                concurrent: concurrent.unwrap(),
+                concurrent: threads,
                 push_queue_cap: args.write_queue_cap,
-                min_chunk_size: NonZero::new(8 * 1024).unwrap(),
+                min_chunk_size: 8 * 1024,
             },
         )
-        .await
     } else {
         let file = OpenOptions::new()
             .write(true)
@@ -289,7 +262,8 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             .truncate(false)
             .open(&save_path)
             .await?;
-        let pusher = SeqFilePusher::new(file, args.write_buffer_size);
+        let pusher = FilePusher::new(file, info.size, args.write_buffer_size).await?;
+        let pusher = BoxPusher::new(pusher);
         download_single(
             puller,
             pusher,
@@ -298,7 +272,6 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 push_queue_cap: args.write_queue_cap,
             },
         )
-        .await
     };
 
     let result_clone = result.clone();
@@ -306,17 +279,13 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         tokio::signal::ctrl_c().await.unwrap();
         result_clone.abort();
     });
-
-    let mut last_db_update = Instant::now();
-
     if !resume_download {
         db.init_entry(
             &save_path,
-            info.name,
+            filename,
             info.size,
-            info.etag,
-            info.last_modified,
-            info.final_url.to_string(),
+            &info.file_id,
+            info.final_url,
         )
         .await?;
     }
@@ -333,46 +302,41 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     let painter_handle = ProgressPainter::start_update_thread(painter.clone());
     while let Ok(e) = result.event_chain.recv().await {
         match e {
-            Event::PullProgress(_, p) => painter.lock().await.add(p),
+            Event::PullProgress(_, p) => painter.lock().add(p),
             Event::PushProgress(_, p) => {
                 write_progress.merge_progress(p);
-                if last_db_update.elapsed().as_millis() >= 500 {
-                    last_db_update = Instant::now();
-                    let res = db
-                        .update_entry(
-                            &save_path,
-                            write_progress.clone(),
-                            start.elapsed().as_millis() as u64,
-                        )
-                        .await;
-                    if let Err(e) = res {
-                        painter.lock().await.print(&format!(
-                            "{}\n{:?}\n",
-                            t!("err.database-write"),
-                            e
-                        ))?;
-                    }
+                let res = db
+                    .update_entry(
+                        &save_path,
+                        write_progress.clone(),
+                        start.elapsed().as_millis() as u64,
+                    )
+                    .await;
+                if let Err(e) = res {
+                    painter
+                        .lock()
+                        .print(&format!("{}\n{:?}\n", t!("err.database-write"), e))?;
                 }
             }
-            Event::PullError(id, err) => painter.lock().await.print(&format!(
+            Event::PullError(id, err) => painter.lock().print(&format!(
                 "{} {}\n{:?}\n",
                 t!("verbose.worker-id", id = id),
                 t!("verbose.download-error"),
                 err
             ))?,
-            Event::PushError(_, err) => painter.lock().await.print(&format!(
-                "{}\n{:?}\n",
-                t!("verbose.write-error"),
-                err
-            ))?,
-            Event::FlushError(err) => painter.lock().await.print(&format!(
-                "{}\n{:?}\n",
-                t!("verbose.write-error"),
-                err
-            ))?,
+            Event::PushError(_, err) => {
+                painter
+                    .lock()
+                    .print(&format!("{}\n{:?}\n", t!("verbose.write-error"), err))?
+            }
+            Event::FlushError(err) => {
+                painter
+                    .lock()
+                    .print(&format!("{}\n{:?}\n", t!("verbose.write-error"), err))?
+            }
             Event::Pulling(id) => {
                 if args.verbose {
-                    painter.lock().await.print(&format!(
+                    painter.lock().print(&format!(
                         "{} {}\n",
                         t!("verbose.worker-id", id = id),
                         t!("verbose.downloading")
@@ -381,7 +345,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             }
             Event::Finished(id) => {
                 if args.verbose {
-                    painter.lock().await.print(&format!(
+                    painter.lock().print(&format!(
                         "{} {}\n",
                         t!("verbose.worker-id", id = id),
                         t!("verbose.finished")
@@ -401,7 +365,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     {
         Err(e)?
     }
-    painter.lock().await.update()?;
+    painter.lock().update()?;
     painter_handle.abort();
     if let Err(e) = painter_handle.await
         && !e.is_cancelled()

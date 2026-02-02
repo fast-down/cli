@@ -3,15 +3,13 @@ mod commands;
 mod fmt;
 mod persist;
 mod progress;
-mod puller;
 mod space;
 
 use args::Args;
 use color_eyre::Result;
+use commands::*;
 use mimalloc::MiMalloc;
 use rust_i18n::set_locale;
-
-use commands::*;
 
 #[macro_use]
 extern crate rust_i18n;

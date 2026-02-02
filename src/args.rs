@@ -1,10 +1,8 @@
 use clap::{Parser, Subcommand};
-use color_eyre::Result;
-use config::{Config, Environment, File};
+use color_eyre::{Result, eyre::ContextCompat};
 use crossterm::terminal;
 use reqwest::header::{HeaderMap, HeaderName};
-use std::path::{Path, PathBuf};
-use std::{env, str::FromStr, time::Duration};
+use std::{path::PathBuf, str::FromStr, time::Duration};
 
 /// 超级快的下载器
 #[derive(Parser, Debug)]
@@ -41,91 +39,57 @@ struct DownloadCli {
     /// 要下载的URL
     #[arg(required = true)]
     url: String,
-
     /// 强制覆盖已有文件
-    #[arg(short, long = "allow-overwrite")]
-    force: bool,
-
-    /// 不强制覆盖已有文件
-    #[arg(long = "no-allow-overwrite")]
-    no_force: bool,
-
-    /// 断点续传
-    #[arg(short = 'c', long = "continue")]
-    resume: bool,
-
-    /// 不断点续传
-    #[arg(long = "no-continue")]
-    no_resume: bool,
-
-    /// 保存目录
-    #[arg(short = 'd', long = "dir")]
-    save_folder: Option<String>,
-
-    /// 下载线程数
     #[arg(short, long)]
-    threads: Option<usize>,
-
+    force: bool,
+    /// 禁止断点续传
+    #[arg(long)]
+    no_resume: bool,
+    /// 保存目录
+    #[arg(short = 'd', long = "dir", default_value = ".")]
+    save_folder: PathBuf,
+    /// 下载线程数
+    #[arg(short, long, default_value_t = 32)]
+    threads: usize,
     /// 自定义文件名
     #[arg(short = 'o', long = "out")]
     file_name: Option<String>,
-
     /// 代理地址 (格式: http://proxy:port 或 socks5://proxy:port)
-    #[arg(short, long = "all-proxy")]
-    proxy: Option<String>,
-
+    #[arg(short, long, default_value = "")]
+    proxy: String,
     /// 自定义请求头 (可多次使用)
     #[arg(short = 'H', long = "header", value_name = "Key: Value")]
     headers: Vec<String>,
-
     /// 写入缓冲区大小 (单位: B)
-    #[arg(long)]
-    write_buffer_size: Option<usize>,
-
+    #[arg(long, default_value_t = 8 * 1024 * 1024)]
+    write_buffer_size: usize,
     /// 写入通道长度
-    #[arg(long)]
-    write_queue_cap: Option<usize>,
-
+    #[arg(long, default_value_t = 10240)]
+    write_queue_cap: usize,
     /// 进度条显示宽度
     #[arg(long)]
     progress_width: Option<u16>,
-
     /// 重试间隔 (单位: ms)
-    #[arg(long)]
-    retry_gap: Option<u64>,
-
+    #[arg(long, default_value_t = 500)]
+    retry_gap: u64,
     /// 进度条重绘间隔 (单位: ms)
-    #[arg(long)]
-    repaint_gap: Option<u64>,
-
+    #[arg(long, default_value_t = 100)]
+    repaint_gap: u64,
     /// 模拟浏览器行为
     #[arg(long)]
     browser: bool,
-
-    /// 不模拟浏览器行为
-    #[arg(long)]
-    no_browser: bool,
-
     /// 全部确认
     #[arg(short, long)]
     yes: bool,
-
-    /// 全部拒绝
-    #[arg(long)]
-    no: bool,
-
     /// 详细输出
     #[arg(short, long)]
     verbose: bool,
-
-    /// 开启多路复用
+    /// 开启多路复用 (不推荐)
     #[arg(long)]
     multiplexing: bool,
-
     /// 允许无效证书
     #[arg(long)]
     accept_invalid_certs: bool,
-
     /// 允许无效主机名
     #[arg(long)]
     accept_invalid_hostnames: bool,
@@ -148,7 +112,7 @@ pub struct DownloadArgs {
     pub save_folder: PathBuf,
     pub threads: usize,
     pub file_name: Option<String>,
-    pub proxy: Option<String>,
+    pub proxy: String,
     pub headers: HeaderMap,
     pub write_buffer_size: usize,
     pub write_queue_cap: usize,
@@ -157,7 +121,6 @@ pub struct DownloadArgs {
     pub retry_gap: Duration,
     pub browser: bool,
     pub yes: bool,
-    pub no: bool,
     pub verbose: bool,
     pub multiplexing: bool,
     pub accept_invalid_certs: bool,
@@ -178,157 +141,38 @@ impl Args {
                 Commands::Download(cli) => {
                     let mut args = DownloadArgs {
                         url: cli.url,
-                        force: false,
-                        resume: false,
-                        save_folder: Path::new(".").to_path_buf(),
-                        threads: 8,
+                        force: cli.force,
+                        resume: !cli.no_resume,
+                        save_folder: cli.save_folder,
+                        threads: cli.threads,
                         file_name: cli.file_name,
-                        proxy: None,
+                        proxy: cli.proxy,
                         headers: HeaderMap::new(),
-                        write_buffer_size: 8 * 1024 * 1024,
-                        write_queue_cap: 10240,
+                        write_buffer_size: cli.write_buffer_size,
+                        write_queue_cap: cli.write_queue_cap,
                         progress_width: terminal::size()
                             .ok()
                             .and_then(|s| s.0.checked_sub(36))
                             .unwrap_or(50),
-                        retry_gap: Duration::from_millis(500),
-                        repaint_gap: Duration::from_millis(100),
-                        browser: true,
-                        yes: false,
-                        no: false,
-                        verbose: false,
-                        multiplexing: true,
-                        accept_invalid_certs: false,
-                        accept_invalid_hostnames: false,
+                        retry_gap: Duration::from_millis(cli.retry_gap),
+                        repaint_gap: Duration::from_millis(cli.repaint_gap),
+                        browser: cli.browser,
+                        yes: cli.yes,
+                        verbose: cli.verbose,
+                        multiplexing: cli.multiplexing,
+                        accept_invalid_certs: cli.accept_invalid_certs,
+                        accept_invalid_hostnames: cli.accept_invalid_hostnames,
                     };
-                    let self_config_path = env::current_exe()
-                        .ok()
-                        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
-                        .map(|p| p.join("config.toml"));
-                    let mut config = Config::builder();
-                    if let Some(config_path) = self_config_path {
-                        config = config.add_source(File::from(config_path).required(false));
-                    }
-                    let config = config
-                        .add_source(File::with_name("fast-down.toml").required(false))
-                        .add_source(Environment::with_prefix("FD"))
-                        .build()?;
-                    if let Ok(value) = config.get_bool("General.force") {
-                        args.force = value;
-                    }
-                    if let Ok(value) = config.get_bool("General.resume") {
-                        args.resume = value;
-                    }
-                    if let Ok(value) = config.get_string("General.save_folder") {
-                        args.save_folder = value.into();
-                    }
-                    if let Ok(value) = config.get_int("General.threads") {
-                        args.threads = value.try_into()?;
-                    }
-                    if let Ok(value) = config.get_string("General.proxy")
-                        && !value.is_empty()
-                    {
-                        args.proxy = Some(value);
-                    }
-                    if let Ok(value) = config.get_int("General.write_buffer_size") {
-                        args.write_buffer_size = value.try_into()?;
-                    }
-                    if let Ok(value) = config.get_int("General.write_queue_cap") {
-                        args.write_queue_cap = value.try_into()?;
-                    }
-                    if let Ok(value) = config.get_int("General.progress_width") {
-                        args.progress_width = value.try_into()?;
-                    }
-                    if let Ok(value) = config.get_int("General.retry_gap") {
-                        args.retry_gap = Duration::from_millis(value.try_into()?);
-                    }
-                    if let Ok(value) = config.get_int("General.repaint_gap") {
-                        args.repaint_gap = Duration::from_millis(value.try_into()?);
-                    }
-                    if let Ok(value) = config.get_bool("General.browser") {
-                        args.browser = value;
-                    }
-                    if let Ok(value) = config.get_bool("General.yes") {
-                        args.yes = value;
-                    }
-                    if let Ok(value) = config.get_bool("General.no") {
-                        args.no = value;
-                    }
-                    if let Ok(value) = config.get_bool("General.verbose") {
-                        args.verbose = value;
-                    }
-                    if let Ok(value) = config.get_bool("General.multiplexing") {
-                        args.multiplexing = value;
-                    }
-                    if let Ok(value) = config.get_bool("General.accept_invalid_hostnames") {
-                        args.accept_invalid_hostnames = value;
-                    }
-                    if let Ok(value) = config.get_bool("General.accept_invalid_certs") {
-                        args.accept_invalid_certs = value;
-                    }
-                    if let Ok(table) = config.get_table("Headers") {
-                        for (key, value) in table {
-                            let value_str = value.to_string();
-                            match HeaderName::from_str(&key) {
-                                Ok(header_name) => match value_str.parse() {
-                                    Ok(header_value) => {
-                                        args.headers.insert(header_name, header_value);
-                                    }
-                                    Err(e) => {
-                                        eprintln!(
-                                            "无法解析请求头值\n请求头: {key}: {value_str}\n错误原因: {e:?}",
-                                        );
-                                    }
-                                },
-                                Err(e) => {
-                                    eprintln!("无法解析请求头名称\n请求头: {key}\n错误原因: {e:?}",);
-                                }
-                            }
-                        }
-                    }
-                    args.force = cli.force;
-                    args.resume = cli.resume;
-                    if let Some(value) = cli.save_folder {
-                        args.save_folder = value.into();
-                    }
-                    if let Some(value) = cli.threads {
-                        args.threads = value;
-                    }
-                    if let Some(value) = cli.proxy {
-                        args.proxy.replace(value);
-                    }
-                    if let Some(value) = cli.write_buffer_size {
-                        args.write_buffer_size = value;
-                    }
-                    if let Some(value) = cli.write_queue_cap {
-                        args.write_queue_cap = value;
-                    }
-                    if let Some(value) = cli.progress_width {
-                        args.progress_width = value;
-                    }
-                    if let Some(value) = cli.retry_gap {
-                        args.retry_gap = Duration::from_millis(value);
-                    }
-                    if let Some(value) = cli.repaint_gap {
-                        args.repaint_gap = Duration::from_millis(value);
-                    }
-                    if cli.browser {
-                        args.browser = true;
-                    }
-                    args.yes = cli.yes;
-                    args.no = cli.no;
-                    args.verbose = cli.verbose;
-                    args.multiplexing = cli.multiplexing;
-                    args.accept_invalid_hostnames = cli.accept_invalid_hostnames;
-                    args.accept_invalid_certs = cli.accept_invalid_hostnames;
                     for header in cli.headers {
-                        let parts: Vec<_> = header.splitn(2, ':').map(|t| t.trim()).collect();
-                        if parts.len() != 2 {
-                            eprintln!("请求头格式错误: {header}");
-                            continue;
-                        }
+                        let mut parts = header.splitn(2, ':').map(|t| t.trim());
+                        let name = parts
+                            .next()
+                            .with_context(|| format!("请求头格式错误: {header}"))?;
+                        let value = parts
+                            .next()
+                            .with_context(|| format!("请求头格式错误: {header}"))?;
                         args.headers
-                            .insert(HeaderName::from_str(parts[0])?, parts[1].parse()?);
+                            .insert(HeaderName::from_str(name)?, value.parse()?);
                     }
                     Ok(Args::Download(args))
                 }

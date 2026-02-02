@@ -1,0 +1,25 @@
+[advisories]
+version = 2
+
+[licenses]
+version = 2
+allow = [
+  "Apache-2.0",
+  "MIT",
+  "BSD-3-Clause",
+  "Unicode-3.0",
+  "ISC",
+  "OpenSSL",
+  "CDLA-Permissive-2.0"
+]
+confidence-threshold = 1.0
+
+[bans]
+# We don't maintain a fixed Cargo.lock so enforcing
+# `multiple-versions = "deny"` is impractical.
+multiple-versions = "allow"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

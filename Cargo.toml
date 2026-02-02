@@ -10,55 +10,64 @@ exclude = ["/.github"]
 description = "超级快的下载器命令行界面"
 documentation = "https://docs.rs/fast-down-cli"
 homepage = "https://github.com/fast-down/cli"
-keywords = ["downloader", "parallel", "thread", "concurrency", "performance"]
-categories = ["network-programming", "command-line-utilities"]
-
-[dependencies]
-fast-pull = "3.0.4"
-color-eyre = "0.6.5"
-reqwest = { version = "0.12.22", features = [
-    "brotli",
-    "deflate",
-    "gzip",
-    "zstd",
-    "system-proxy",
-    "socks",
-    "http2",
-    "rustls-tls",
-], default-features = false }
-clap = { version = "4.5.42", features = ["derive"] }
-tokio = { version = "1.47.1", default-features = false, features = [
-    "io-std",
-    "rt-multi-thread",
-    "signal",
-] }
-path-clean = "1.0.1"
-url = "2.5.4"
-config = { version = "0.15.13", default-features = false, features = [
-    "toml",
-    "convert-case",
-] }
-mimalloc = "0.1.47"
-rust-i18n = "3.1.5"
-sys-locale = "0.3.2"
-rkyv = "0.8.10"
-crossterm = "0.29.0"
-futures = "0.3.31"
-bytes = "1.10.1"
-fs4 = "0.13.1"
-tokio-util = "0.7.16"
+keywords = ["concurrency", "downloader", "parallel", "performance", "thread"]
+categories = ["command-line-utilities", "network-programming"]
 
 [package.metadata.i18n]
 available-locales = ["en", "zh-TW", "zh-CN"]
 default-locale = "en"
 
-[profile.release]
-codegen-units = 1
-lto = true
-opt-level = 3
-panic = "abort"
-strip = true
-
 [[bin]]
-name = "fast"
+name = "fd"
 path = "src/main.rs"
+
+[dependencies]
+bitcode = "0.6.9"
+bytes = "1.11.0"
+clap = { version = "4.5.56", features = ["derive"] }
+color-eyre = "0.6.5"
+crossterm = "0.29.0"
+# fast-down = { git = "https://github.com/fast-down/core.git", features = [
+#   "http",
+#   "reqwest",
+#   "sanitize-filename",
+#   "utils"
+# ] }
+fast-down = { path = "../core/crates/fast-down/", features = [
+  "http",
+  "reqwest",
+  "sanitize-filename",
+  "utils"
+] }
+fs4 = "0.13.1"
+futures = "0.3.31"
+mimalloc = "0.1.48"
+parking_lot = "0.12.5"
+path-clean = "1.0.1"
+reqwest = { version = "0.13.1", default-features = false, features = [
+  "default-tls",
+  "brotli",
+  "deflate",
+  "gzip",
+  "http2",
+  "socks",
+  "system-proxy",
+  "zstd",
+] }
+rust-i18n = "3.1.5"
+sys-locale = "0.3.2"
+tokio = { version = "1.49.0", default-features = false, features = [
+  "io-std",
+  "rt-multi-thread",
+  "signal",
+  "macros"
+] }
+tokio-util = "0.7.18"
+url = "2.5.8"
+
+[profile.release]
+opt-level = 3
+strip = true
+lto = true
+panic = "abort"
+codegen-units = 1

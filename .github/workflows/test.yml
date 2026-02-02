@@ -6,7 +6,7 @@ permissions:
   contents: read
 
 jobs:
-  check:
+  test:
     name: Tests
     runs-on: ubuntu-latest
     strategy:
@@ -23,7 +23,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.channel }}
-          components: clippy
 
       - name: Configure sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9
@@ -33,16 +32,81 @@ jobs:
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
 
       - name: Test
-        run: cargo test --all --verbose
+        run: cargo test --all-features --verbose
 
-      - name: Build
-        run: cargo build --all --verbose
+      - name: Test (no-default-features)
+        run: cargo test --no-default-features --verbose
 
-      - name: Clippy
-        run: cargo clippy --all --verbose -- -Dwarnings
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  check-minimal:
-    name: Check minimal versions
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly
+          components: clippy
+
+      - name: Configure sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
+      - name: Set Rust Caching Env
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+
+      - name: Run Clippy
+        run: cargo clippy --all-features --all-targets --verbose -- -Dwarnings
+
+      - name: Run Clippy (minimal-versions)
+        run: cargo clippy --all-features --all-targets -Z minimal-versions --verbose -- -Dwarnings
+
+      - name: Run Clippy (no-default-features)
+        run: cargo clippy --no-default-features --all-targets --verbose -- -Dwarnings
+
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install latest stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt
+
+      - name: Run rustfmt
+        run: cargo fmt --check
+
+  deny:
+    name: Deny
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install latest stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Configure sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
+      - name: Set Rust Caching Env
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny
+
+      - name: Run deny
+        run: cargo deny check
+
+  udeps:
+    name: Udeps
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -60,20 +124,8 @@ jobs:
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
           echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
 
-      - name: Check minimal versions
-        run: cargo check --all --all-targets -Z minimal-versions
+      - name: Install cargo-udeps
+        run: cargo install cargo-udeps
 
-  format:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install latest stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          components: rustfmt
-
-      - name: Run rustfmt
-        run: cargo fmt --all -- --check
+      - name: Run Udeps
+        run: cargo udeps

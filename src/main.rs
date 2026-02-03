@@ -4,6 +4,7 @@ mod fmt;
 mod persist;
 mod progress;
 mod space;
+mod utils;
 
 use args::Args;
 use color_eyre::Result;

@@ -1,10 +1,8 @@
 err:
-  confirm.invalid-input: 無效輸入, 下載取消...
   url-info: 獲取元數據失敗
   database-load: 載入下載記錄失敗
   database-version: 資料庫版本不匹配
   database-write: 寫入資料庫失敗
-  empty-tasks: 無下載任務
 msg:
   cancel: 下載取消
   url-info: |
@@ -15,7 +13,7 @@ msg:
   etag: |
     ETag: %{etag}
   last-modified: |
-    Last-Modified: %{last_modified}
+    最後修改時間: %{last_modified}
   resume-download: 未完成的下載, 繼續下載...
   download: 已下載 %{completed} / %{total} (%{percentage}%)
   size-mismatch: |
@@ -31,28 +29,30 @@ msg:
   no-etag: |
     伺服器端未提供 ETag, 無法保證檔案完整性, 是否繼續?
   last-modified-mismatch: |
-    記錄的 Last-Modified: %{saved_last_modified}
-    遠端的 Last-Modified: %{new_last_modified}
-    Last-Modified 不匹配, 是否繼續?
+    記錄的最後修改時間: %{saved_last_modified}
+    遠端的最後修改時間: %{new_last_modified}
+    最後修改時間不匹配, 是否繼續?
   file-overwrite: 檔案已經存在, 是否覆蓋？
   lack-of-space: 剩餘空間不足, 下載此檔還需要 %{size}
   clean: 已清除 %{count} 行連結
-  find-tasks: 找到 %{count} 个任務
-  start-tasks: 開始任務 %{id}/${total}
-  finish-tasks: ✓ 任務完成 %{id}/${total}
-  error-tasks: ✗ 任務失敗 %{id}/${total}
-  finish-all-tasks: "總計: %{total} | 成功: %{success} | 失敗: %{failed}"
-  file-already-exists: 檔案已經存在
-  task-example-created: 任務範例已建立於
+  output-path: "輸出路徑: %{path}"
 verbose:
   worker-id: 執行緒 %{id}
-  connect-error: 連接失敗
   download-error: 下載失敗
   write-error: 寫入失敗
-  connecting: 正在連接
   downloading: 正在下載
   finished: 任務完成
-  abort: 任務中斷
 
 progress:
   desc: "已用時間: %{time_spent} | 速度: %{speed}/s | 剩餘時間: %{time_left}"
+
+db-display:
+  version: "資料庫版本"
+  file-path: "檔案路徑"
+  file-name: "檔案名稱"
+  size: "檔案大小"
+  etag: "ETag"
+  last-modified: "最後修改時間"
+  progress: "下載進度"
+  elapsed: "已用時間"
+  url: "下載連結"

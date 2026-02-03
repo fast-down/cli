@@ -1,10 +1,8 @@
 err:
-  confirm.invalid-input: Invalid Input. Cancelling...
   url-info: Failed to fetch metadata
   database-load: Database load error
   database-version: Database version mismatch
   database-write: Database write error
-  empty-tasks: No tasks to download
 msg:
   cancel: Cancelling...
   url-info: |
@@ -40,22 +38,24 @@ msg:
   file-overwrite: File already exists, overwrite？
   lack-of-space: There is not enough space left, and another %{size} is required to download this file.
   clean: Cleaned %{count} lines of links.
-  find-tasks: Found %{count} tasks.
-  start-tasks: Starting task %{id}/${total}
-  finish-tasks: ✓ Finished task %{id}/${total}
-  error-tasks: ✗ Error task %{id}/${total}
-  finish-all-tasks: "Total: %{total} | Success: %{success} | Failed: %{failed}"
-  file-already-exists: File already exists
-  task-example-created: A sample configuration file has been created
+  output-path: "Output path: %{path}"
 verbose:
   worker-id: Worker %{id}
-  connect-error: Connect Failed
   download-error: Download Error
   write-error: Write Error
-  connecting: Connecting
   downloading: Downloading
   finished: Finished
-  abort: Aborted
 
 progress:
   desc: "Time Elapsed: %{time_spent} | Speed: %{speed}/s | Time Left: %{time_left}"
+
+db-display:
+  version: "Database Version"
+  file-path: "File Path"
+  file-name: "File Name"
+  size: "Size"
+  etag: "ETag"
+  last-modified: "Last Modified"
+  progress: "Progress"
+  elapsed: "Elapsed"
+  url: "URL"

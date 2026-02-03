@@ -99,9 +99,9 @@ checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
 
 [[package]]
 name = "arc-swap"
-version = "1.8.0"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51d03449bb8ca2cc2ef70869af31463d1ae5ccc8fa3e334b307203fbf815207e"
+checksum = "9ded5f9a03ac8f24d1b8a25101ee812cd32cdc8c50a4c50237de2c4915850e73"
 dependencies = [
  "rustversion",
 ]
@@ -496,9 +496,9 @@ checksum = "d0a5c400df2834b80a4c3327b3aad3a4c4cd4de0629063962b03235697506a28"
 
 [[package]]
 name = "crossfire"
-version = "3.0.3"
+version = "3.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf9c756fd351d7bc1f95698a33a90ce39c8f7458335cc7e95132d3d36124902a"
+checksum = "86db11309bffee9435040d648c13c3efbdbcdcd3ead9872e65ce9dff4c3f79ce"
 dependencies = [
  "crossbeam-utils",
  "futures-core",
@@ -625,6 +625,7 @@ dependencies = [
 [[package]]
 name = "fast-down"
 version = "3.5.1"
+source = "git+https://github.com/fast-down/core.git#415a1c03a392f024c1aa71b3f2509a3f08073d41"
 dependencies = [
  "bytes",
  "content_disposition",
@@ -654,7 +655,6 @@ dependencies = [
  "futures",
  "mimalloc",
  "parking_lot",
- "path-clean",
  "reqwest",
  "rust-i18n",
  "sys-locale",
@@ -666,6 +666,7 @@ dependencies = [
 [[package]]
 name = "fast-pull"
 version = "3.5.1"
+source = "git+https://github.com/fast-down/core.git#415a1c03a392f024c1aa71b3f2509a3f08073d41"
 dependencies = [
  "bytes",
  "crossfire",
@@ -679,6 +680,7 @@ dependencies = [
 [[package]]
 name = "fast-steal"
 version = "6.2.0"
+source = "git+https://github.com/fast-down/core.git#415a1c03a392f024c1aa71b3f2509a3f08073d41"
 dependencies = [
  "parking_lot",
  "portable-atomic",
@@ -1005,14 +1007,13 @@ dependencies = [
 
 [[package]]
 name = "hyper-util"
-version = "0.1.19"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "727805d60e7938b76b826a6ef209eb70eaa1812794f9424d4a4e2d740662df5f"
+checksum = "96547c2556ec9d12fb1578c4eaf448b04993e7fb79cbaad930a656880a6bdfa0"
 dependencies = [
  "base64",
  "bytes",
  "futures-channel",
- "futures-core",
  "futures-util",
  "http",
  "http-body",
@@ -1428,12 +1429,6 @@ dependencies = [
  "smallvec",
  "windows-link",
 ]
-
-[[package]]
-name = "path-clean"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17359afc20d7ab31fdb42bb844c8b3bb1dabd7dcf7e68428492da7f16966fcef"
 
 [[package]]
 name = "percent-encoding"
@@ -2122,9 +2117,9 @@ dependencies = [
 
 [[package]]
 name = "system-configuration"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c879d448e9d986b661742763247d3693ed13609438cf3d006f51f5368a5ba6b"
+checksum = "a13f3d0daba03132c0aa9767f98351b3488edc2c100cda2d2ec2b04f3d8d3c8b"
 dependencies = [
  "bitflags 2.10.0",
  "core-foundation 0.9.4",
@@ -3019,9 +3014,9 @@ dependencies = [
 
 [[package]]
 name = "zmij"
-version = "1.0.18"
+version = "1.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1966f8ac2c1f76987d69a74d0e0f929241c10e78136434e3be70ff7f58f64214"
+checksum = "3ff05f8caa9038894637571ae6b9e29466c1f4f829d26c9b28f869a29cbe3445"
 
 [[package]]
 name = "zstd"

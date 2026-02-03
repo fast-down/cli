@@ -1,6 +1,6 @@
 use crate::{
     args::DownloadArgs, fmt, persist::Database, progress::Painter as ProgressPainter,
-    space::check_free_space,
+    space::check_free_space, utils::confirm::confirm,
 };
 use color_eyre::eyre::Result;
 #[cfg(not(target_pointer_width = "64"))]
@@ -14,58 +14,19 @@ use fast_down::{
     invert,
     multi::{self, download_multi},
     single::{self, download_single},
-    utils::{FastDownPuller, FastDownPullerOptions, build_client},
+    utils::{FastDownPuller, FastDownPullerOptions, build_client, gen_unique_path},
 };
 use parking_lot::Mutex;
 use reqwest::header;
 use std::{
-    env,
+    path,
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::{
-    fs::{self, OpenOptions},
-    io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader},
-};
+use tokio::fs::{self, OpenOptions};
 use url::Url;
 
 #[inline]
-async fn confirm(yes: bool, prompt: &str, default: bool) -> Result<bool> {
-    fn get_text(value: bool) -> u8 {
-        match value {
-            true => b'Y',
-            false => b'N',
-        }
-    }
-    let text = match default {
-        true => b"(Y/n) ",
-        false => b"(y/N) ",
-    };
-    let mut stderr = io::stderr();
-    stderr.write_all(prompt.as_bytes()).await?;
-    stderr.write_all(text).await?;
-    if yes {
-        stderr.write_all(&[get_text(true), b'\n']).await?;
-        return Ok(true);
-    }
-    stderr.flush().await?;
-    loop {
-        let mut input = String::with_capacity(4);
-        BufReader::new(io::stdin()).read_line(&mut input).await?;
-        break match input.trim() {
-            "y" | "Y" => Ok(true),
-            "n" | "N" => Ok(false),
-            "" => Ok(default),
-            _ => {
-                stderr.write_all(prompt.as_bytes()).await?;
-                stderr.write_all(text).await?;
-                stderr.flush().await?;
-                continue;
-            }
-        };
-    }
-}
-
 fn cancel_expected() -> Result<()> {
     eprintln!("{}", t!("msg.cancel"));
     Ok(())
@@ -103,16 +64,12 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     } else {
         1
     };
-    let filename = info.filename();
-    let mut save_path = args
-        .save_folder
-        .join(args.file_name.as_ref().unwrap_or(&filename));
-    if save_path.is_relative()
-        && let Ok(current_dir) = env::current_dir()
-    {
-        save_path = current_dir.join(save_path);
-    }
-    save_path = path_clean::clean(save_path);
+    let filename = args.file_name.unwrap_or(info.filename());
+    let save_path = path::absolute(
+        args.save_folder
+            .join(&filename)
+            .with_added_extension("fdpart"),
+    )?;
     println!("{}", fmt::format_download_info(&info, &save_path, threads));
     #[allow(clippy::single_range_in_vec_init)]
     let mut download_chunks = vec![0..info.size];
@@ -278,7 +235,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         tokio::signal::ctrl_c().await.unwrap();
         result_clone.abort();
     });
-    if !resume_download {
+    if !resume_download && info.fast_download {
         db.init_entry(
             &save_path,
             filename,
@@ -304,18 +261,17 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             Event::PullProgress(_, p) => painter.lock().add(p),
             Event::PushProgress(_, p) => {
                 write_progress.merge_progress(p);
-                let res = db
-                    .update_entry(
-                        &save_path,
-                        write_progress.clone(),
-                        start.elapsed().as_millis() as u64,
-                    )
-                    .await;
-                if let Err(e) = res {
+                db.update_entry(
+                    &save_path,
+                    write_progress.clone(),
+                    start.elapsed().as_millis() as u64,
+                )
+                .await
+                .or_else(|e| {
                     painter
                         .lock()
-                        .print(&format!("{}\n{:?}\n", t!("err.database-write"), e))?;
-                }
+                        .print(&format!("{}\n{:?}\n", t!("err.database-write"), e))
+                })?;
             }
             Event::PullError(id, err) => painter.lock().print(&format!(
                 "{} {}\n{:?}\n",
@@ -359,18 +315,18 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         start.elapsed().as_millis() as u64,
     )
     .await?;
-    if let Err(e) = result.join().await
-        && !e.is_cancelled()
-    {
-        Err(e)?
+    result.join().await?;
+    #[allow(clippy::single_range_in_vec_init)]
+    if !info.fast_download || write_progress == [0..info.size] {
+        let output_path = gen_unique_path(save_path.with_extension("")).await?;
+        fs::rename(&save_path, &output_path).await?;
+        println!("{}", t!("msg.output-path", path = output_path.display()))
     }
+    db.clean_finished().await?;
     painter.lock().update()?;
     painter_handle.abort();
-    if let Err(e) = painter_handle.await
-        && !e.is_cancelled()
-    {
-        Err(e)?
-    }
-
+    painter_handle
+        .await
+        .or_else(|e| if e.is_cancelled() { Ok(()) } else { Err(e) })?;
     Ok(())
 }

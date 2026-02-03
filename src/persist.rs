@@ -33,11 +33,21 @@ pub type DatabaseTable = HashMap<String, DatabaseEntry>;
 
 impl Display for DatabaseEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "FileName: {}", self.file_name)?;
-        writeln!(f, "Size: {}", fmt::format_size(self.file_size as f64))?;
-        writeln!(f, "ETag: {:?}", self.etag)?;
-        writeln!(f, "Last Modified: {:?}", self.last_modified)?;
-        write!(f, "Progress: ")?;
+        writeln!(f, "{}: {}", t!("db-display.file-name"), self.file_name)?;
+        writeln!(
+            f,
+            "{}: {}",
+            t!("db-display.size"),
+            fmt::format_size(self.file_size as f64)
+        )?;
+        writeln!(f, "{}: {:?}", t!("db-display.etag"), self.etag)?;
+        writeln!(
+            f,
+            "{}: {:?}",
+            t!("db-display.last-modified"),
+            self.last_modified
+        )?;
+        write!(f, "{}: ", t!("db-display.progress"))?;
         for (i, (start, end)) in self.progress.iter().enumerate() {
             write!(f, "{}-{}", start, end - 1)?;
             if i < self.progress.len() - 1 {
@@ -45,8 +55,13 @@ impl Display for DatabaseEntry {
             }
         }
         writeln!(f)?;
-        writeln!(f, "Elapsed: {:?}", Duration::from_millis(self.elapsed))?;
-        writeln!(f, "URL: {}", self.url)?;
+        writeln!(
+            f,
+            "{}: {:?}",
+            t!("db-display.elapsed"),
+            Duration::from_millis(self.elapsed)
+        )?;
+        writeln!(f, "{}: {}", t!("db-display.url"), self.url)?;
         Ok(())
     }
 }
@@ -65,10 +80,10 @@ pub struct Database {
 impl Display for Database {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let guard = self.inner.lock();
-        writeln!(f, "DatabaseVersion: {}", DB_VERSION)?;
+        writeln!(f, "{}: {}", t!("db-display.version"), DB_VERSION)?;
         writeln!(f, "---")?;
         for (file_path, entry) in &guard.1 {
-            writeln!(f, "FilePath: {}", file_path)?;
+            writeln!(f, "{}: {}", t!("db-display.file-path"), file_path)?;
             writeln!(f, "{}", entry)?;
         }
         Ok(())
@@ -178,7 +193,7 @@ impl Database {
         let mut removed = 0;
         let bytes = self.with(|db| {
             let origin_len = db.len();
-            db.retain(|_, e| e.progress != [(0, e.file_size)]);
+            db.retain(|_, e| e.progress != [(0, e.file_size)] && e.file_size > 0);
             removed = origin_len - db.len();
         });
         self.flush(bytes).await?;

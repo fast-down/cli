@@ -114,14 +114,13 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     }
     save_path = path_clean::clean(save_path);
     println!("{}", fmt::format_download_info(&info, &save_path, threads));
-    let temp_path = save_path.with_added_extension(".fdpart");
     #[allow(clippy::single_range_in_vec_init)]
     let mut download_chunks = vec![0..info.size];
     let mut resume_download = false;
     let mut write_progress: Vec<ProgressEntry> = Vec::with_capacity(threads);
     let mut elapsed = 0;
 
-    if fs::try_exists(&temp_path).await? {
+    if fs::try_exists(&save_path).await? {
         if args.resume
             && info.fast_download
             && let Some(entry) = db.get_entry(&save_path)
@@ -239,7 +238,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 .write(true)
                 .read(true)
                 .truncate(false)
-                .open(&save_path)
+                .open(&temp_path)
                 .await?;
             FilePusher::new(file, info.size, args.write_buffer_size).await?
         };
@@ -372,5 +371,6 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     {
         Err(e)?
     }
+
     Ok(())
 }

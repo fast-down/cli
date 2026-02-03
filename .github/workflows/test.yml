@@ -24,12 +24,8 @@ jobs:
         with:
           toolchain: ${{ matrix.channel }}
 
-      - name: Configure sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
-      - name: Set Rust Caching Env
-        run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
 
       - name: Test
         run: cargo test --all-features --verbose
@@ -50,12 +46,8 @@ jobs:
           toolchain: nightly
           components: clippy
 
-      - name: Configure sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
-      - name: Set Rust Caching Env
-        run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
 
       - name: Run Clippy
         run: cargo clippy --all-features --all-targets --verbose -- -Dwarnings
@@ -92,12 +84,8 @@ jobs:
       - name: Install latest stable
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Configure sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
-      - name: Set Rust Caching Env
-        run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
 
       - name: Install cargo-deny
         run: cargo install cargo-deny
@@ -117,12 +105,8 @@ jobs:
         with:
           toolchain: nightly
 
-      - name: Configure sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
-      - name: Set Rust Caching Env
-        run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
 
       - name: Install cargo-udeps
         run: cargo install cargo-udeps

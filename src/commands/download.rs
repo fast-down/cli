@@ -235,7 +235,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         tokio::signal::ctrl_c().await.unwrap();
         result_clone.abort();
     });
-    if !resume_download && info.fast_download {
+    if !resume_download {
         db.init_entry(
             &save_path,
             filename,
@@ -258,7 +258,13 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     let painter_handle = ProgressPainter::start_update_thread(painter.clone());
     while let Ok(e) = result.event_chain.recv().await {
         match e {
-            Event::PullProgress(_, p) => painter.lock().add(p),
+            Event::PullProgress(_, p) => {
+                let mut guard = painter.lock();
+                if p.start == 0 {
+                    guard.reset_progress();
+                }
+                guard.add(p);
+            }
             Event::PushProgress(_, p) => {
                 write_progress.merge_progress(p);
                 db.update_entry(
@@ -315,18 +321,14 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         start.elapsed().as_millis() as u64,
     )
     .await?;
-    result.join().await?;
-    #[allow(clippy::single_range_in_vec_init)]
-    if !info.fast_download || write_progress == [0..info.size] {
-        let output_path = gen_unique_path(save_path.with_extension("")).await?;
-        fs::rename(&save_path, &output_path).await?;
-        println!("{}", t!("msg.output-path", path = output_path.display()))
-    }
-    db.clean_finished().await?;
     painter.lock().update()?;
     painter_handle.abort();
-    painter_handle
-        .await
-        .or_else(|e| if e.is_cancelled() { Ok(()) } else { Err(e) })?;
+    result.join().await?;
+    if !result.is_aborted() {
+        let output_path = gen_unique_path(save_path.with_extension("")).await?;
+        fs::rename(&save_path, &output_path).await?;
+        db.remove_entry(&save_path).await?;
+        println!("{}", t!("msg.output-path", path = output_path.display()))
+    }
     Ok(())
 }

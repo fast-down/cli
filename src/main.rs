@@ -37,7 +37,6 @@ async fn main() -> Result<()> {
     match args {
         Args::Download(args) => download::download(args).await,
         // Args::Update => update::update().await,
-        Args::Clean => clean::clean().await,
         Args::List => list::list().await,
     }
 }

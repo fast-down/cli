@@ -11,48 +11,41 @@ permissions:
 
 jobs:
   build:
-    name: build
+    name: build (${{ matrix.build }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         build:
-          - linux-arm64
-          - linux-64bit
-          - macos-arm64
-          - macos-64bit
-          - windows-64bit
-          - windows-32bit
-          - windows-arm64
+          - linux-arm64,
+          - linux-64bit,
+          - macos-arm64,
+          - macos-64bit,
+          - windows-64bit,
+          - windows-32bit,
+          - windows-arm64,
         include:
           - build: linux-arm64
-            os: ubuntu-22.04-arm
+            os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-musl
-            archive-name: fast-down-linux-arm64
           - build: linux-64bit
-            os: ubuntu-22.04
+            os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            archive-name: fast-down-linux-64bit
           - build: macos-arm64
-            os: macos-13
+            os: macos-14
             target: aarch64-apple-darwin
-            archive-name: fast-down-macos-arm64
           - build: macos-64bit
-            os: macos-13
+            os: macos-14-large
             target: x86_64-apple-darwin
-            archive-name: fast-down-macos-64bit
           - build: windows-64bit
             os: windows-2022
             target: x86_64-pc-windows-msvc
-            archive-name: fast-down-windows-64bit
           - build: windows-32bit
             os: windows-2022
             target: i686-pc-windows-msvc
-            archive-name: fast-down-windows-32bit
           - build: windows-arm64
-            os: windows-11-arm
+            os: windows-2022
             target: aarch64-pc-windows-msvc
-            archive-name: fast-down-windows-arm64
-      fail-fast: false
 
     steps:
       - name: Checkout repository
@@ -69,48 +62,57 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y musl-tools
 
-      - name: Configure sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
-        if: matrix.build != 'windows-arm64'
-      - name: Set Rust Caching Env
-        if: matrix.build != 'windows-arm64'
-        run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
 
       - name: Build binary
         run: cargo build --verbose --release --target ${{ matrix.target }}
         env:
           RUST_BACKTRACE: 1
 
-      - name: Make output folder
+      - name: Prepare Binary
+        shell: bash
         run: |
-          mkdir fast-down
-          cp config.toml fast-down
+          BIN_NAME="fd"
+          if [[ "${{ matrix.os }}" == windows-* ]]; then
+            EXE_NAME="${BIN_NAME}.exe"
+            NEW_NAME="fd-${{ matrix.build }}.exe"
+          else
+            EXE_NAME="${BIN_NAME}"
+            NEW_NAME="fd-${{ matrix.build }}"
+          fi
 
-      - name: Copy target to folder (Windows)
-        if: contains(matrix.build, 'windows')
-        run: cp target/${{ matrix.target }}/release/fast.exe fast-down
+          # 移动并重命名文件方便后续发布
+          mkdir -p ./artifacts/
+          cp "target/${{ matrix.target }}/release/${EXE_NAME}" "./artifacts/${NEW_NAME}"
+          echo "ASSET_PATH=./artifacts/${NEW_NAME}" >> $GITHUB_ENV
 
-      - name: Copy target to folder (Non-Windows)
-        if: ${{ !contains(matrix.build, 'windows') }}
-        run: cp target/${{ matrix.target }}/release/fast fast-down
-
-      - name: Upload archive
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.archive-name }}
-          path: fast-down
+          name: ${{ matrix.build }}
+          path: ${{ env:ASSET_PATH }}
+          retention-days: 1
 
-      - name: Create ZIP (Windows)
-        if: contains(matrix.build, 'windows')
-        run: Compress-Archive -Path fast-down -DestinationPath ${{ matrix.archive-name }}.zip
+  release:
+    name: Create Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Create ZIP (Non-Windows)
-        if: ${{ !contains(matrix.build, 'windows') }}
-        run: zip -r -9 ${{ matrix.archive-name }}.zip fast-down
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./all-artifacts
+          merge-multiple: true
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.archive-name }}.zip
+          files: ./all-artifacts/*
+          generate_release_notes: true

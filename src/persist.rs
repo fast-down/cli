@@ -93,13 +93,12 @@ impl Display for Database {
 const DB_VERSION: u8 = 2;
 
 impl Database {
-    pub fn with<F>(&self, f: F) -> Vec<u8>
+    pub fn with<F, R>(&self, f: F) -> R
     where
-        F: FnOnce(&mut DatabaseTable),
+        F: FnOnce(&mut DatabaseTable) -> R,
     {
         let mut guard = self.inner.lock();
-        f(&mut guard.1);
-        bitcode::encode(&*guard)
+        f(&mut guard.1)
     }
 
     pub async fn new() -> Result<Self> {
@@ -149,7 +148,7 @@ impl Database {
         url: Url,
     ) -> Result<()> {
         let file_path = file_path.as_ref().to_string_lossy();
-        let bytes = self.with(|db| {
+        self.with(|db| {
             db.retain(|key, _| key != &file_path);
             db.insert(
                 file_path.to_string(),
@@ -164,7 +163,7 @@ impl Database {
                 },
             );
         });
-        self.flush(bytes).await?;
+        self.flush().await?;
         Ok(())
     }
 
@@ -180,38 +179,33 @@ impl Database {
         elapsed: u64,
     ) -> Result<()> {
         let file_path = file_path.as_ref().to_string_lossy();
-        let bytes = self.with(|db| {
-            let entry = db.get_mut(file_path.as_ref()).unwrap();
-            entry.progress = progress.iter().map(|r| (r.start, r.end)).collect();
-            entry.elapsed = elapsed;
+        self.with(|db| {
+            if let Some(entry) = db.get_mut(file_path.as_ref()) {
+                entry.progress = progress.iter().map(|r| (r.start, r.end)).collect();
+                entry.elapsed = elapsed;
+            }
         });
-        self.flush(bytes).await?;
+        self.flush().await?;
         Ok(())
     }
 
-    pub async fn clean_finished(&self) -> Result<usize> {
-        let mut removed = 0;
-        let bytes = self.with(|db| {
-            let origin_len = db.len();
-            db.retain(|_, e| e.progress != [(0, e.file_size)] && e.file_size > 0);
-            removed = origin_len - db.len();
+    pub async fn remove_entry(&self, file_path: impl AsRef<OsStr>) -> Result<()> {
+        let file_path = file_path.as_ref().to_string_lossy();
+        self.with(|db| {
+            db.remove(file_path.as_ref());
         });
-        self.flush(bytes).await?;
-        Ok(removed)
+        self.flush().await?;
+        Ok(())
     }
 
-    pub async fn flush(&self, bytes: Vec<u8>) -> Result<()> {
+    pub async fn flush(&self) -> Result<()> {
         let now = Instant::now().duration_since(self.init).as_secs();
         let old = self.last_db_update.load(Ordering::Acquire);
         if now - old > 1 {
-            self.focus_flush(bytes).await?;
+            let bytes = bitcode::encode(&*self.inner.lock());
+            fs::write(&*self.db_path, bytes).await?;
             self.last_db_update.store(now, Ordering::Release);
         }
-        Ok(())
-    }
-
-    pub async fn focus_flush(&self, bytes: Vec<u8>) -> Result<()> {
-        fs::write(&*self.db_path, bytes).await?;
         Ok(())
     }
 }

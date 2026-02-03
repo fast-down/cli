@@ -26,8 +26,6 @@ struct CliDefault {
 enum Commands {
     /// 下载文件 (默认)
     Download(DownloadCli),
-    /// 清除已下载完成的链接
-    Clean,
     // /// 更新 fast-down
     // Update,
     /// 显示数据库
@@ -100,7 +98,6 @@ struct DownloadCli {
 pub enum Args {
     Download(DownloadArgs),
     // Update,
-    Clean,
     List,
 }
 
@@ -177,7 +174,6 @@ impl Args {
                     Ok(Args::Download(args))
                 }
                 // Commands::Update => Ok(Args::Update),
-                Commands::Clean => Ok(Args::Clean),
                 Commands::List => Ok(Args::List),
             },
             Err(err) => err.exit(),

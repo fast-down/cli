@@ -57,6 +57,14 @@ impl Painter {
         }
     }
 
+    pub fn reset_progress(&mut self) {
+        self.progress.clear();
+        self.prev_size = 0;
+        self.curr_size = 0;
+        self.avg_speed = 0.0;
+        self.start = Instant::now();
+    }
+
     pub fn start_update_thread(painter_arc: Arc<Mutex<Self>>) -> JoinHandle<()> {
         let duration = {
             let painter = painter_arc.lock();
@@ -82,8 +90,8 @@ impl Painter {
         if self.width == 0 {
             return;
         }
-        self.curr_size += p.total();
         self.progress.merge_progress(p);
+        self.curr_size = self.progress.total();
     }
 
     fn reset_pos(&mut self) -> io::Result<()> {

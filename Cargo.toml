@@ -27,8 +27,8 @@ bytes = "1.11.0"
 clap = { version = "4.5.56", features = ["derive"] }
 color-eyre = "0.6.5"
 crossterm = "0.29.0"
-# fast-down = "3.6.0"
-fast-down = { path = "../core/crates/fast-down/" }
+fast-down = { git = "https://github.com/fast-down/core.git" }
+# fast-down = { path = "../core/crates/fast-down/" }
 fs4 = "0.13.1"
 futures = "0.3.31"
 mimalloc = "0.1.48"

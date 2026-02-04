@@ -17,13 +17,13 @@ jobs:
       fail-fast: false
       matrix:
         build:
-          - linux-arm64,
-          - linux-64bit,
-          - macos-arm64,
-          - macos-64bit,
-          - windows-64bit,
-          - windows-32bit,
-          - windows-arm64,
+          - linux-arm64
+          - linux-64bit
+          - macos-arm64
+          - macos-64bit
+          - windows-64bit
+          - windows-32bit
+          - windows-arm64
         include:
           - build: linux-arm64
             os: ubuntu-24.04-arm
@@ -93,7 +93,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.build }}
-          path: ${{ env:ASSET_PATH }}
+          path: ${{ env.ASSET_PATH }}
           retention-days: 1
 
   release:

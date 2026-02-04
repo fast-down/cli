@@ -47,17 +47,17 @@ jobs:
             target: x86_64-apple-darwin
             use-cross: false
           - build: windows-64bit
-            os: ubuntu-latest
+            os: windows-2022
             target: x86_64-pc-windows-msvc
-            use-cross: true
+            use-cross: false
           - build: windows-32bit
-            os: ubuntu-latest
+            os: windows-2022
             target: i686-pc-windows-msvc
-            use-cross: true
+            use-cross: false
           - build: windows-arm64
-            os: ubuntu-latest
+            os: windows-2022
             target: aarch64-pc-windows-msvc
-            use-cross: true
+            use-cross: false
 
     steps:
       - name: Checkout repository
@@ -67,6 +67,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+
+      - name: Install NASM
+        if: startsWith(matrix.build, 'windows-')
+        uses: ilammy/setup-nasm@v1
 
       - name: Install Cross
         if: matrix.use-cross

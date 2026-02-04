@@ -23,8 +23,8 @@ path = "src/main.rs"
 
 [dependencies]
 bitcode = "0.6.9"
-bytes = "1.11.0"
-clap = { version = "4.5.56", features = ["derive"] }
+bytes = "1.11.1"
+clap = { version = "4.5.57", features = ["derive"] }
 color-eyre = "0.6.5"
 crossterm = "0.29.0"
 fast-down = { git = "https://github.com/fast-down/core.git" }

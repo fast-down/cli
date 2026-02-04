@@ -30,7 +30,7 @@
    | 架构    | Windows | Linux   | Mac OS  |
    |-------|---------|---------|---------|
    | 64 位  | [下载][1] | [下载][2] | [下载][3] |
-   | 32 位  | [下载][4] | ❌ 不支持   | ❌ 不支持   |
+   | 32 位  | [下载][4] | [下载][8] | ❌ 不支持   |
    | Arm64 | [下载][5] | [下载][6] | [下载][7] |
 
 [1]: https://fast-down-update.s121.top/cli/download/latest/windows/64bit
@@ -40,6 +40,7 @@
 [5]: https://fast-down-update.s121.top/cli/download/latest/windows/arm64
 [6]: https://fast-down-update.s121.top/cli/download/latest/linux/arm64
 [7]: https://fast-down-update.s121.top/cli/download/latest/macos/arm64
+[8]: https://fast-down-update.s121.top/cli/download/latest/linux/32bit
 
 ## 使用方法
 

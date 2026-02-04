@@ -30,7 +30,7 @@ Languages: **en** [中文简体](./README_zhCN.md)
    | Arch   | Windows       | Linux           | Mac OS          |
    |--------|---------------|-----------------|-----------------|
    | 64 bit | [Download][1] | [Download][2]   | [Download][3]   |
-   | 32 bit | [Download][4] | ❌ Not Supported | ❌ Not Supported |
+   | 32 bit | [Download][4] | [Download][8] | ❌ Not Supported |
    | Arm64  | [Download][5] | [Download][6]    | [Download][7]    |
 
 [1]: https://fast-down-update.s121.top/cli/download/latest/windows/64bit
@@ -40,6 +40,7 @@ Languages: **en** [中文简体](./README_zhCN.md)
 [5]: https://fast-down-update.s121.top/cli/download/latest/windows/arm64
 [6]: https://fast-down-update.s121.top/cli/download/latest/linux/arm64
 [7]: https://fast-down-update.s121.top/cli/download/latest/macos/arm64
+[8]: https://fast-down-update.s121.top/cli/download/latest/linux/32bit
 
 ## Usage
 

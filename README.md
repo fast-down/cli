@@ -11,7 +11,7 @@ Languages: **en** [中文简体](./README_zhCN.md)
 
 ![CLI Interface](/docs/cli.png)
 
-**[Official Website (Simplified Chinese)](https://fast.s121.top/)**
+**[Official Website (Simplified Chinese)](https://fd.s121.top/)**
 
 ## Features
 

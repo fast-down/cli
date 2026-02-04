@@ -11,7 +11,7 @@
 
 ![CLI 界面](/docs/cli.png)
 
-**[访问官网](https://fast.s121.top/)**
+**[访问官网](https://fd.s121.top/)**
 
 ## 优势
 

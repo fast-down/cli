@@ -82,6 +82,7 @@ jobs:
           key: ${{ matrix.target }}
 
       - name: Build binary
+        shell: bash
         run: |
           if [ "${{ matrix.use-cross }}" == "true" ]; then
             cross build --verbose --release --target ${{ matrix.target }}

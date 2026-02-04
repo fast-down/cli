@@ -3,8 +3,6 @@ use crate::{
     space::check_free_space, utils::confirm::confirm,
 };
 use color_eyre::eyre::Result;
-#[cfg(not(target_pointer_width = "64"))]
-use fast_down::file::FilePusher;
 #[cfg(target_pointer_width = "64")]
 use fast_down::file::MmapFilePusher;
 use fast_down::{
@@ -195,7 +193,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 .write(true)
                 .read(true)
                 .truncate(false)
-                .open(&temp_path)
+                .open(&save_path)
                 .await?;
             FilePusher::new(file, info.size, args.write_buffer_size).await?
         };

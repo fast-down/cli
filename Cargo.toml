@@ -27,6 +27,7 @@ bytes = "1.11.1"
 clap = { version = "4.5.57", features = ["derive"] }
 color-eyre = "0.6.5"
 crossterm = "0.29.0"
+dashmap = "6.1.0"
 fast-down = "3.6.2"
 # fast-down = { path = "../core/crates/fast-down/" }
 fs4 = "0.13.1"
@@ -44,6 +45,7 @@ reqwest = { version = "0.13.1", default-features = false, features = [
   "system-proxy",
   "zstd",
 ] }
+rusqlite = { version = "0.38.0", features = ["bundled"] }
 rust-i18n = "3.1.5"
 sys-locale = "0.3.2"
 tokio = { version = "1.49.0", default-features = false, features = [

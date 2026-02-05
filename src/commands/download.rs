@@ -240,8 +240,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             info.size,
             &info.file_id,
             info.final_url,
-        )
-        .await?;
+        )?;
     }
 
     let start = Instant::now() - Duration::from_millis(elapsed);
@@ -267,15 +266,9 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 write_progress.merge_progress(p);
                 db.update_entry(
                     &save_path,
-                    write_progress.clone(),
+                    write_progress.iter().map(|r| (r.start, r.end)).collect(),
                     start.elapsed().as_millis() as u64,
-                )
-                .await
-                .or_else(|e| {
-                    painter
-                        .lock()
-                        .print(&format!("{}\n{:?}\n", t!("err.database-write"), e))
-                })?;
+                );
             }
             Event::PullError(id, err) => painter.lock().print(&format!(
                 "{} {}\n{:?}\n",
@@ -315,17 +308,16 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     }
     db.update_entry(
         &save_path,
-        write_progress.clone(),
+        write_progress.iter().map(|r| (r.start, r.end)).collect(),
         start.elapsed().as_millis() as u64,
-    )
-    .await?;
+    );
     painter.lock().update()?;
     painter_handle.abort();
     result.join().await?;
     if !result.is_aborted() {
         let output_path = gen_unique_path(save_path.with_extension("")).await?;
         fs::rename(&save_path, &output_path).await?;
-        db.remove_entry(&save_path).await?;
+        db.remove_entry(&save_path)?;
         println!("{}", t!("msg.output-path", path = output_path.display()))
     }
     Ok(())

@@ -1,7 +1,8 @@
 use crate::fmt;
 use bitcode::{Decode, Encode};
 use color_eyre::Result;
-use fast_down::{FileId, ProgressEntry};
+use dashmap::DashMap;
+use fast_down::FileId;
 use redb::{
     Database as RedbDatabase, ReadableDatabase, ReadableTable, TableDefinition, TypeName, Value,
 };
@@ -84,6 +85,7 @@ impl Display for DatabaseEntry {
 #[derive(Debug, Clone)]
 pub struct Database {
     inner: Arc<RedbDatabase>,
+    cache: Arc<DashMap<String, (bool, DatabaseEntry)>>,
 }
 
 impl Display for Database {
@@ -116,23 +118,25 @@ impl Database {
             .and_then(|path| path.parent().map(|p| p.to_owned()))
             .unwrap_or(PathBuf::from("."))
             .join("state.fd");
-
-        let db = match RedbDatabase::create(&db_path) {
-            Ok(db) => db,
-            Err(_) => {
-                let _ = fs::remove_file(&db_path).await;
-                RedbDatabase::create(&db_path)?
-            }
-        };
+        let db = RedbDatabase::create(&db_path)?;
+        let db = Arc::new(db);
+        let cache = Arc::new(DashMap::new());
         let instance = Self {
-            inner: Arc::new(db),
+            inner: db.clone(),
+            cache: cache.clone(),
         };
-
-        instance.check_version_and_init().await?;
+        instance.check_version_and_init()?;
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(1));
+            loop {
+                interval.tick().await;
+                let _ = Self::static_flush(&db, &cache);
+            }
+        });
         Ok(instance)
     }
 
-    async fn check_version_and_init(&self) -> Result<()> {
+    fn check_version_and_init(&self) -> Result<()> {
         let write_txn = self.inner.begin_write()?;
         {
             let meta_table = write_txn.open_table(TABLE_META)?;
@@ -148,7 +152,7 @@ impl Database {
         Ok(())
     }
 
-    pub async fn init_entry(
+    pub fn init_entry(
         &self,
         file_path: impl AsRef<OsStr>,
         file_name: String,
@@ -172,43 +176,40 @@ impl Database {
             table.insert(file_path.as_ref(), &entry)?;
         }
         write_txn.commit()?;
+        self.cache.insert(file_path.to_string(), (false, entry));
         Ok(())
     }
 
     pub fn get_entry(&self, file_path: impl AsRef<OsStr>) -> Option<DatabaseEntry> {
         let file_path = file_path.as_ref().to_string_lossy();
+        if let Some(e) = self.cache.get(file_path.as_ref()) {
+            return Some(e.1.clone());
+        }
         let read_txn = self.inner.begin_read().ok()?;
         let table = read_txn.open_table(TABLE_DATA).ok()?;
-        table
-            .get(file_path.as_ref())
-            .ok()
-            .flatten()
-            .map(|v| v.value())
+        let val = table.get(file_path.as_ref()).ok().flatten()?.value();
+        self.cache
+            .insert(file_path.to_string(), (false, val.clone()));
+        Some(val)
     }
 
-    pub async fn update_entry(
+    pub fn update_entry(
         &self,
         file_path: impl AsRef<OsStr>,
-        progress: Vec<ProgressEntry>,
+        progress: Vec<(u64, u64)>,
         elapsed: u64,
-    ) -> Result<()> {
-        let file_path_str = file_path.as_ref().to_string_lossy();
-        let write_txn = self.inner.begin_write()?;
-        {
-            let mut table = write_txn.open_table(TABLE_DATA)?;
-            if let Some(mut guard) = table.get_mut(file_path_str.as_ref())? {
-                let mut entry = guard.value();
-                entry.progress = progress.iter().map(|r| (r.start, r.end)).collect();
-                entry.elapsed = elapsed;
-                guard.insert(entry)?;
-            }
+    ) {
+        let file_path = file_path.as_ref().to_string_lossy();
+        if let Some(mut e) = self.cache.get_mut(file_path.as_ref()) {
+            e.0 = true;
+            e.1.progress = progress;
+            e.1.elapsed = elapsed;
         }
-        write_txn.commit()?;
-        Ok(())
     }
 
-    pub async fn remove_entry(&self, file_path: impl AsRef<OsStr>) -> Result<()> {
+    pub fn remove_entry(&self, file_path: impl AsRef<OsStr>) -> Result<()> {
         let file_path = file_path.as_ref().to_string_lossy();
+        self.cache.remove(file_path.as_ref());
         let write_txn = self.inner.begin_write()?;
         {
             let mut table = write_txn.open_table(TABLE_DATA)?;
@@ -216,5 +217,40 @@ impl Database {
         }
         write_txn.commit()?;
         Ok(())
+    }
+
+    pub fn flush_force(&self) -> Result<()> {
+        Self::static_flush(&self.inner, &self.cache)
+    }
+
+    fn static_flush(
+        inner: &RedbDatabase,
+        cache: &DashMap<String, (bool, DatabaseEntry)>,
+    ) -> Result<()> {
+        let mut dirty_items = Vec::new();
+        for mut r in cache.iter_mut() {
+            if r.0 {
+                dirty_items.push((r.key().clone(), r.1.clone()));
+                r.0 = false;
+            }
+        }
+        if dirty_items.is_empty() {
+            return Ok(());
+        }
+        let write_txn = inner.begin_write()?;
+        {
+            let mut table = write_txn.open_table(TABLE_DATA)?;
+            for (path, entry) in dirty_items {
+                table.insert(path.as_str(), &entry)?;
+            }
+        }
+        write_txn.commit()?;
+        Ok(())
+    }
+}
+
+impl Drop for Database {
+    fn drop(&mut self) {
+        let _ = self.flush_force();
     }
 }

@@ -3,16 +3,10 @@ use bitcode::{Decode, Encode};
 use color_eyre::Result;
 use dashmap::DashMap;
 use fast_down::FileId;
-use redb::{
-    Database as RedbDatabase, ReadableDatabase, ReadableTable, TableDefinition, TypeName, Value,
-};
+use rusqlite::{Connection, OpenFlags, params};
 use std::{env, ffi::OsStr, fmt::Display, path::PathBuf, sync::Arc, time::Duration};
-use tokio::fs;
 use url::Url;
 
-const TABLE_DATA: TableDefinition<&str, DatabaseEntry> = TableDefinition::new("downloads");
-const TABLE_META: TableDefinition<&str, u32> = TableDefinition::new("metadata");
-const KEY_VERSION: &str = "version";
 const DB_VERSION: u32 = 2;
 
 #[derive(Encode, Decode, Debug, Clone, PartialEq)]
@@ -25,26 +19,6 @@ pub struct DatabaseEntry {
     /// 单位：毫秒
     pub elapsed: u64,
     pub url: String,
-}
-
-impl Value for DatabaseEntry {
-    type SelfType<'a> = DatabaseEntry;
-    type AsBytes<'a> = Vec<u8>;
-    fn fixed_width() -> Option<usize> {
-        None
-    }
-    fn from_bytes<'a>(data: &'a [u8]) -> Self::SelfType<'a>
-    where
-        Self: 'a,
-    {
-        bitcode::decode(data).expect("Database corruption: failed to decode DatabaseEntry")
-    }
-    fn as_bytes<'a, 'b: 'a>(value: &'a Self::SelfType<'b>) -> Self::AsBytes<'a> {
-        bitcode::encode(value)
-    }
-    fn type_name() -> TypeName {
-        TypeName::new("DatabaseEntry")
-    }
 }
 
 impl Display for DatabaseEntry {
@@ -84,27 +58,37 @@ impl Display for DatabaseEntry {
 
 #[derive(Debug, Clone)]
 pub struct Database {
-    inner: Arc<RedbDatabase>,
+    db_path: PathBuf,
     cache: Arc<DashMap<String, (bool, DatabaseEntry)>>,
 }
 
 impl Display for Database {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let read_txn = self.inner.begin_read().map_err(|_| std::fmt::Error)?;
-        let version = read_txn
-            .open_table(TABLE_META)
-            .ok()
-            .and_then(|t| t.get(KEY_VERSION).ok().flatten())
-            .map(|v| v.value())
+        let conn = Connection::open_with_flags(&self.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(|_| std::fmt::Error)?;
+        let version: u32 = conn
+            .query_row(
+                "SELECT value FROM metadata WHERE key = 'version'",
+                [],
+                |r| r.get(0),
+            )
             .unwrap_or(0);
         writeln!(f, "{}: {}", t!("db-display.version"), version)?;
         writeln!(f, "---")?;
-        if let Ok(table) = read_txn.open_table(TABLE_DATA)
-            && let Ok(iter) = table.iter()
-        {
-            for (key, value) in iter.flatten() {
-                writeln!(f, "{}: {}", t!("db-display.file-path"), key.value())?;
-                writeln!(f, "{}", value.value())?;
+        let mut stmt = conn
+            .prepare("SELECT path, data FROM downloads")
+            .map_err(|_| std::fmt::Error)?;
+        let rows = stmt
+            .query_map([], |row| {
+                let path: String = row.get(0)?;
+                let data: Vec<u8> = row.get(1)?;
+                Ok((path, data))
+            })
+            .map_err(|_| std::fmt::Error)?;
+        for row in rows.flatten() {
+            if let Ok(entry) = bitcode::decode::<DatabaseEntry>(&row.1) {
+                writeln!(f, "{}: {}", t!("db-display.file-path"), row.0)?;
+                writeln!(f, "{}", entry)?;
             }
         }
         Ok(())
@@ -117,38 +101,75 @@ impl Database {
             .ok()
             .and_then(|path| path.parent().map(|p| p.to_owned()))
             .unwrap_or(PathBuf::from("."))
-            .join("state.fd");
-        let db = RedbDatabase::create(&db_path)?;
-        let db = Arc::new(db);
-        let cache = Arc::new(DashMap::new());
+            .join("fdstate.db");
+        let conn = Connection::open(&db_path)?;
+        conn.execute("PRAGMA busy_timeout = 5000;", [])?;
+        conn.execute("PRAGMA journal_mode = WAL;", [])?;
+        conn.execute("PRAGMA synchronous = NORMAL;", [])?;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value INTEGER)",
+            [],
+        )?;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS downloads (path TEXT PRIMARY KEY, data BLOB)",
+            [],
+        )?;
         let instance = Self {
-            inner: db.clone(),
-            cache: cache.clone(),
+            db_path: db_path.clone(),
+            cache: Arc::new(DashMap::new()),
         };
-        instance.check_version_and_init()?;
+        instance.check_version_and_init(&conn)?;
+        let flush_cache = instance.cache.clone();
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(1));
             loop {
                 interval.tick().await;
-                let _ = Self::static_flush(&db, &cache);
+                let _ = Self::static_flush(&db_path, &flush_cache);
             }
         });
         Ok(instance)
     }
 
-    fn check_version_and_init(&self) -> Result<()> {
-        let write_txn = self.inner.begin_write()?;
-        {
-            let meta_table = write_txn.open_table(TABLE_META)?;
-            let current_version = meta_table.get(KEY_VERSION)?.map(|v| v.value());
-            if current_version != Some(DB_VERSION) {
-                drop(meta_table);
-                let _ = write_txn.delete_table(TABLE_DATA);
-                let mut meta_table = write_txn.open_table(TABLE_META)?;
-                meta_table.insert(KEY_VERSION, DB_VERSION)?;
+    fn check_version_and_init(&self, conn: &Connection) -> Result<()> {
+        let current_version: u32 = conn
+            .query_row(
+                "SELECT value FROM metadata WHERE key = 'version'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap_or(0);
+        if current_version != DB_VERSION {
+            conn.execute("DELETE FROM downloads", [])?;
+            conn.execute(
+                "INSERT OR REPLACE INTO metadata (key, value) VALUES ('version', ?)",
+                params![DB_VERSION],
+            )?;
+        }
+        Ok(())
+    }
+
+    fn static_flush(path: &PathBuf, cache: &DashMap<String, (bool, DatabaseEntry)>) -> Result<()> {
+        let mut dirty_items = Vec::new();
+        for mut r in cache.iter_mut() {
+            if r.0 {
+                dirty_items.push((r.key().clone(), bitcode::encode(&r.1)));
+                r.0 = false;
             }
         }
-        write_txn.commit()?;
+        if dirty_items.is_empty() {
+            return Ok(());
+        }
+        let mut conn = Connection::open(path)?;
+        conn.execute("PRAGMA busy_timeout = 5000;", [])?;
+        let tx = conn.transaction()?;
+        {
+            let mut stmt =
+                tx.prepare("INSERT OR REPLACE INTO downloads (path, data) VALUES (?, ?)")?;
+            for (path, data) in dirty_items {
+                stmt.execute(params![path, data])?;
+            }
+        }
+        tx.commit()?;
         Ok(())
     }
 
@@ -160,7 +181,7 @@ impl Database {
         file_id: &FileId,
         url: Url,
     ) -> Result<()> {
-        let file_path = file_path.as_ref().to_string_lossy();
+        let path_str = file_path.as_ref().to_string_lossy().to_string();
         let entry = DatabaseEntry {
             file_name,
             file_size,
@@ -170,27 +191,32 @@ impl Database {
             progress: Vec::new(),
             elapsed: 0,
         };
-        let write_txn = self.inner.begin_write()?;
-        {
-            let mut table = write_txn.open_table(TABLE_DATA)?;
-            table.insert(file_path.as_ref(), &entry)?;
-        }
-        write_txn.commit()?;
-        self.cache.insert(file_path.to_string(), (false, entry));
+        let conn = Connection::open(&self.db_path)?;
+        conn.execute(
+            "INSERT OR REPLACE INTO downloads (path, data) VALUES (?, ?)",
+            params![path_str, bitcode::encode(&entry)],
+        )?;
+        self.cache.insert(path_str, (false, entry));
         Ok(())
     }
 
     pub fn get_entry(&self, file_path: impl AsRef<OsStr>) -> Option<DatabaseEntry> {
-        let file_path = file_path.as_ref().to_string_lossy();
-        if let Some(e) = self.cache.get(file_path.as_ref()) {
+        let path_str = file_path.as_ref().to_string_lossy();
+        if let Some(e) = self.cache.get(path_str.as_ref()) {
             return Some(e.1.clone());
         }
-        let read_txn = self.inner.begin_read().ok()?;
-        let table = read_txn.open_table(TABLE_DATA).ok()?;
-        let val = table.get(file_path.as_ref()).ok().flatten()?.value();
+        let conn = Connection::open(&self.db_path).ok()?;
+        let data: Vec<u8> = conn
+            .query_row(
+                "SELECT data FROM downloads WHERE path = ?",
+                params![path_str.as_ref()],
+                |r| r.get(0),
+            )
+            .ok()?;
+        let entry: DatabaseEntry = bitcode::decode(&data).ok()?;
         self.cache
-            .insert(file_path.to_string(), (false, val.clone()));
-        Some(val)
+            .insert(path_str.to_string(), (false, entry.clone()));
+        Some(entry)
     }
 
     pub fn update_entry(
@@ -199,53 +225,31 @@ impl Database {
         progress: Vec<(u64, u64)>,
         elapsed: u64,
     ) {
-        let file_path = file_path.as_ref().to_string_lossy();
-        if let Some(mut e) = self.cache.get_mut(file_path.as_ref()) {
+        let path_str = file_path.as_ref().to_string_lossy();
+        if let Some(mut e) = self.cache.get_mut(path_str.as_ref()) {
             e.0 = true;
             e.1.progress = progress;
             e.1.elapsed = elapsed;
+        } else if let Some(mut entry) = self.get_entry(file_path.as_ref()) {
+            entry.progress = progress;
+            entry.elapsed = elapsed;
+            self.cache.insert(path_str.to_string(), (true, entry));
         }
     }
 
     pub fn remove_entry(&self, file_path: impl AsRef<OsStr>) -> Result<()> {
-        let file_path = file_path.as_ref().to_string_lossy();
-        self.cache.remove(file_path.as_ref());
-        let write_txn = self.inner.begin_write()?;
-        {
-            let mut table = write_txn.open_table(TABLE_DATA)?;
-            table.remove(file_path.as_ref())?;
-        }
-        write_txn.commit()?;
+        let path_str = file_path.as_ref().to_string_lossy();
+        self.cache.remove(path_str.as_ref());
+        let conn = Connection::open(&self.db_path)?;
+        conn.execute(
+            "DELETE FROM downloads WHERE path = ?",
+            params![path_str.as_ref()],
+        )?;
         Ok(())
     }
 
     pub fn flush_force(&self) -> Result<()> {
-        Self::static_flush(&self.inner, &self.cache)
-    }
-
-    fn static_flush(
-        inner: &RedbDatabase,
-        cache: &DashMap<String, (bool, DatabaseEntry)>,
-    ) -> Result<()> {
-        let mut dirty_items = Vec::new();
-        for mut r in cache.iter_mut() {
-            if r.0 {
-                dirty_items.push((r.key().clone(), r.1.clone()));
-                r.0 = false;
-            }
-        }
-        if dirty_items.is_empty() {
-            return Ok(());
-        }
-        let write_txn = inner.begin_write()?;
-        {
-            let mut table = write_txn.open_table(TABLE_DATA)?;
-            for (path, entry) in dirty_items {
-                table.insert(path.as_str(), &entry)?;
-            }
-        }
-        write_txn.commit()?;
-        Ok(())
+        Self::static_flush(&self.db_path, &self.cache)
     }
 }
 

@@ -2,21 +2,17 @@ use crate::fmt;
 use bitcode::{Decode, Encode};
 use color_eyre::Result;
 use fast_down::{FileId, ProgressEntry};
-use parking_lot::Mutex;
-use std::{
-    collections::HashMap,
-    env,
-    ffi::OsStr,
-    fmt::Display,
-    path::{Path, PathBuf},
-    sync::{
-        Arc,
-        atomic::{AtomicU64, Ordering},
-    },
-    time::Duration,
+use redb::{
+    Database as RedbDatabase, ReadableDatabase, ReadableTable, TableDefinition, TypeName, Value,
 };
-use tokio::{fs, time::Instant};
+use std::{env, ffi::OsStr, fmt::Display, path::PathBuf, sync::Arc, time::Duration};
+use tokio::fs;
 use url::Url;
+
+const TABLE_DATA: TableDefinition<&str, DatabaseEntry> = TableDefinition::new("downloads");
+const TABLE_META: TableDefinition<&str, u32> = TableDefinition::new("metadata");
+const KEY_VERSION: &str = "version";
+const DB_VERSION: u32 = 2;
 
 #[derive(Encode, Decode, Debug, Clone, PartialEq)]
 pub struct DatabaseEntry {
@@ -29,7 +25,26 @@ pub struct DatabaseEntry {
     pub elapsed: u64,
     pub url: String,
 }
-pub type DatabaseTable = HashMap<String, DatabaseEntry>;
+
+impl Value for DatabaseEntry {
+    type SelfType<'a> = DatabaseEntry;
+    type AsBytes<'a> = Vec<u8>;
+    fn fixed_width() -> Option<usize> {
+        None
+    }
+    fn from_bytes<'a>(data: &'a [u8]) -> Self::SelfType<'a>
+    where
+        Self: 'a,
+    {
+        bitcode::decode(data).expect("Database corruption: failed to decode DatabaseEntry")
+    }
+    fn as_bytes<'a, 'b: 'a>(value: &'a Self::SelfType<'b>) -> Self::AsBytes<'a> {
+        bitcode::encode(value)
+    }
+    fn type_name() -> TypeName {
+        TypeName::new("DatabaseEntry")
+    }
+}
 
 impl Display for DatabaseEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -66,77 +81,71 @@ impl Display for DatabaseEntry {
     }
 }
 
-#[derive(Encode, Decode, Debug, Clone, PartialEq)]
-pub struct DatabaseInner(/* version */ u8, DatabaseTable);
-
 #[derive(Debug, Clone)]
 pub struct Database {
-    inner: Arc<Mutex<DatabaseInner>>,
-    db_path: Arc<PathBuf>,
-    last_db_update: Arc<AtomicU64>,
-    init: Instant,
+    inner: Arc<RedbDatabase>,
 }
 
 impl Display for Database {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let guard = self.inner.lock();
-        writeln!(f, "{}: {}", t!("db-display.version"), DB_VERSION)?;
+        let read_txn = self.inner.begin_read().map_err(|_| std::fmt::Error)?;
+        let version = read_txn
+            .open_table(TABLE_META)
+            .ok()
+            .and_then(|t| t.get(KEY_VERSION).ok().flatten())
+            .map(|v| v.value())
+            .unwrap_or(0);
+        writeln!(f, "{}: {}", t!("db-display.version"), version)?;
         writeln!(f, "---")?;
-        for (file_path, entry) in &guard.1 {
-            writeln!(f, "{}: {}", t!("db-display.file-path"), file_path)?;
-            writeln!(f, "{}", entry)?;
+        if let Ok(table) = read_txn.open_table(TABLE_DATA)
+            && let Ok(iter) = table.iter()
+        {
+            for (key, value) in iter.flatten() {
+                writeln!(f, "{}: {}", t!("db-display.file-path"), key.value())?;
+                writeln!(f, "{}", value.value())?;
+            }
         }
         Ok(())
     }
 }
 
-const DB_VERSION: u8 = 2;
-
 impl Database {
-    pub fn with<F, R>(&self, f: F) -> R
-    where
-        F: FnOnce(&mut DatabaseTable) -> R,
-    {
-        let mut guard = self.inner.lock();
-        f(&mut guard.1)
-    }
-
     pub async fn new() -> Result<Self> {
         let db_path = env::current_exe()
             .ok()
             .and_then(|path| path.parent().map(|p| p.to_owned()))
             .unwrap_or(PathBuf::from("."))
             .join("state.fd");
-        if fs::try_exists(&db_path).await? {
-            match Self::from_file(&db_path).await {
-                Ok(Some(db)) => return Ok(db),
-                Ok(None) => eprintln!("{}", t!("err.database-version")),
-                Err(err) => eprintln!("{}: {:#?}", t!("err.database-load"), err),
-            };
-        }
-        Ok(Self {
-            inner: Arc::new(Mutex::new(DatabaseInner(DB_VERSION, HashMap::new()))),
-            db_path: Arc::new(db_path),
-            init: Instant::now(),
-            last_db_update: Arc::new(AtomicU64::new(0)),
-        })
+
+        let db = match RedbDatabase::create(&db_path) {
+            Ok(db) => db,
+            Err(_) => {
+                let _ = fs::remove_file(&db_path).await;
+                RedbDatabase::create(&db_path)?
+            }
+        };
+        let instance = Self {
+            inner: Arc::new(db),
+        };
+
+        instance.check_version_and_init().await?;
+        Ok(instance)
     }
 
-    pub async fn from_file(file_path: impl AsRef<Path>) -> Result<Option<Self>> {
-        let bytes = fs::read(&file_path).await?;
-        let mut archived: DatabaseInner = bitcode::decode(&bytes)?;
-        if archived.0 != DB_VERSION {
-            return Ok(None);
+    async fn check_version_and_init(&self) -> Result<()> {
+        let write_txn = self.inner.begin_write()?;
+        {
+            let meta_table = write_txn.open_table(TABLE_META)?;
+            let current_version = meta_table.get(KEY_VERSION)?.map(|v| v.value());
+            if current_version != Some(DB_VERSION) {
+                drop(meta_table);
+                let _ = write_txn.delete_table(TABLE_DATA);
+                let mut meta_table = write_txn.open_table(TABLE_META)?;
+                meta_table.insert(KEY_VERSION, DB_VERSION)?;
+            }
         }
-        archived
-            .1
-            .retain(|file_path, _| Path::new(file_path).try_exists().unwrap_or(false));
-        Ok(Some(Self {
-            inner: Arc::new(Mutex::new(archived)),
-            db_path: Arc::new(file_path.as_ref().to_path_buf()),
-            init: Instant::now(),
-            last_db_update: Arc::new(AtomicU64::new(0)),
-        }))
+        write_txn.commit()?;
+        Ok(())
     }
 
     pub async fn init_entry(
@@ -148,28 +157,33 @@ impl Database {
         url: Url,
     ) -> Result<()> {
         let file_path = file_path.as_ref().to_string_lossy();
-        self.with(|db| {
-            db.retain(|key, _| key != &file_path);
-            db.insert(
-                file_path.to_string(),
-                DatabaseEntry {
-                    file_name,
-                    file_size,
-                    etag: file_id.etag.as_ref().map(|s| s.to_string()),
-                    last_modified: file_id.last_modified.as_ref().map(|s| s.to_string()),
-                    url: url.to_string(),
-                    progress: Vec::new(),
-                    elapsed: 0,
-                },
-            );
-        });
-        self.flush().await?;
+        let entry = DatabaseEntry {
+            file_name,
+            file_size,
+            etag: file_id.etag.as_ref().map(|s| s.to_string()),
+            last_modified: file_id.last_modified.as_ref().map(|s| s.to_string()),
+            url: url.to_string(),
+            progress: Vec::new(),
+            elapsed: 0,
+        };
+        let write_txn = self.inner.begin_write()?;
+        {
+            let mut table = write_txn.open_table(TABLE_DATA)?;
+            table.insert(file_path.as_ref(), &entry)?;
+        }
+        write_txn.commit()?;
         Ok(())
     }
 
     pub fn get_entry(&self, file_path: impl AsRef<OsStr>) -> Option<DatabaseEntry> {
         let file_path = file_path.as_ref().to_string_lossy();
-        self.inner.lock().1.get(file_path.as_ref()).cloned()
+        let read_txn = self.inner.begin_read().ok()?;
+        let table = read_txn.open_table(TABLE_DATA).ok()?;
+        table
+            .get(file_path.as_ref())
+            .ok()
+            .flatten()
+            .map(|v| v.value())
     }
 
     pub async fn update_entry(
@@ -178,41 +192,29 @@ impl Database {
         progress: Vec<ProgressEntry>,
         elapsed: u64,
     ) -> Result<()> {
-        let file_path = file_path.as_ref().to_string_lossy();
-        self.with(|db| {
-            if let Some(entry) = db.get_mut(file_path.as_ref()) {
+        let file_path_str = file_path.as_ref().to_string_lossy();
+        let write_txn = self.inner.begin_write()?;
+        {
+            let mut table = write_txn.open_table(TABLE_DATA)?;
+            if let Some(mut guard) = table.get_mut(file_path_str.as_ref())? {
+                let mut entry = guard.value();
                 entry.progress = progress.iter().map(|r| (r.start, r.end)).collect();
                 entry.elapsed = elapsed;
+                guard.insert(entry)?;
             }
-        });
-        self.flush().await?;
+        }
+        write_txn.commit()?;
         Ok(())
     }
 
     pub async fn remove_entry(&self, file_path: impl AsRef<OsStr>) -> Result<()> {
         let file_path = file_path.as_ref().to_string_lossy();
-        self.with(|db| {
-            db.remove(file_path.as_ref());
-        });
-        self.flush().await?;
-        Ok(())
-    }
-
-    pub async fn flush(&self) -> Result<()> {
-        let now = Instant::now().duration_since(self.init).as_secs();
-        let old = self.last_db_update.load(Ordering::Acquire);
-        if now - old > 1 {
-            let bytes = bitcode::encode(&*self.inner.lock());
-            fs::write(&*self.db_path, bytes).await?;
-            self.last_db_update.store(now, Ordering::Release);
+        let write_txn = self.inner.begin_write()?;
+        {
+            let mut table = write_txn.open_table(TABLE_DATA)?;
+            table.remove(file_path.as_ref())?;
         }
+        write_txn.commit()?;
         Ok(())
-    }
-}
-
-impl Drop for Database {
-    fn drop(&mut self) {
-        let bytes = bitcode::encode(&*self.inner.lock());
-        let _ = std::fs::write(&*self.db_path, bytes);
     }
 }

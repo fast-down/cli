@@ -171,7 +171,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     }
 
     let puller = FastDownPuller::new(FastDownPullerOptions {
-        url,
+        url: info.final_url,
         headers: Arc::new(args.headers),
         proxy: &args.proxy,
         multiplexing: args.multiplexing,
@@ -237,13 +237,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         result_clone.abort();
     });
     if !resume_download {
-        db.init_entry(
-            &save_path,
-            filename,
-            info.size,
-            &info.file_id,
-            info.final_url,
-        )?;
+        db.init_entry(&save_path, filename, info.size, &info.file_id, url)?;
     }
 
     let start = Instant::now() - Duration::from_millis(elapsed);

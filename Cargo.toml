@@ -1,6 +1,6 @@
 [package]
 name = "fast-down-cli"
-version = "2.6.1"
+version = "2.6.2"
 edition = "2024"
 license = "MIT"
 authors = ["share121 <2854631158@qq.com>"]
@@ -28,7 +28,7 @@ clap = { version = "4.5.57", features = ["derive"] }
 color-eyre = "0.6.5"
 crossterm = "0.29.0"
 dashmap = "6.1.0"
-fast-down = "3.6.2"
+fast-down = "3.6.3"
 # fast-down = { path = "../core/crates/fast-down/" }
 fs4 = "0.13.1"
 futures = "0.3.31"

@@ -34,7 +34,6 @@ fs4 = "0.13.1"
 futures = "0.3.31"
 mimalloc = "0.1.48"
 parking_lot = "0.12.5"
-redb = "3.1.0"
 reqwest = { version = "0.13.1", default-features = false, features = [
   "default-tls",
   "brotli",

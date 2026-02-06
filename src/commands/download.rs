@@ -39,6 +39,9 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         args.headers
             .entry(header::REFERER)
             .or_insert(args.url.parse()?);
+        args.headers
+            .entry(header::USER_AGENT)
+            .or_insert("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0".parse()?);
     }
     if args.verbose {
         dbg!(&args);

@@ -3,8 +3,17 @@ use bitcode::{Decode, Encode};
 use color_eyre::Result;
 use dashmap::DashMap;
 use fast_down::FileId;
-use rusqlite::{Connection, OpenFlags, params};
-use std::{env, ffi::OsStr, fmt::Display, path::PathBuf, sync::Arc, time::Duration};
+use parking_lot::Mutex;
+use rusqlite::{Connection, params};
+use std::{
+    env,
+    ffi::OsStr,
+    fmt::Display,
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::Duration,
+};
+use tokio::fs;
 use url::Url;
 
 const DB_VERSION: u32 = 2;
@@ -58,23 +67,15 @@ impl Display for DatabaseEntry {
 
 #[derive(Debug, Clone)]
 pub struct Database {
-    db_path: PathBuf,
+    conn: Arc<Mutex<Connection>>,
     cache: Arc<DashMap<String, (bool, DatabaseEntry)>>,
 }
 
 impl Display for Database {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let conn = Connection::open_with_flags(&self.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
-            .map_err(|_| std::fmt::Error)?;
-        let version: u32 = conn
-            .query_row(
-                "SELECT value FROM metadata WHERE key = 'version'",
-                [],
-                |r| r.get(0),
-            )
-            .unwrap_or(0);
-        writeln!(f, "{}: {}", t!("db-display.version"), version)?;
+        writeln!(f, "{}: {}", t!("db-display.version"), DB_VERSION)?;
         writeln!(f, "---")?;
+        let conn = self.conn.lock();
         let mut stmt = conn
             .prepare("SELECT path, data FROM downloads")
             .map_err(|_| std::fmt::Error)?;
@@ -96,59 +97,71 @@ impl Display for Database {
 }
 
 impl Database {
+    async fn setup_db(path: &Path) -> Result<Arc<Mutex<Connection>>> {
+        let mut conn = Connection::open(path)?;
+        conn.busy_timeout(Duration::from_millis(5000))?;
+        conn.pragma_update(None, "journal_mode", "WAL")?;
+        conn.pragma_update(None, "synchronous", "NORMAL")?;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS downloads (path TEXT PRIMARY KEY, data BLOB)",
+            [],
+        )?;
+
+        let mut paths_to_delete = Vec::new();
+        {
+            let mut stmt = conn.prepare("SELECT path FROM downloads")?;
+            let path_iter = stmt.query_map([], |row| {
+                let p: String = row.get(0)?;
+                Ok(p)
+            })?;
+            for path in path_iter {
+                let path = path?;
+                if !fs::try_exists(&path).await.unwrap_or(false) {
+                    paths_to_delete.push(path);
+                }
+            }
+        }
+        if !paths_to_delete.is_empty() {
+            let tx = conn.transaction()?;
+            {
+                let mut del_stmt = tx.prepare("DELETE FROM downloads WHERE path = ?")?;
+                for p in paths_to_delete {
+                    del_stmt.execute([p])?;
+                }
+            }
+            tx.commit()?;
+        }
+
+        Ok(Arc::new(Mutex::new(conn)))
+    }
+
     pub async fn new() -> Result<Self> {
         let db_path = env::current_exe()
             .ok()
             .and_then(|path| path.parent().map(|p| p.to_owned()))
             .unwrap_or(PathBuf::from("."))
-            .join("fdstate.db");
-        let conn = Connection::open(&db_path)?;
-        conn.execute("PRAGMA busy_timeout = 5000;", [])?;
-        conn.execute("PRAGMA journal_mode = WAL;", [])?;
-        conn.execute("PRAGMA synchronous = NORMAL;", [])?;
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value INTEGER)",
-            [],
-        )?;
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS downloads (path TEXT PRIMARY KEY, data BLOB)",
-            [],
-        )?;
-        let instance = Self {
-            db_path: db_path.clone(),
-            cache: Arc::new(DashMap::new()),
-        };
-        instance.check_version_and_init(&conn)?;
-        let flush_cache = instance.cache.clone();
+            .join(format!("fd-state-v{}.db", DB_VERSION));
+        let conn = Self::setup_db(&db_path).await?;
+        let cache = Arc::new(DashMap::new());
+        let conn_weak = Arc::downgrade(&conn);
+        let cache_weak = Arc::downgrade(&cache);
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(1));
             loop {
-                interval.tick().await;
-                let _ = Self::static_flush(&db_path, &flush_cache);
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                let conn = conn_weak.upgrade().unwrap();
+                let cache = cache_weak.upgrade().unwrap();
+                let _ =
+                    tokio::task::spawn_blocking(move || Self::static_flush(&conn, &cache)).await;
             }
         });
+        let instance = Self { cache, conn };
         Ok(instance)
     }
 
-    fn check_version_and_init(&self, conn: &Connection) -> Result<()> {
-        let current_version: u32 = conn
-            .query_row(
-                "SELECT value FROM metadata WHERE key = 'version'",
-                [],
-                |r| r.get(0),
-            )
-            .unwrap_or(0);
-        if current_version != DB_VERSION {
-            conn.execute("DELETE FROM downloads", [])?;
-            conn.execute(
-                "INSERT OR REPLACE INTO metadata (key, value) VALUES ('version', ?)",
-                params![DB_VERSION],
-            )?;
-        }
-        Ok(())
-    }
-
-    fn static_flush(path: &PathBuf, cache: &DashMap<String, (bool, DatabaseEntry)>) -> Result<()> {
+    fn static_flush(
+        conn: &Mutex<Connection>,
+        cache: &DashMap<String, (bool, DatabaseEntry)>,
+    ) -> Result<()> {
         let mut dirty_items = Vec::new();
         for mut r in cache.iter_mut() {
             if r.0 {
@@ -159,8 +172,7 @@ impl Database {
         if dirty_items.is_empty() {
             return Ok(());
         }
-        let mut conn = Connection::open(path)?;
-        conn.execute("PRAGMA busy_timeout = 5000;", [])?;
+        let mut conn = conn.lock();
         let tx = conn.transaction()?;
         {
             let mut stmt =
@@ -191,7 +203,7 @@ impl Database {
             progress: Vec::new(),
             elapsed: 0,
         };
-        let conn = Connection::open(&self.db_path)?;
+        let conn = self.conn.lock();
         conn.execute(
             "INSERT OR REPLACE INTO downloads (path, data) VALUES (?, ?)",
             params![path_str, bitcode::encode(&entry)],
@@ -205,7 +217,7 @@ impl Database {
         if let Some(e) = self.cache.get(path_str.as_ref()) {
             return Some(e.1.clone());
         }
-        let conn = Connection::open(&self.db_path).ok()?;
+        let conn = self.conn.lock();
         let data: Vec<u8> = conn
             .query_row(
                 "SELECT data FROM downloads WHERE path = ?",
@@ -240,7 +252,7 @@ impl Database {
     pub fn remove_entry(&self, file_path: impl AsRef<OsStr>) -> Result<()> {
         let path_str = file_path.as_ref().to_string_lossy();
         self.cache.remove(path_str.as_ref());
-        let conn = Connection::open(&self.db_path)?;
+        let conn = self.conn.lock();
         conn.execute(
             "DELETE FROM downloads WHERE path = ?",
             params![path_str.as_ref()],
@@ -249,7 +261,7 @@ impl Database {
     }
 
     pub fn flush_force(&self) -> Result<()> {
-        Self::static_flush(&self.db_path, &self.cache)
+        Self::static_flush(&self.conn, &self.cache)
     }
 }
 

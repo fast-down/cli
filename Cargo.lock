@@ -670,7 +670,7 @@ dependencies = [
 
 [[package]]
 name = "fast-down-cli"
-version = "2.6.0"
+version = "2.6.1"
 dependencies = [
  "bitcode",
  "bytes",

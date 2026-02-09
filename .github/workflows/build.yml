@@ -98,10 +98,10 @@ jobs:
           BIN_NAME="fd"
           if [[ "${{ matrix.build }}" == windows-* ]]; then
             EXE_NAME="${BIN_NAME}.exe"
-            NEW_NAME="fd-${{ matrix.build }}.exe"
+            NEW_NAME="${BIN_NAME}-${{ matrix.build }}.exe"
           else
             EXE_NAME="${BIN_NAME}"
-            NEW_NAME="fd-${{ matrix.build }}"
+            NEW_NAME="${BIN_NAME}-${{ matrix.build }}"
           fi
 
           mkdir -p ./artifacts/

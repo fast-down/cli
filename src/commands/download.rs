@@ -1,6 +1,9 @@
 use crate::{
-    args::DownloadArgs, fmt, persist::Database, progress::Painter as ProgressPainter,
-    space::check_free_space, utils::confirm::confirm,
+    args::DownloadArgs,
+    fmt,
+    persist::Database,
+    progress::Painter as ProgressPainter,
+    utils::{confirm::confirm, sanitize::sanitize, space::check_free_space},
 };
 use color_eyre::eyre::Result;
 #[cfg(target_pointer_width = "64")]
@@ -17,7 +20,6 @@ use fast_down::{
 use parking_lot::Mutex;
 use reqwest::header;
 use std::{
-    path,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -65,13 +67,15 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     } else {
         1
     };
-    let filename = args.file_name.unwrap_or(info.filename());
-    let save_path = path::absolute(
-        args.save_folder
-            .join(&filename)
-            .with_added_extension("fdpart"),
-    )?;
-    println!("{}", fmt::format_download_info(&info, &save_path, threads));
+    let filename = sanitize(format!(
+        "{}.fdpart",
+        args.file_name.as_ref().unwrap_or(&info.raw_name)
+    ));
+    let save_path = soft_canonicalize::soft_canonicalize(args.save_folder.join(&filename))?;
+    println!(
+        "{}",
+        fmt::format_download_info(&info, &filename, &save_path, threads)
+    );
     #[allow(clippy::single_range_in_vec_init)]
     let mut download_chunks = vec![0..info.size];
     let mut resume_download = false;

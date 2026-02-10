@@ -2,12 +2,17 @@ use crate::fmt::format_size;
 use fast_down::UrlInfo;
 use std::path::Path;
 
-pub fn format_download_info(info: &UrlInfo, save_path: &Path, threads: usize) -> String {
+pub fn format_download_info(
+    info: &UrlInfo,
+    filename: &str,
+    save_path: &Path,
+    threads: usize,
+) -> String {
     let mut readable_info = format!(
         "{}",
         t!(
             "msg.url-info",
-            name = info.filename(),
+            name = filename,
             size = format_size(info.size as f64),
             size_in_bytes = info.size,
             path = save_path.display(),

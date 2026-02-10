@@ -1,6 +1,6 @@
 [package]
 name = "fast-down-cli"
-version = "2.6.3"
+version = "2.6.4"
 edition = "2024"
 license = "MIT"
 authors = ["share121 <2854631158@qq.com>"]
@@ -28,13 +28,13 @@ clap = { version = "4.5.57", features = ["derive"] }
 color-eyre = "0.6.5"
 crossterm = "0.29.0"
 dashmap = "6.1.0"
-fast-down = "3.6.3"
+fast-down = { version = "3.6.4", default-features = false, features = ["utils"] }
 # fast-down = { path = "../core/crates/fast-down/" }
 fs4 = "0.13.1"
 futures = "0.3.31"
 mimalloc = "0.1.48"
 parking_lot = "0.12.5"
-reqwest = { version = "0.13.1", default-features = false, features = [
+reqwest = { version = "0.13.2", default-features = false, features = [
   "default-tls",
   "brotli",
   "deflate",
@@ -46,6 +46,8 @@ reqwest = { version = "0.13.1", default-features = false, features = [
 ] }
 rusqlite = { version = "0.38.0", features = ["bundled"] }
 rust-i18n = "3.1.5"
+sanitize-filename = "0.6.0"
+soft-canonicalize = { version = "0.5.4", features = ["dunce"] }
 sys-locale = "0.3.2"
 tokio = { version = "1.49.0", default-features = false, features = [
   "io-std",

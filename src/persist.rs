@@ -148,8 +148,12 @@ impl Database {
         tokio::spawn(async move {
             loop {
                 tokio::time::sleep(Duration::from_secs(1)).await;
-                let conn = conn_weak.upgrade().unwrap();
-                let cache = cache_weak.upgrade().unwrap();
+                let Some(conn) = conn_weak.upgrade() else {
+                    break;
+                };
+                let Some(cache) = cache_weak.upgrade() else {
+                    break;
+                };
                 let _ =
                     tokio::task::spawn_blocking(move || Self::static_flush(&conn, &cache)).await;
             }

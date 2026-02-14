@@ -45,6 +45,7 @@ verbose:
   write-error: Write Error
   downloading: Downloading
   finished: Finished
+  pull-timeout: Pull Timeout
 
 progress:
   desc: "Time Elapsed: %{time_spent} | Speed: %{speed}/s | Time Left: %{time_left}"

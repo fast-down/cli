@@ -28,8 +28,8 @@ clap = { version = "4.5.57", features = ["derive"] }
 color-eyre = "0.6.5"
 crossterm = "0.29.0"
 dashmap = "6.1.0"
-fast-down = { version = "3.6.4", default-features = false, features = ["utils"] }
-# fast-down = { path = "../core/crates/fast-down/" }
+# fast-down = { git = "https://github.com/fast-down/core", version = "3.6.4", default-features = false, features = ["utils"] }
+fast-down = { path = "../core/crates/fast-down/" }
 fs4 = "0.13.1"
 futures = "0.3.31"
 mimalloc = "0.1.48"

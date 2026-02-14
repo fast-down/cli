@@ -58,6 +58,9 @@ struct DownloadCli {
     /// 自定义请求头 (可多次使用)
     #[arg(short = 'H', long = "header", value_name = "Key: Value")]
     headers: Vec<String>,
+    /// 最小分片大小 (单位: B)
+    #[arg(long, default_value_t = 8 * 1024 * 1024)]
+    min_chunk_size: u64,
     /// 写入缓冲区大小 (单位: B)
     #[arg(long, default_value_t = 8 * 1024 * 1024)]
     write_buffer_size: usize,
@@ -71,8 +74,11 @@ struct DownloadCli {
     #[arg(long, default_value_t = 500)]
     retry_gap: u64,
     /// 进度条重绘间隔 (单位: ms)
-    #[arg(long, default_value_t = 100)]
+    #[arg(long, default_value_t = 200)]
     repaint_gap: u64,
+    /// 拉取超时时间 (单位: ms)
+    #[arg(long, default_value_t = 5000)]
+    pull_timeout: u64,
     /// 模拟浏览器行为
     #[arg(long)]
     browser: bool,
@@ -111,11 +117,13 @@ pub struct DownloadArgs {
     pub file_name: Option<String>,
     pub proxy: String,
     pub headers: HeaderMap,
+    pub min_chunk_size: u64,
     pub write_buffer_size: usize,
     pub write_queue_cap: usize,
     pub repaint_gap: Duration,
     pub progress_width: u16,
     pub retry_gap: Duration,
+    pub pull_timeout: Duration,
     pub browser: bool,
     pub yes: bool,
     pub verbose: bool,
@@ -145,6 +153,7 @@ impl Args {
                         file_name: cli.file_name,
                         proxy: cli.proxy,
                         headers: HeaderMap::new(),
+                        min_chunk_size: cli.min_chunk_size,
                         write_buffer_size: cli.write_buffer_size,
                         write_queue_cap: cli.write_queue_cap,
                         progress_width: terminal::size()
@@ -153,6 +162,7 @@ impl Args {
                             .unwrap_or(50),
                         retry_gap: Duration::from_millis(cli.retry_gap),
                         repaint_gap: Duration::from_millis(cli.repaint_gap),
+                        pull_timeout: Duration::from_millis(cli.pull_timeout),
                         browser: cli.browser,
                         yes: cli.yes,
                         verbose: cli.verbose,

@@ -1,13 +1,9 @@
 use crate::fmt;
-use crossterm::{
-    QueueableCommand, cursor,
-    style::Print,
-    terminal::{self, ClearType},
-};
+use crossterm::{QueueableCommand, cursor, style::Print, terminal};
 use fast_down::{Merge, ProgressEntry, Total};
 use parking_lot::Mutex;
 use std::{
-    io::{self, Stderr},
+    io::{self, Stderr, Write},
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -39,9 +35,11 @@ impl Painter {
         alpha: f64,
         repaint_duration: Duration,
         start: Instant,
-    ) -> Self {
+    ) -> io::Result<Self> {
         let init_size = init_progress.total();
-        Self {
+        let mut stderr = io::stderr();
+        stderr.queue(cursor::Hide)?;
+        Ok(Self {
             progress: init_progress,
             file_size,
             width: progress_width,
@@ -53,8 +51,8 @@ impl Painter {
             avg_speed: 0.0,
             last_repaint_time: Instant::now(),
             has_progress: false,
-            stderr: io::stderr(),
-        }
+            stderr,
+        })
     }
 
     pub fn reset_progress(&mut self) {
@@ -98,9 +96,8 @@ impl Painter {
         if self.has_progress {
             self.stderr
                 .queue(cursor::MoveUp(1))?
-                .queue(terminal::Clear(ClearType::CurrentLine))?
                 .queue(cursor::MoveUp(1))?
-                .queue(terminal::Clear(ClearType::CurrentLine))?;
+                .queue(cursor::MoveToColumn(0))?;
         }
         Ok(())
     }
@@ -119,22 +116,15 @@ impl Painter {
             0.0
         };
         self.avg_speed = self.avg_speed * self.alpha + curr_speed * (1.0 - self.alpha);
-        let progress_str = if self.file_size == 0 {
+        let line1 = if self.file_size == 0 {
             format!(
-                "|{}| {:>6.2}% ({:>8}/Unknown)\n{}\n",
+                "|{}| {:>6.2}% ({:>8}/Unknown)",
                 BLOCK_CHARS[0].to_string().repeat(self.width as usize),
                 0.0,
                 fmt::format_size(self.curr_size as f64),
-                t!(
-                    "progress.desc",
-                    time_spent = fmt::format_time(self.start.elapsed().as_secs()),
-                    time_left = "Unknown",
-                    speed = fmt::format_size(self.avg_speed) : {:>8},
-                )
             )
         } else {
             let get_percent = (self.curr_size as f64 / self.file_size as f64) * 100.0;
-            let get_remaining_time = (self.file_size - self.curr_size) as f64 / self.avg_speed;
             let per_bytes = self.file_size as f64 / self.width as f64;
             let mut bar_values = vec![0u64; self.width as usize];
             let mut index = 0;
@@ -169,30 +159,50 @@ impl Painter {
                 })
                 .collect();
             format!(
-                "|{}| {:>6.2}% ({:>8}/{})\n{}\n",
+                "|{}| {:>6.2}% ({:>8}/{})",
                 bar_str,
                 get_percent,
                 fmt::format_size(self.curr_size as f64),
                 fmt::format_size(self.file_size as f64),
-                t!(
-                    "progress.desc",
-                    time_spent = fmt::format_time(self.start.elapsed().as_secs()),
-                    time_left = fmt::format_time(get_remaining_time as u64),
-                    speed = fmt::format_size(self.avg_speed) : {:>8},
-                )
             )
         };
+        let line2 = t!(
+            "progress.desc",
+            time_spent = fmt::format_time(self.start.elapsed().as_secs()),
+            time_left = if self.file_size == 0 { "Unknown".to_string() } else { fmt::format_time(((self.file_size - self.curr_size) as f64 / self.avg_speed) as u64) },
+            speed = fmt::format_size(self.avg_speed) : {:>8},
+        );
         self.reset_pos()?;
+        self.stderr.queue(Print(line1))?;
+        self.stderr
+            .queue(terminal::Clear(terminal::ClearType::UntilNewLine))?;
+        self.stderr.queue(Print("\n"))?;
+        self.stderr.queue(Print(&line2))?;
+        self.stderr
+            .queue(terminal::Clear(terminal::ClearType::UntilNewLine))?;
+        self.stderr.queue(Print("\n"))?;
+        self.stderr.flush()?;
         self.has_progress = true;
-        self.stderr.queue(Print(progress_str))?;
         Ok(())
     }
 
     pub fn print(&mut self, msg: &str) -> io::Result<()> {
         self.reset_pos()?;
-        self.stderr.queue(Print(msg))?;
+        for line in msg.lines() {
+            self.stderr.queue(Print(line))?;
+            self.stderr
+                .queue(terminal::Clear(terminal::ClearType::UntilNewLine))?;
+            self.stderr.queue(Print("\n"))?;
+        }
         self.has_progress = false;
         self.update()?;
         Ok(())
+    }
+}
+
+impl Drop for Painter {
+    fn drop(&mut self) {
+        let _ = self.stderr.queue(cursor::Show);
+        let _ = self.stderr.flush();
     }
 }

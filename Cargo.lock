@@ -623,15 +623,15 @@ checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
 [[package]]
 name = "fast-down"
 version = "3.6.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a4968fb599ff23252cc6d8cd4e2da2c934f4b6bf71b1a9c303abeb9d38bf292"
 dependencies = [
  "bytes",
  "fast-pull",
  "futures",
+ "getifaddrs",
  "httpdate",
  "parking_lot",
  "reqwest",
+ "sanitize-filename",
  "thiserror 2.0.18",
  "tokio",
  "url",
@@ -667,8 +667,6 @@ dependencies = [
 [[package]]
 name = "fast-pull"
 version = "3.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09d8454f0d1061e961584f368b8223b2b16ef406c25a879031ab236cc520e7e3"
 dependencies = [
  "bytes",
  "crossfire",
@@ -682,8 +680,6 @@ dependencies = [
 [[package]]
 name = "fast-steal"
 version = "6.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe496d4ef5cbe283f0b2a9a773ebde36fbf498635bb8bf84287f686e55ab63cf"
 dependencies = [
  "parking_lot",
  "portable-atomic",
@@ -829,6 +825,17 @@ dependencies = [
  "pin-project-lite",
  "pin-utils",
  "slab",
+]
+
+[[package]]
+name = "getifaddrs"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06f770241660efeeedb30b48ccbe0a8e6f649322148237539e71f3ccd14a4461"
+dependencies = [
+ "bitflags 2.10.0",
+ "libc",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

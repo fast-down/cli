@@ -1,5 +1,5 @@
 pub fn format_size(mut size: f64) -> String {
-    const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    const UNITS: &[&str] = &["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"];
     const LEN: usize = UNITS.len();
 
     let mut unit_index = 0;

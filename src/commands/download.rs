@@ -58,9 +58,11 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     let (info, resp) = loop {
         match client.prefetch(url.clone()).await {
             Ok(info) => break info,
-            Err(err) => eprintln!("{}: {:#?}", t!("err.url-info"), err),
+            Err((err, retry_gap)) => {
+                eprintln!("{}: {:#?}", t!("err.url-info"), err);
+                tokio::time::sleep(retry_gap.unwrap_or(args.retry_gap)).await;
+            }
         }
-        tokio::time::sleep(args.retry_gap).await;
     };
     let threads = if info.fast_download {
         args.threads.max(1)
@@ -212,8 +214,9 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 download_chunks: download_chunks.iter(),
                 retry_gap: args.retry_gap,
                 concurrent: threads,
+                pull_timeout: args.pull_timeout,
                 push_queue_cap: args.write_queue_cap,
-                min_chunk_size: 8 * 1024,
+                min_chunk_size: args.min_chunk_size,
             },
         )
     } else {
@@ -252,7 +255,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         0.9,
         args.repaint_gap,
         start,
-    )));
+    )?));
     let painter_handle = ProgressPainter::start_update_thread(painter.clone());
     while let Ok(e) = result.event_chain.recv().await {
         match e {
@@ -304,6 +307,13 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                         t!("verbose.finished")
                     ))?;
                 }
+            }
+            Event::PullTimeout(id) => {
+                painter.lock().print(&format!(
+                    "{} {}\n",
+                    t!("verbose.worker-id", id = id),
+                    t!("verbose.pull-timeout")
+                ))?;
             }
         }
     }

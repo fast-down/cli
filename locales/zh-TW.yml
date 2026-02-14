@@ -42,6 +42,7 @@ verbose:
   write-error: 寫入失敗
   downloading: 正在下載
   finished: 任務完成
+  pull-timeout: 拉取超時
 
 progress:
   desc: "已用時間: %{time_spent} | 速度: %{speed}/s | 剩餘時間: %{time_left}"

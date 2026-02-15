@@ -28,6 +28,7 @@ clap = { version = "4.5.57", features = ["derive"] }
 color-eyre = "0.6.5"
 crossterm = "0.29.0"
 dashmap = "6.1.0"
+dialoguer = "0.12.0"
 # fast-down = { git = "https://github.com/fast-down/core", version = "3.6.4", default-features = false, features = ["utils"] }
 fast-down = { path = "../core/crates/fast-down/" }
 fs4 = "0.13.1"
@@ -39,7 +40,6 @@ reqwest = { version = "0.13.2", default-features = false, features = [
   "brotli",
   "deflate",
   "gzip",
-  "http2",
   "socks",
   "system-proxy",
   "zstd",

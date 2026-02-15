@@ -3,6 +3,7 @@ err:
   database-load: Database load error
   database-version: Database version mismatch
   database-write: Database write error
+  get-ips: Unable to get available network interfaces
 msg:
   cancel: Cancelling...
   url-info: |
@@ -39,6 +40,7 @@ msg:
   lack-of-space: There is not enough space left, and another %{size} is required to download this file.
   clean: Cleaned %{count} lines of links.
   output-path: "Output path: %{path}"
+  select-ips: ↑/↓ to move, Space to select, Enter to confirm. Leave unselected to use the default network interface.
 verbose:
   worker-id: Worker %{id}
   download-error: Download Error

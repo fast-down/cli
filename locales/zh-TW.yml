@@ -3,6 +3,7 @@ err:
   database-load: 載入下載記錄失敗
   database-version: 資料庫版本不匹配
   database-write: 寫入資料庫失敗
+  get-ips: 無法獲取可用網路介面卡
 msg:
   cancel: 下載取消
   url-info: |
@@ -36,6 +37,7 @@ msg:
   lack-of-space: 剩餘空間不足, 下載此檔還需要 %{size}
   clean: 已清除 %{count} 行連結
   output-path: "輸出路徑: %{path}"
+  select-ips: ↑/↓ 鍵移動，空白鍵選擇，Enter 鍵確認，若未選擇則使用預設網路卡
 verbose:
   worker-id: 執行緒 %{id}
   download-error: 下載失敗

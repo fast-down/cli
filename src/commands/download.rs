@@ -6,6 +6,7 @@ use crate::{
     utils::{confirm::confirm, sanitize::sanitize, space::check_free_space},
 };
 use color_eyre::eyre::Result;
+use dialoguer::{MultiSelect, theme::ColorfulTheme};
 #[cfg(target_pointer_width = "64")]
 use fast_down::file::MmapFilePusher;
 use fast_down::{
@@ -15,11 +16,15 @@ use fast_down::{
     invert,
     multi::{self, download_multi},
     single::{self, download_single},
-    utils::{FastDownPuller, FastDownPullerOptions, build_client, gen_unique_path},
+    utils::{
+        FastDownPuller, FastDownPullerOptions, build_client, gen_unique_path,
+        get_available_local_ips,
+    },
 };
 use parking_lot::Mutex;
 use reqwest::header;
 use std::{
+    net::IpAddr,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -50,9 +55,10 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     }
     let client = build_client(
         &args.headers,
-        &args.proxy,
+        args.proxy.as_deref(),
         args.accept_invalid_certs,
         args.accept_invalid_hostnames,
+        None,
     )?;
     let db = Database::new().await?;
     let (info, resp) = loop {
@@ -176,15 +182,37 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         return cancel_expected();
     }
 
+    let available_ips: Arc<[IpAddr]> = match get_available_local_ips() {
+        Ok(interfaces) => {
+            let items: Vec<String> = interfaces
+                .iter()
+                .map(|interface| format!("{} - {}", interface.name, interface.ip))
+                .collect();
+            let selection = MultiSelect::with_theme(&ColorfulTheme::default())
+                .with_prompt(t!("msg.select-ips"))
+                .items(&items)
+                .interact()?;
+            let mut picked = Vec::new();
+            for index in selection {
+                picked.push(interfaces[index].ip);
+            }
+            Arc::from(picked)
+        }
+        Err(e) => {
+            eprintln!("{}: {:?}", t!("err.get-ips"), e);
+            Arc::from([])
+        }
+    };
+
     let puller = FastDownPuller::new(FastDownPullerOptions {
         url: info.final_url,
         headers: Arc::new(args.headers),
-        proxy: &args.proxy,
-        multiplexing: args.multiplexing,
+        proxy: args.proxy.as_deref(),
         accept_invalid_certs: args.accept_invalid_certs,
         accept_invalid_hostnames: args.accept_invalid_hostnames,
         file_id: info.file_id.clone(),
         resp: Some(Arc::new(Mutex::new(Some(resp)))),
+        available_ips,
     })?;
     if let Some(parent) = save_path.parent()
         && let Err(err) = fs::create_dir_all(parent).await

@@ -52,14 +52,14 @@ struct DownloadCli {
     /// 自定义文件名
     #[arg(short = 'o', long = "out")]
     file_name: Option<String>,
-    /// 代理地址 (格式: http://proxy:port 或 socks5://proxy:port)
-    #[arg(short, long, default_value = "")]
-    proxy: String,
+    /// 代理地址 (格式: http://proxy:port 或 socks5://proxy:port) 不填为使用系统代理，-p "" 为不使用代理
+    #[arg(short, long)]
+    proxy: Option<String>,
     /// 自定义请求头 (可多次使用)
     #[arg(short = 'H', long = "header", value_name = "Key: Value")]
     headers: Vec<String>,
     /// 最小分片大小 (单位: B)
-    #[arg(long, default_value_t = 8 * 1024 * 1024)]
+    #[arg(long, default_value_t = 8 * 1024)]
     min_chunk_size: u64,
     /// 写入缓冲区大小 (单位: B)
     #[arg(long, default_value_t = 8 * 1024 * 1024)]
@@ -88,9 +88,6 @@ struct DownloadCli {
     /// 详细输出
     #[arg(short, long)]
     verbose: bool,
-    /// 开启多路复用 (不推荐)
-    #[arg(long)]
-    multiplexing: bool,
     /// 允许无效证书
     #[arg(long)]
     accept_invalid_certs: bool,
@@ -115,7 +112,7 @@ pub struct DownloadArgs {
     pub save_folder: PathBuf,
     pub threads: usize,
     pub file_name: Option<String>,
-    pub proxy: String,
+    pub proxy: Option<String>,
     pub headers: HeaderMap,
     pub min_chunk_size: u64,
     pub write_buffer_size: usize,
@@ -127,7 +124,6 @@ pub struct DownloadArgs {
     pub browser: bool,
     pub yes: bool,
     pub verbose: bool,
-    pub multiplexing: bool,
     pub accept_invalid_certs: bool,
     pub accept_invalid_hostnames: bool,
 }
@@ -166,7 +162,6 @@ impl Args {
                         browser: cli.browser,
                         yes: cli.yes,
                         verbose: cli.verbose,
-                        multiplexing: cli.multiplexing,
                         accept_invalid_certs: cli.accept_invalid_certs,
                         accept_invalid_hostnames: cli.accept_invalid_hostnames,
                     };

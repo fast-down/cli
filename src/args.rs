@@ -100,6 +100,9 @@ struct DownloadCli {
     /// 自定义网卡 (可多次使用)
     #[arg(long = "ip", value_name = "网卡的 ip 地址")]
     ips: Vec<String>,
+    /// 最大投机线程数
+    #[arg(long, default_value_t = 3)]
+    max_speculative: usize,
 }
 
 #[derive(Debug)]
@@ -134,6 +137,7 @@ pub struct DownloadArgs {
     pub accept_invalid_hostnames: bool,
     pub interface: bool,
     pub ips: Vec<String>,
+    pub max_speculative: usize,
 }
 
 impl Args {
@@ -174,6 +178,7 @@ impl Args {
                         accept_invalid_hostnames: cli.accept_invalid_hostnames,
                         interface: cli.interface,
                         ips: cli.ips,
+                        max_speculative: cli.max_speculative,
                     };
                     for header in cli.headers {
                         let mut parts = header.splitn(2, ':').map(|t| t.trim());

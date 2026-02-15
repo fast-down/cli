@@ -182,7 +182,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         return cancel_expected();
     }
 
-    let available_ips: Vec<IpAddr> = if args.ips.is_empty() && args.interface {
+    let available_ips: Arc<[IpAddr]> = if args.ips.is_empty() && args.interface {
         match get_available_local_ips() {
             Ok(interfaces) => {
                 let items: Vec<String> = interfaces
@@ -197,11 +197,11 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 for index in selection {
                     picked.push(interfaces[index].ip);
                 }
-                picked
+                Arc::from(picked)
             }
             Err(e) => {
                 eprintln!("{}: {:?}", t!("err.get-ips"), e);
-                vec![]
+                Arc::from([])
             }
         }
     } else {
@@ -224,7 +224,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         accept_invalid_hostnames: args.accept_invalid_hostnames,
         file_id: info.file_id.clone(),
         resp: Some(Arc::new(Mutex::new(Some(resp)))),
-        available_ips: &available_ips,
+        available_ips,
     })?;
     if let Some(parent) = save_path.parent()
         && let Err(err) = fs::create_dir_all(parent).await
@@ -257,6 +257,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 pull_timeout: args.pull_timeout,
                 push_queue_cap: args.write_queue_cap,
                 min_chunk_size: args.min_chunk_size,
+                max_speculative: args.max_speculative,
             },
         )
     } else {

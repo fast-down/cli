@@ -38,6 +38,7 @@ msg:
   clean: 已清理 %{count} 行链接
   output-path: "输出路径: %{path}"
   select-ips: ↑/↓ 键移动，空格选择，回车确认，不选择为使用默认网卡
+  available-ips: 可用的 IP 地址
 verbose:
   worker-id: 线程 %{id}
   download-error: 下载失败

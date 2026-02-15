@@ -59,7 +59,7 @@ struct DownloadCli {
     #[arg(short = 'H', long = "header", value_name = "Key: Value")]
     headers: Vec<String>,
     /// 最小分片大小 (单位: B)
-    #[arg(long, default_value_t = 8 * 1024)]
+    #[arg(long, default_value_t = 1024 * 1024)]
     min_chunk_size: u64,
     /// 写入缓冲区大小 (单位: B)
     #[arg(long, default_value_t = 8 * 1024 * 1024)]
@@ -94,6 +94,12 @@ struct DownloadCli {
     /// 允许无效主机名
     #[arg(long)]
     accept_invalid_hostnames: bool,
+    /// 是否使用交互式界面选择网卡
+    #[arg(short, long)]
+    interface: bool,
+    /// 自定义网卡 (可多次使用)
+    #[arg(long = "ip", value_name = "网卡的 ip 地址")]
+    ips: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -126,6 +132,8 @@ pub struct DownloadArgs {
     pub verbose: bool,
     pub accept_invalid_certs: bool,
     pub accept_invalid_hostnames: bool,
+    pub interface: bool,
+    pub ips: Vec<String>,
 }
 
 impl Args {
@@ -164,6 +172,8 @@ impl Args {
                         verbose: cli.verbose,
                         accept_invalid_certs: cli.accept_invalid_certs,
                         accept_invalid_hostnames: cli.accept_invalid_hostnames,
+                        interface: cli.interface,
+                        ips: cli.ips,
                     };
                     for header in cli.headers {
                         let mut parts = header.splitn(2, ':').map(|t| t.trim());

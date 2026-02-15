@@ -41,6 +41,7 @@ msg:
   clean: Cleaned %{count} lines of links.
   output-path: "Output path: %{path}"
   select-ips: ↑/↓ to move, Space to select, Enter to confirm. Leave unselected to use the default network interface.
+  available-ips: Available IP addresses
 verbose:
   worker-id: Worker %{id}
   download-error: Download Error

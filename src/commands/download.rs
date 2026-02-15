@@ -182,27 +182,39 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         return cancel_expected();
     }
 
-    let available_ips: Arc<[IpAddr]> = match get_available_local_ips() {
-        Ok(interfaces) => {
-            let items: Vec<String> = interfaces
-                .iter()
-                .map(|interface| format!("{} - {}", interface.name, interface.ip))
-                .collect();
-            let selection = MultiSelect::with_theme(&ColorfulTheme::default())
-                .with_prompt(t!("msg.select-ips"))
-                .items(&items)
-                .interact()?;
-            let mut picked = Vec::new();
-            for index in selection {
-                picked.push(interfaces[index].ip);
+    let available_ips: Vec<IpAddr> = if args.ips.is_empty() && args.interface {
+        match get_available_local_ips() {
+            Ok(interfaces) => {
+                let items: Vec<String> = interfaces
+                    .iter()
+                    .map(|interface| format!("{} - {}", interface.name, interface.ip))
+                    .collect();
+                let selection = MultiSelect::with_theme(&ColorfulTheme::default())
+                    .with_prompt(t!("msg.select-ips"))
+                    .items(&items)
+                    .interact()?;
+                let mut picked = Vec::new();
+                for index in selection {
+                    picked.push(interfaces[index].ip);
+                }
+                picked
             }
-            Arc::from(picked)
+            Err(e) => {
+                eprintln!("{}: {:?}", t!("err.get-ips"), e);
+                vec![]
+            }
         }
-        Err(e) => {
-            eprintln!("{}: {:?}", t!("err.get-ips"), e);
-            Arc::from([])
-        }
+    } else {
+        args.ips.iter().flat_map(|s| s.parse()).collect()
     };
+    println!(
+        "{}: {:?}",
+        t!("msg.available-ips"),
+        available_ips
+            .iter()
+            .map(|a| a.to_string())
+            .collect::<Vec<_>>()
+    );
 
     let puller = FastDownPuller::new(FastDownPullerOptions {
         url: info.final_url,
@@ -212,7 +224,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         accept_invalid_hostnames: args.accept_invalid_hostnames,
         file_id: info.file_id.clone(),
         resp: Some(Arc::new(Mutex::new(Some(resp)))),
-        available_ips,
+        available_ips: &available_ips,
     })?;
     if let Some(parent) = save_path.parent()
         && let Err(err) = fs::create_dir_all(parent).await

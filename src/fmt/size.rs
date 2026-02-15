@@ -18,34 +18,34 @@ mod tests {
     fn test_format_file_size() {
         assert_eq!(format_size(0.0), "0.00 B");
         assert_eq!(format_size(1023.0), "1023.00 B");
-        assert_eq!(format_size(1024.0), "1.00 KB");
-        assert_eq!(format_size(1023.99 * 1024.0), "1023.99 KB");
-        assert_eq!(format_size(1023.99 * 1024.0 * 1024.0), "1023.99 MB");
+        assert_eq!(format_size(1024.0), "1.00 KiB");
+        assert_eq!(format_size(1023.99 * 1024.0), "1023.99 KiB");
+        assert_eq!(format_size(1023.99 * 1024.0 * 1024.0), "1023.99 MiB");
         assert_eq!(
             format_size(1023.99 * 1024.0 * 1024.0 * 1024.0),
-            "1023.99 GB"
+            "1023.99 GiB"
         );
         assert_eq!(
             format_size(1023.99 * 1024.0 * 1024.0 * 1024.0 * 1024.0),
-            "1023.99 TB"
+            "1023.99 TiB"
         );
         assert_eq!(
             format_size(1023.99 * 1024.0 * 1024.0 * 1024.0 * 1024.0 * 1024.0),
-            "1023.99 PB"
+            "1023.99 PiB"
         );
         assert_eq!(
             format_size(1023.99 * 1024.0 * 1024.0 * 1024.0 * 1024.0 * 1024.0 * 1024.0),
-            "1023.99 EB"
+            "1023.99 EiB"
         );
         assert_eq!(
             format_size(1023.99 * 1024.0 * 1024.0 * 1024.0 * 1024.0 * 1024.0 * 1024.0 * 1024.0),
-            "1023.99 ZB"
+            "1023.99 ZiB"
         );
         assert_eq!(
             format_size(
                 1023.99 * 1024.0 * 1024.0 * 1024.0 * 1024.0 * 1024.0 * 1024.0 * 1024.0 * 1024.0
             ),
-            "1023.99 YB"
+            "1023.99 YiB"
         );
         assert_eq!(
             format_size(
@@ -60,7 +60,7 @@ mod tests {
                     * 1024.0
                     * 1024.0
             ),
-            "1048565.76 YB"
+            "1048565.76 YiB"
         );
     }
 }

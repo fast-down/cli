@@ -1,6 +1,6 @@
 [package]
 name = "fast-down-cli"
-version = "2.7.1"
+version = "2.7.2"
 edition = "2024"
 license = "MIT"
 authors = ["share121 <2854631158@qq.com>"]

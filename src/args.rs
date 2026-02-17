@@ -1,8 +1,14 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use color_eyre::{Result, eyre::ContextCompat};
 use crossterm::terminal;
 use reqwest::header::{HeaderMap, HeaderName};
 use std::{path::PathBuf, str::FromStr, time::Duration};
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum WriteMethod {
+    Mmap,
+    Std,
+}
 
 /// 超级快的下载器
 #[derive(Parser, Debug)]
@@ -103,6 +109,9 @@ struct DownloadCli {
     /// 最大投机线程数
     #[arg(long, default_value_t = 3)]
     max_speculative: usize,
+    /// 写入方法 (mmap 速度快, std 兼容性好)
+    #[arg(long, default_value = "mmap")]
+    write_method: WriteMethod,
 }
 
 #[derive(Debug)]
@@ -138,6 +147,7 @@ pub struct DownloadArgs {
     pub interface: bool,
     pub ips: Vec<String>,
     pub max_speculative: usize,
+    pub write_method: WriteMethod,
 }
 
 impl Args {
@@ -179,6 +189,7 @@ impl Args {
                         interface: cli.interface,
                         ips: cli.ips,
                         max_speculative: cli.max_speculative,
+                        write_method: cli.write_method,
                     };
                     for header in cli.headers {
                         let mut parts = header.splitn(2, ':').map(|t| t.trim());

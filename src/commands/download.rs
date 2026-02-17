@@ -1,3 +1,5 @@
+#[cfg(target_pointer_width = "64")]
+use crate::args::WriteMethod;
 use crate::{
     args::DownloadArgs,
     fmt,
@@ -232,21 +234,25 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     {
         return Err(err.into());
     }
+    let get_std_pusher = async {
+        let file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .read(true)
+            .truncate(false)
+            .open(&save_path)
+            .await?;
+        let file_pusher = FilePusher::new(file, info.size, args.write_buffer_size).await?;
+        Ok::<_, color_eyre::Report>(BoxPusher::new(file_pusher))
+    };
     let result = if info.fast_download {
         #[cfg(target_pointer_width = "64")]
-        let pusher = MmapFilePusher::new(&save_path, info.size).await?;
-        #[cfg(not(target_pointer_width = "64"))]
-        let pusher = {
-            let file = OpenOptions::new()
-                .create(true)
-                .write(true)
-                .read(true)
-                .truncate(false)
-                .open(&save_path)
-                .await?;
-            FilePusher::new(file, info.size, args.write_buffer_size).await?
+        let pusher = match args.write_method {
+            WriteMethod::Mmap => BoxPusher::new(MmapFilePusher::new(&save_path, info.size).await?),
+            WriteMethod::Std => get_std_pusher.await?,
         };
-        let pusher = BoxPusher::new(pusher);
+        #[cfg(not(target_pointer_width = "64"))]
+        let pusher = get_std_pusher.await?;
         download_multi(
             puller,
             pusher,
@@ -261,14 +267,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             },
         )
     } else {
-        let file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .open(&save_path)
-            .await?;
-        let pusher = FilePusher::new(file, info.size, args.write_buffer_size).await?;
-        let pusher = BoxPusher::new(pusher);
+        let pusher = get_std_pusher.await?;
         download_single(
             puller,
             pusher,

@@ -1,6 +1,6 @@
 [package]
 name = "fast-down-cli"
-version = "2.7.2"
+version = "2.7.3"
 edition = "2024"
 license = "MIT"
 authors = ["share121 <2854631158@qq.com>"]
@@ -24,18 +24,18 @@ path = "src/main.rs"
 [dependencies]
 bitcode = "0.6.9"
 bytes = "1.11.1"
-clap = { version = "4.5.58", features = ["derive"] }
+clap = { version = "4.5.60", features = ["derive"] }
 color-eyre = "0.6.5"
 crossterm = "0.29.0"
 dashmap = "6.1.0"
 dialoguer = "0.12.0"
-fast-down = { version = "3.7.1", default-features = false, features = ["utils"] }
+fast-down = { version = "3.7.6", default-features = false, features = ["utils"] }
 # fast-down = { git = "https://github.com/fast-down/core", version = "3.6.4", default-features = false, features = [
 #   "utils"
 # ] }
 # fast-down = { path = "../core/crates/fast-down/" }
 fs4 = "0.13.1"
-futures = "0.3.31"
+futures = "0.3.32"
 mimalloc = "0.1.48"
 parking_lot = "0.12.5"
 reqwest = { version = "0.13.2", default-features = false, features = [

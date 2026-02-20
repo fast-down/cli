@@ -68,6 +68,11 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
       - name: Install NASM
         if: startsWith(matrix.build, 'windows-')
         uses: ilammy/setup-nasm@v1
@@ -75,11 +80,6 @@ jobs:
       - name: Install Cross
         if: matrix.use-cross
         uses: taiki-e/install-action@cross
-
-      - name: Rust Cache
-        uses: swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.target }}
 
       - name: Build binary
         shell: bash

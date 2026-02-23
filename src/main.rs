@@ -1,8 +1,11 @@
+#[macro_use]
+extern crate rust_i18n;
 mod args;
 mod commands;
 mod fmt;
-mod persist;
+mod model;
 mod progress;
+mod store;
 mod utils;
 
 use args::Args;
@@ -10,9 +13,6 @@ use color_eyre::Result;
 use commands::*;
 use mimalloc::MiMalloc;
 use rust_i18n::set_locale;
-
-#[macro_use]
-extern crate rust_i18n;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -36,6 +36,6 @@ async fn main() -> Result<()> {
     match args {
         Args::Download(args) => download::download(args).await,
         // Args::Update => update::update().await,
-        Args::List => list::list().await,
+        Args::List(args) => list::list(args).await,
     }
 }

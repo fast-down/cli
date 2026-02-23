@@ -55,6 +55,7 @@ progress:
 
 db-display:
   version: "Database Version"
+  db-path: "Database Path"
   file-path: "File Path"
   file-name: "File Name"
   size: "Size"

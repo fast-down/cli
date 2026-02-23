@@ -3,8 +3,8 @@ use crate::args::WriteMethod;
 use crate::{
     args::DownloadArgs,
     fmt,
-    persist::Database,
     progress::Painter as ProgressPainter,
+    store::Store,
     utils::{confirm::confirm, sanitize::sanitize, space::check_free_space},
 };
 use color_eyre::eyre::Result;
@@ -62,7 +62,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         args.accept_invalid_hostnames,
         None,
     )?;
-    let db = Database::new().await?;
+    let store = Store::new().await?;
     let (info, resp) = loop {
         match client.prefetch(url.clone()).await {
             Ok(info) => break info,
@@ -95,14 +95,14 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     if fs::try_exists(&save_path).await? {
         if args.resume
             && info.fast_download
-            && let Some(entry) = db.get_entry(&save_path)
+            && let Some(entry) = store.get_entry(&save_path)
         {
             let downloaded: u64 = entry.progress.iter().map(|(a, b)| b - a).sum();
             if downloaded < info.size {
                 write_progress.extend(entry.progress.iter().map(|(a, b)| *a..*b));
                 download_chunks = invert(write_progress.iter().cloned(), info.size, 1024).collect();
                 resume_download = true;
-                elapsed = entry.elapsed;
+                elapsed = entry.elapsed.as_millis() as u64;
                 println!("{}", t!("msg.resume-download"));
                 println!(
                     "{}",
@@ -284,7 +284,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         result_clone.abort();
     });
     if !resume_download {
-        db.init_entry(&save_path, filename, info.size, &info.file_id, url)?;
+        store.init_entry(&save_path, filename, info.size, &info.file_id, url)?;
     }
 
     let start = Instant::now() - Duration::from_millis(elapsed);
@@ -308,10 +308,10 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             }
             Event::PushProgress(_, p) => {
                 write_progress.merge_progress(p);
-                db.update_entry(
+                store.update_entry(
                     &save_path,
                     write_progress.iter().map(|r| (r.start, r.end)).collect(),
-                    start.elapsed().as_millis() as u64,
+                    start.elapsed(),
                 );
             }
             Event::PullError(id, err) => painter.lock().print(&format!(
@@ -357,10 +357,10 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             }
         }
     }
-    db.update_entry(
+    store.update_entry(
         &save_path,
         write_progress.iter().map(|r| (r.start, r.end)).collect(),
-        start.elapsed().as_millis() as u64,
+        start.elapsed(),
     );
     painter.lock().update()?;
     painter_handle.abort();
@@ -368,7 +368,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     if !result.is_aborted() {
         let output_path = gen_unique_path(save_path.with_extension("")).await?;
         fs::rename(&save_path, &output_path).await?;
-        db.remove_entry(&save_path)?;
+        store.remove_entry(&save_path)?;
         println!("{}", t!("msg.output-path", path = output_path.display()))
     }
     Ok(())

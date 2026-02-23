@@ -52,6 +52,7 @@ progress:
 
 db-display:
   version: "数据库版本"
+  db-path: "数据库路径"
   file-path: "文件路径"
   file-name: "文件名称"
   size: "文件大小"

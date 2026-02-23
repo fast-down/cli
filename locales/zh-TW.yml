@@ -52,6 +52,7 @@ progress:
 
 db-display:
   version: "資料庫版本"
+  db-path: "資料庫路徑"
   file-path: "檔案路徑"
   file-name: "檔案名稱"
   size: "檔案大小"

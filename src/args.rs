@@ -35,7 +35,7 @@ enum Commands {
     // /// 更新 fast-down
     // Update,
     /// 显示数据库
-    List,
+    List(ListCli),
 }
 
 #[derive(clap::Args, Debug)]
@@ -114,12 +114,19 @@ struct DownloadCli {
     write_method: WriteMethod,
 }
 
+#[derive(clap::Args, Debug)]
+struct ListCli {
+    /// 是否显示详细信息
+    #[arg(short, long)]
+    details: bool,
+}
+
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum Args {
     Download(DownloadArgs),
     // Update,
-    List,
+    List(ListArgs),
 }
 
 #[derive(Debug, Clone)]
@@ -148,6 +155,11 @@ pub struct DownloadArgs {
     pub ips: Vec<String>,
     pub max_speculative: usize,
     pub write_method: WriteMethod,
+}
+
+#[derive(Debug, Clone)]
+pub struct ListArgs {
+    pub details: bool,
 }
 
 impl Args {
@@ -205,7 +217,9 @@ impl Args {
                     Ok(Args::Download(args))
                 }
                 // Commands::Update => Ok(Args::Update),
-                Commands::List => Ok(Args::List),
+                Commands::List(cli) => Ok(Args::List(ListArgs {
+                    details: cli.details,
+                })),
             },
             Err(err) => err.exit(),
         }

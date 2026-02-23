@@ -6,6 +6,7 @@ use fast_down::FileId;
 use parking_lot::Mutex;
 use rusqlite::{Connection, params};
 use std::fmt::Write;
+use std::path::Path;
 use std::{env, ffi::OsStr, path::PathBuf, sync::Arc, time::Duration};
 use tokio::fs;
 use url::Url;
@@ -21,7 +22,7 @@ pub struct Store {
 }
 
 impl Store {
-    async fn setup_db(path: PathBuf) -> Result<Arc<Mutex<Connection>>> {
+    async fn setup_db(path: &Path) -> Result<Arc<Mutex<Connection>>> {
         let conn = Connection::open(path)?;
         conn.busy_timeout(Duration::from_millis(5000))?;
         conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -43,7 +44,7 @@ impl Store {
 
         let store_instance = Self {
             db_path: db_path.clone(),
-            db: Self::setup_db(db_path).await?,
+            db: Self::setup_db(db_path.as_path()).await?,
             cache: Arc::new(DashMap::new()),
         };
 

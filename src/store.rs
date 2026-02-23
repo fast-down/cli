@@ -4,7 +4,7 @@ use color_eyre::Result;
 use dashmap::DashMap;
 use fast_down::FileId;
 use parking_lot::Mutex;
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use std::fmt::Write;
 use std::{env, ffi::OsStr, path::PathBuf, sync::Arc, time::Duration};
 use tokio::fs;

@@ -4,7 +4,7 @@ use color_eyre::Result;
 use dashmap::DashMap;
 use fast_down::FileId;
 use parking_lot::Mutex;
-use rusqlite::{Connection, params};
+use rusqlite::{params, Connection};
 use std::fmt::Write;
 use std::path::Path;
 use std::{env, ffi::OsStr, path::PathBuf, sync::Arc, time::Duration};
@@ -43,9 +43,9 @@ impl Store {
             .join(format!("fd-state-v{}.db", CURRENT_DB_VERSION));
 
         let store_instance = Self {
-            db_path: db_path.clone(),
-            db: Self::setup_db(db_path.as_path()).await?,
+            db: Self::setup_db(&db_path).await?,
             cache: Arc::new(DashMap::new()),
+            db_path,
         };
 
         store_instance.clean().await?;

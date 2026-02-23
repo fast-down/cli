@@ -24,7 +24,7 @@ impl Downloading {
     }
 
     pub fn dump(&self) -> Vec<u8> {
-        let record = DownloadingRecord::from(self);
+        let record: DownloadingRecord = self.clone().into();
         bitcode::encode(&record)
     }
 
@@ -75,16 +75,16 @@ struct DownloadingRecord {
     url: String,
 }
 
-impl From<&Downloading> for DownloadingRecord {
-    fn from(downloading: &Downloading) -> Self {
+impl From<Downloading> for DownloadingRecord {
+    fn from(downloading: Downloading) -> Self {
         Self {
-            file_name: downloading.file_name.clone(),
+            file_name: downloading.file_name,
             file_size: downloading.file_size,
-            etag: downloading.etag.clone(),
-            last_modified: downloading.last_modified.clone(),
-            progress: downloading.progress.clone(),
+            etag: downloading.etag,
+            last_modified: downloading.last_modified,
+            progress: downloading.progress,
             elapsed: downloading.elapsed.as_millis() as u64,
-            url: downloading.url.clone(),
+            url: downloading.url,
         }
     }
 }

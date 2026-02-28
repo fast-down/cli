@@ -19,7 +19,7 @@ use fast_down::{
     multi::{self, download_multi},
     single::{self, download_single},
     utils::{
-        FastDownPuller, FastDownPullerOptions, build_client, gen_unique_path,
+        FastDownPuller, FastDownPullerOptions, Proxy, build_client, gen_unique_path,
         get_available_local_ips,
     },
 };
@@ -55,9 +55,14 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     if args.verbose {
         dbg!(&args);
     }
+    let proxy = match args.proxy.as_deref() {
+        Some("") => Proxy::No,
+        Some(proxy) => Proxy::Custom(proxy),
+        None => Proxy::System,
+    };
     let client = build_client(
         &args.headers,
-        args.proxy.as_deref(),
+        proxy,
         args.accept_invalid_certs,
         args.accept_invalid_hostnames,
         None,
@@ -221,7 +226,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     let puller = FastDownPuller::new(FastDownPullerOptions {
         url: info.final_url,
         headers: Arc::new(args.headers),
-        proxy: args.proxy.as_deref(),
+        proxy,
         accept_invalid_certs: args.accept_invalid_certs,
         accept_invalid_hostnames: args.accept_invalid_hostnames,
         file_id: info.file_id.clone(),

@@ -1,6 +1,6 @@
 [package]
 name = "fast-down-cli"
-version = "2.7.4"
+version = "2.7.5"
 edition = "2024"
 license = "MIT"
 authors = ["share121 <2854631158@qq.com>"]
@@ -29,7 +29,7 @@ color-eyre = "0.6.5"
 crossterm = "0.29.0"
 dashmap = "6.1.0"
 dialoguer = "0.12.0"
-fast-down = { version = "3.8.1", default-features = false, features = ["utils"] }
+fast-down = { version = "3.8.3", default-features = false, features = ["utils"] }
 # fast-down = { git = "https://github.com/fast-down/core", version = "3.6.4", default-features = false, features = [
 #   "utils"
 # ] }
@@ -53,7 +53,7 @@ rust-i18n = "3.1.5"
 sanitize-filename = "0.6.0"
 soft-canonicalize = { version = "0.5.4", features = ["dunce"] }
 sys-locale = "0.3.2"
-tokio = { version = "1.49.0", default-features = false, features = [
+tokio = { version = "1.50.0", default-features = false, features = [
   "io-std",
   "macros",
   "rt-multi-thread",

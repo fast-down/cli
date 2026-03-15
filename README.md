@@ -21,50 +21,41 @@
 
 </div>
 
-
-
-![CLI Interface](/docs/cli.png)
+![CLI Interface](https://fd.s121.top/cli.png)
 
 **[Visit Official Website](https://fd.s121.top/)**
 
 ## Features
 
-* **⚡️ Lightning-Fast Download**  
+- **⚡️ Lightning-Fast Download**  
   Built-in [fast-steal](https://github.com/fast-down/fast-steal) work-stealing algorithm, with a measured download speed
   **2.43x that of NDM**.
-* **🔄 Robust Retry**  
+- **🔄 Robust Retry**  
   During download, switching WiFi, disconnecting WiFi, or changing proxies will still guarantee **correct file content
   **.
-* **⛓️‍💥 Resumable Download**  
+- **⛓️‍💥 Resumable Download**  
   Pause **at any time** halfway, and **resume the transfer** later.
-* **⛓️‍💥 Incremental Resumption**  
+- **⛓️‍💥 Incremental Resumption**  
   If a server log is fully downloaded today and 1000 new lines are added tomorrow, this feature only transfers the **new
   1000 lines**.
-* **💰 Open-Source & Free**  
+- **💰 Open-Source & Free**  
   Full source code is public, maintained
   by [share121](https://github.com/share121), [Cyan](https://github.com/CyanChanges), and other contributors.
-* **💻 Cross-Platform**
+- **💻 Cross-Platform**
 
 ## Download
 
-| Architecture | Windows       | Linux         | Mac OS          |
-|--------------|---------------|---------------|-----------------|
-| 64-bit       | [Download][1] | [Download][2] | [Download][3]   |
+| Architecture | Windows       | Linux         | Mac OS           |
+| ------------ | ------------- | ------------- | ---------------- |
+| 64-bit       | [Download][1] | [Download][2] | [Download][3]    |
 | 32-bit       | [Download][4] | [Download][8] | ❌ Not supported |
-| Arm64        | [Download][5] | [Download][6] | [Download][7]   |
+| Arm64        | [Download][5] | [Download][6] | [Download][7]    |
 
 [1]: https://fast-down-update.s121.top/cli/download/latest/windows/64bit
-
 [2]: https://fast-down-update.s121.top/cli/download/latest/linux/64bit
-
 [3]: https://fast-down-update.s121.top/cli/download/latest/macos/64bit
-
 [4]: https://fast-down-update.s121.top/cli/download/latest/windows/32bit
-
 [5]: https://fast-down-update.s121.top/cli/download/latest/windows/arm64
-
 [6]: https://fast-down-update.s121.top/cli/download/latest/linux/arm64
-
 [7]: https://fast-down-update.s121.top/cli/download/latest/macos/arm64
-
 [8]: https://fast-down-update.s121.top/cli/download/latest/linux/32bit

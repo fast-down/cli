@@ -12,16 +12,15 @@ use dialoguer::{MultiSelect, theme::ColorfulTheme};
 #[cfg(target_pointer_width = "64")]
 use fast_down::file::MmapFilePusher;
 use fast_down::{
-    BoxPusher, Event, Merge, ProgressEntry, Total,
+    BoxPusher, Event, Merge, ProgressEntry, Proxy, Total,
+    fast_puller::{FastDownPuller, FastDownPullerOptions, build_client},
     file::FilePusher,
+    getifaddrs::get_available_local_ips,
     http::Prefetch,
     invert,
     multi::{self, download_multi},
     single::{self, download_single},
-    utils::{
-        FastDownPuller, FastDownPullerOptions, Proxy, build_client, gen_unique_path,
-        get_available_local_ips,
-    },
+    unique_path::gen_unique_path,
 };
 use parking_lot::Mutex;
 use reqwest::header;

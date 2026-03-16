@@ -47,15 +47,14 @@
 
 | Architecture | Windows       | Linux         | Mac OS           |
 | ------------ | ------------- | ------------- | ---------------- |
-| 64-bit       | [Download][1] | [Download][2] | [Download][3]    |
-| 32-bit       | [Download][4] | [Download][8] | ❌ Not supported |
-| Arm64        | [Download][5] | [Download][6] | [Download][7]    |
+| x86-64       | [Download][1] | [Download][4] | ❌ Not supported |
+| x86          | [Download][2] | [Download][5] | ❌ Not supported |
+| aarch64      | [Download][3] | [Download][6] | [Download][7]    |
 
-[1]: https://fast-down-update.s121.top/cli/download/latest/windows/64bit
-[2]: https://fast-down-update.s121.top/cli/download/latest/linux/64bit
-[3]: https://fast-down-update.s121.top/cli/download/latest/macos/64bit
-[4]: https://fast-down-update.s121.top/cli/download/latest/windows/32bit
-[5]: https://fast-down-update.s121.top/cli/download/latest/windows/arm64
-[6]: https://fast-down-update.s121.top/cli/download/latest/linux/arm64
-[7]: https://fast-down-update.s121.top/cli/download/latest/macos/arm64
-[8]: https://fast-down-update.s121.top/cli/download/latest/linux/32bit
+[1]: https://fast-down-update.s121.top/cli/download/latest/windows/x86_64
+[2]: https://fast-down-update.s121.top/cli/download/latest/windows/i686
+[3]: https://fast-down-update.s121.top/cli/download/latest/windows/aarch64
+[4]: https://fast-down-update.s121.top/cli/download/latest/linux/x86_64
+[5]: https://fast-down-update.s121.top/cli/download/latest/linux/i686
+[6]: https://fast-down-update.s121.top/cli/download/latest/linux/aarch64
+[7]: https://fast-down-update.s121.top/cli/download/latest/macos/aarch64

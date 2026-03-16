@@ -42,11 +42,11 @@
 ## 下载
 
 
-| 架构     | Windows       | Linux         | Mac OS           |
-| ------- | ------------- | ------------- | ---------------- |
-| x86-64  | [Download][1] | [Download][4] | ❌ Not supported |
-| x86     | [Download][2] | [Download][5] | ❌ Not supported |
-| aarch64 | [Download][3] | [Download][6] | [Download][7]    |
+| 架构     | Windows  | Linux    | Mac OS    |
+| ------- | -------- | --------- | -------- |
+| x86_64  | [下载][1] | [下载][4] | ❌ 不支持 |
+| x86     | [下载][2] | [下载][5] | ❌ 不支持 |
+| aarch64 | [下载][3] | [下载][6] | [下载][7] |
 
 [1]: https://fast-down-update.s121.top/cli/download/latest/windows/x86_64
 [2]: https://fast-down-update.s121.top/cli/download/latest/windows/i686

@@ -18,9 +18,11 @@ case "$ARCH" in
     *)                   echo "❌ Error: Unsupported Architecture: $ARCH"; exit 1 ;;
 esac
 
-if [ "$OS_NAME" = "macos" ] && [ "$ARCH_NAME" != "aarch64" ]; then
-    echo "❌ Error: Only supports Mac with Apple Silicon (aarch64)."
-    exit 1
+if [ "$OS_NAME" = "macos" ]; then
+    if [ "$ARCH_NAME" != "aarch64" ] && [ "$ARCH_NAME" != "x86_64" ]; then
+        echo "❌ Error: Unsupported architecture for macOS: $ARCH_NAME. Only aarch64 and x86_64 are supported."
+        exit 1
+    fi
 fi
 
 BASE_URL="https://fast-down-update.s121.top/cli/download/latest"

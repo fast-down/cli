@@ -39,12 +39,13 @@ jobs:
             target: i686-unknown-linux-musl
             use-cross: true
           - build: macos-aarch64
-            os: macos-26
+            os: macos-14
             target: aarch64-apple-darwin
             use-cross: false
           - build: macos-x86_64
-            os: macos-15
+            os: macos-14
             target: x86_64-apple-darwin
+            use-cross: false
           - build: windows-x86_64
             os: windows-2022
             target: x86_64-pc-windows-msvc

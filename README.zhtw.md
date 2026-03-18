@@ -41,17 +41,16 @@
 
 ## 下載
 
-| 架構  | Windows   | Linux     | macOS     |
-| ----- | --------- | --------- | --------- |
-| 64 元 | [下載][1] | [下載][2] | [下載][3] |
-| 32 元 | [下載][4] | [下載][8] | ❌ 不支援 |
-| Arm64 | [下載][5] | [下載][6] | [下載][7] |
+| 架構     | Windows  | Linux    | Mac OS    |
+| ------- | -------- | --------- | -------- |
+| x86_64  | [下載][1] | [下載][4] | ❌ 不支援 |
+| x86     | [下載][2] | [下載][5] | ❌ 不支援 |
+| aarch64 | [下載][3] | [下載][6] | [下載][7] |
 
-[1]: https://fast-down-update.s121.top/cli/download/latest/windows/64bit
-[2]: https://fast-down-update.s121.top/cli/download/latest/linux/64bit
-[3]: https://fast-down-update.s121.top/cli/download/latest/macos/64bit
-[4]: https://fast-down-update.s121.top/cli/download/latest/windows/32bit
-[5]: https://fast-down-update.s121.top/cli/download/latest/windows/arm64
-[6]: https://fast-down-update.s121.top/cli/download/latest/linux/arm64
-[7]: https://fast-down-update.s121.top/cli/download/latest/macos/arm64
-[8]: https://fast-down-update.s121.top/cli/download/latest/linux/32bit
+[1]: https://fast-down-update.s121.top/cli/download/latest/windows/x86_64
+[2]: https://fast-down-update.s121.top/cli/download/latest/windows/i686
+[3]: https://fast-down-update.s121.top/cli/download/latest/windows/aarch64
+[4]: https://fast-down-update.s121.top/cli/download/latest/linux/x86_64
+[5]: https://fast-down-update.s121.top/cli/download/latest/linux/i686
+[6]: https://fast-down-update.s121.top/cli/download/latest/linux/aarch64
+[7]: https://fast-down-update.s121.top/cli/download/latest/macos/aarch64

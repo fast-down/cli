@@ -41,12 +41,11 @@
 
 ## 下载
 
-
-| 架构     | Windows  | Linux    | Mac OS    |
-| ------- | -------- | --------- | -------- |
-| x86_64  | [下载][1] | [下载][4] | ❌ 不支持 |
+| 架构    | Windows   | Linux     | Mac OS    |
+| ------- | --------- | --------- | --------- |
+| x86_64  | [下载][1] | [下载][4] | [下载][7] |
 | x86     | [下载][2] | [下载][5] | ❌ 不支持 |
-| aarch64 | [下载][3] | [下载][6] | [下载][7] |
+| aarch64 | [下载][3] | [下载][6] | [下载][8] |
 
 [1]: https://fast-down-update.s121.top/cli/download/latest/windows/x86_64
 [2]: https://fast-down-update.s121.top/cli/download/latest/windows/i686
@@ -54,7 +53,8 @@
 [4]: https://fast-down-update.s121.top/cli/download/latest/linux/x86_64
 [5]: https://fast-down-update.s121.top/cli/download/latest/linux/i686
 [6]: https://fast-down-update.s121.top/cli/download/latest/linux/aarch64
-[7]: https://fast-down-update.s121.top/cli/download/latest/macos/aarch64
+[7]: https://fast-down-update.s121.top/cli/download/latest/macos/x86_64
+[8]: https://fast-down-update.s121.top/cli/download/latest/macos/aarch64
 
 ## 使用方法
 

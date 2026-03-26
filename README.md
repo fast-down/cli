@@ -1,6 +1,6 @@
 <div align="center">
 
-<img height="150px" src="https://github.com/user-attachments/assets/2dcb39f1-1109-4933-b39d-9a594aa039fb" />
+<img height="220px" src="https://github.com/user-attachments/assets/2dcb39f1-1109-4933-b39d-9a594aa039fb" />
 
 fast-down is a **High Performance Concurrent Downloader**
 

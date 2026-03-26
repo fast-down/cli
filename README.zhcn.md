@@ -19,7 +19,7 @@
 <a href="https://dc.vacu.top/"><img src="https://img.shields.io/badge/Discord-Online-5865F2.svg?logo=discord&logoColor=white" alt="Discord"></a>
 </p>
 
-**简体中文** | [繁體中文](README.zhtw.md) | [English](README.md)
+**简体中文** | [繁體中文](README.zhhant.md) | [English](README.md)
 
 </div>
 

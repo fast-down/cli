@@ -20,7 +20,7 @@ fast-down is a **High Performance Concurrent Downloader**
 <a href="https://dc.vacu.top/"><img src="https://img.shields.io/badge/Discord-Online-5865F2.svg?logo=discord&logoColor=white" alt="Discord"></a>
 </p>
 
-**English** | [简体中文](README.zhcn.md) | [繁體中文](README.zhtw.md)
+**English** | [简体中文](README.zhcn.md) | [繁體中文](README.zhhant.md)
 
 </div>
 

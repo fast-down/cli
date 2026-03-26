@@ -1,5 +1,7 @@
 <div align="center">
-<h1>fast-down: 高性能多线程下载器</h1>
+<img height="220px" src="https://github.com/user-attachments/assets/2dcb39f1-1109-4933-b39d-9a594aa039fb" />
+   
+   fast-down 是一个高性能多线程下载器
 
 <h3>极速下载 · 超强重试 · 断点续传 · 增量续传</h3>
 

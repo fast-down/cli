@@ -1,7 +1,10 @@
 <div align="center">
-<h1>fast-down: High-Performance Multi-Threaded Downloader</h1>
 
-<h3>Lightning Speed · Robust Retry · Resumable Download · Incremental Resumption</h3>
+<img height="150px" src="https://github.com/user-attachments/assets/2dcb39f1-1109-4933-b39d-9a594aa039fb" />
+
+fast-down is a **High Performance Concurrent Downloader**
+
+<h3>Ultra-Fast · Robust · Resumable · Incremental</h3>
 
 <p>
    <img src="https://img.shields.io/badge/Build with-Rust-DEA584?style=flat&logo=rust&logoColor=white" alt="Rust">

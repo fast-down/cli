@@ -1,5 +1,5 @@
 <div align="center">
-<img height="220px" src="https://github.com/user-attachments/assets/2dcb39f1-1109-4933-b39d-9a594aa039fb" />
+<img height="220px" src="https://github.com/user-attachments/assets/6da9b6ed-b4c9-4259-a9f7-d7f9a5b23d60" />
    
    fast-down 是一个高性能多线程下载器
 

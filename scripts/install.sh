@@ -1,57 +1,76 @@
 #!/bin/bash
 
-set -e
-
-OS="$(uname -s)"
+PLATFORM="$(uname -s)"
 ARCH="$(uname -m)"
+BASE_URL="https://fast-down-update.s121.top/cli/download/latest"
+INSTALL_DIR="$HOME/.local/bin"
+BIN_NAME="fd"
+DOWNLOAD_URL="${BASE_URL}/${PLATFORM}/${ARCH}"
 
-case "$OS" in
-    Linux*)  OS_NAME="linux" ;;
-    Darwin*) OS_NAME="macos" ;;
-    *)       echo "❌ Error: Unsupported OS: $OS. This script only supports Linux and macOS."; exit 1 ;;
-esac
+TMP_FILE=$(mktemp)
+trap 'rm -f "$TMP_FILE"' EXIT INT TERM
 
-case "$ARCH" in
-    x86_64|amd64)        ARCH_NAME="x86_64" ;;
-    i386|i686|x86)       ARCH_NAME="i686" ;;
-    aarch64|arm64|armv8) ARCH_NAME="aarch64" ;;
-    *)                   echo "❌ Error: Unsupported Architecture: $ARCH"; exit 1 ;;
-esac
+echo "✨ Downloading $DOWNLOAD_URL"
 
-if [ "$OS_NAME" = "macos" ]; then
-    if [ "$ARCH_NAME" != "aarch64" ] && [ "$ARCH_NAME" != "x86_64" ]; then
-        echo "❌ Error: Unsupported architecture for macOS: $ARCH_NAME. Only aarch64 and x86_64 are supported."
+if command -v wget >/dev/null 2>&1; then
+    wget -q --show-progress --content-on-error -O "$TMP_FILE" "$DOWNLOAD_URL"
+    WGET_STATUS=$?
+    if [ $WGET_STATUS -ne 0 ]; then
+        if [ -s "$TMP_FILE" ]; then
+            SERVER_MSG=$(cat "$TMP_FILE")
+            echo "❌ Error: $SERVER_MSG (Platform: $PLATFORM, Arch: $ARCH)"
+        else
+            echo "❌ Error: Network request failed (Platform: $PLATFORM, Arch: $ARCH)"
+        fi
         exit 1
     fi
-fi
-
-BASE_URL="https://fast-down-update.s121.top/cli/download/latest"
-DOWNLOAD_URL="${BASE_URL}/${OS_NAME}/${ARCH_NAME}"
-
-INSTALL_DIR="$HOME/.local/bin"
-BIN_NAME="fast-down"
-TMP_FILE=$(mktemp)
-
-# 5. Download the binary
-echo "Downloading $DOWNLOAD_URL ..."
-if command -v curl >/dev/null 2>&1; then
-    curl -# -L -o "$TMP_FILE" "$DOWNLOAD_URL"
-elif command -v wget >/dev/null 2>&1; then
-    wget -q --show-progress -O "$TMP_FILE" "$DOWNLOAD_URL"
+elif command -v curl >/dev/null 2>&1; then
+    HTTP_STATUS=$(curl -# -L -w "%{http_code}" -o "$TMP_FILE" "$DOWNLOAD_URL" || echo "CURL_ERROR")
+    if [ "$HTTP_STATUS" = "CURL_ERROR" ]; then
+        echo "❌ Error: Network request failed (Platform: $PLATFORM, Arch: $ARCH)"
+        exit 1
+    elif [ "$HTTP_STATUS" != "200" ]; then
+        SERVER_MSG=$(cat "$TMP_FILE")
+        echo "❌ Error: $SERVER_MSG (Platform: $PLATFORM, Arch: $ARCH, HTTP Status: $HTTP_STATUS)"
+        exit 1
+    fi
 else
-    echo "❌ Error: curl or wget is required to download the file."
-    rm -f "$TMP_FILE"
+    echo "❌ Error: Neither 'curl' nor 'wget' is installed"
+    echo "🔔 Please install curl or wget first, then run this script again"
     exit 1
 fi
 
-chmod +x "$TMP_FILE"
 mkdir -p "$INSTALL_DIR"
 mv "$TMP_FILE" "$INSTALL_DIR/$BIN_NAME"
-
+chmod +x "$INSTALL_DIR/$BIN_NAME"
+trap - EXIT INT TERM
 echo "🎉 Installed to $INSTALL_DIR/$BIN_NAME"
 
-if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-    echo "⚠️ Note: You may need to add $INSTALL_DIR to your PATH in your ~/.bashrc or ~/.zshrc."
-else
-    echo "🚀 You can now run '$BIN_NAME' from your terminal!"
-fi
+SHELL_RC=""
+
+case ":$PATH:" in
+    *":$INSTALL_DIR:"*)
+        echo "🔔 $INSTALL_DIR is already in your PATH"
+        ;;
+    *)
+        echo "🔧 Adding $INSTALL_DIR to User PATH"
+        if [[ "$SHELL" == *"zsh"* ]]; then
+            SHELL_RC="$HOME/.zshrc"
+        elif [[ "$SHELL" == *"bash"* ]]; then
+            if [ "$PLATFORM" = "Darwin" ]; then
+                SHELL_RC="$HOME/.bash_profile"
+            else
+                SHELL_RC="$HOME/.bashrc"
+            fi
+        else
+            SHELL_RC="$HOME/.profile"
+        fi
+
+        echo '' >> "$SHELL_RC"
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"
+
+        echo "🔔 Please restart your terminal or run 'source $SHELL_RC' for the changes to take full effect"
+        ;;
+esac
+
+echo "🚀 Installation complete! You can now run '$BIN_NAME'"

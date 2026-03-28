@@ -238,25 +238,22 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     {
         return Err(err.into());
     }
-    let get_std_pusher = async {
-        let file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .read(true)
-            .truncate(false)
-            .open(&save_path)
-            .await?;
-        let file_pusher = FilePusher::new(file, info.size, args.write_buffer_size).await?;
-        Ok::<_, color_eyre::Report>(BoxPusher::new(file_pusher))
+    let file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .read(true)
+        .truncate(false)
+        .open(&save_path)
+        .await?;
+    let pusher = if info.fast_download
+        && cfg!(target_pointer_width = "64")
+        && matches!(args.write_method, WriteMethod::Mmap)
+    {
+        BoxPusher::new(MmapFilePusher::new(file, info.size).await?)
+    } else {
+        BoxPusher::new(FilePusher::new(file, info.size, args.write_buffer_size).await?)
     };
     let result = if info.fast_download {
-        #[cfg(target_pointer_width = "64")]
-        let pusher = match args.write_method {
-            WriteMethod::Mmap => BoxPusher::new(MmapFilePusher::new(&save_path, info.size).await?),
-            WriteMethod::Std => get_std_pusher.await?,
-        };
-        #[cfg(not(target_pointer_width = "64"))]
-        let pusher = get_std_pusher.await?;
         download_multi(
             puller,
             pusher,
@@ -271,7 +268,6 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             },
         )
     } else {
-        let pusher = get_std_pusher.await?;
         download_single(
             puller,
             pusher,
@@ -301,11 +297,12 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         start,
     )?));
     let painter_handle = ProgressPainter::start_update_thread(painter.clone());
+    let mut first_flushing = true;
     while let Ok(e) = result.event_chain.recv().await {
         match e {
             Event::PullProgress(_, p) => {
                 let mut guard = painter.lock();
-                if p.start == 0 {
+                if p.start == 0 && !info.fast_download {
                     guard.reset_progress();
                 }
                 guard.add(p);
@@ -324,7 +321,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 t!("verbose.download-error"),
                 err
             ))?,
-            Event::PushError(_, err) => {
+            Event::PushError(_, _, err) => {
                 painter
                     .lock()
                     .print(&format!("{}\n{:?}\n", t!("verbose.write-error"), err))?
@@ -359,13 +356,22 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                     t!("verbose.pull-timeout")
                 ))?;
             }
+            Event::Pushing(_, _) => {}
+            Event::Flushing => {
+                painter
+                    .lock()
+                    .print(&format!("{}\n", t!("verbose.flushing")))?;
+                if first_flushing {
+                    first_flushing = false;
+                    store.update_entry(
+                        &save_path,
+                        write_progress.iter().map(|r| (r.start, r.end)).collect(),
+                        start.elapsed(),
+                    );
+                }
+            }
         }
     }
-    store.update_entry(
-        &save_path,
-        write_progress.iter().map(|r| (r.start, r.end)).collect(),
-        start.elapsed(),
-    );
     painter.lock().update()?;
     painter_handle.abort();
     result.join().await?;

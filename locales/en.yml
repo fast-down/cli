@@ -49,6 +49,7 @@ verbose:
   downloading: Downloading
   finished: Finished
   pull-timeout: Pull Timeout
+  flushing: File available. Committing to disk, do not power off.
 
 progress:
   desc: "Time Elapsed: %{time_spent} | Speed: %{speed}/s | Time Left: %{time_left}"

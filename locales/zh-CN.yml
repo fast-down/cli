@@ -46,6 +46,7 @@ verbose:
   downloading: 正在下载
   finished: 任务完成
   pull-timeout: 拉取超时
+  flushing: 文件已可用，正在刷写磁盘，请勿关机
 
 progress:
   desc: "已用时间: %{time_spent} | 速度: %{speed}/s | 剩余时间: %{time_left}"

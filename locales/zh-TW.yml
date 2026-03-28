@@ -39,6 +39,8 @@ msg:
   output-path: "輸出路徑: %{path}"
   select-ips: ↑/↓ 鍵移動，空白鍵選擇，Enter 鍵確認，若未選擇則使用預設網路卡
   available-ips: 可用的 IP 位址
+  file-allocating: "正在預分配檔案……"
+  file-allocated: "檔案已分配"
 verbose:
   worker-id: 執行緒 %{id}
   download-error: 下載失敗

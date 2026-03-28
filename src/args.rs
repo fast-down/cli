@@ -115,6 +115,9 @@ struct DownloadCli {
     /// 写入方法 (mmap 速度快, std 兼容性好)
     #[arg(long, default_value = "mmap")]
     write_method: WriteMethod,
+    /// 是否启用文件预分配
+    #[arg(long)]
+    pre_alloc: bool,
 }
 
 #[derive(clap::Args, Debug)]
@@ -159,6 +162,7 @@ pub struct DownloadArgs {
     pub ips: Vec<String>,
     pub max_speculative: usize,
     pub write_method: WriteMethod,
+    pub pre_alloc: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -207,6 +211,7 @@ impl Args {
                         ips: cli.ips,
                         max_speculative: cli.max_speculative,
                         write_method: cli.write_method,
+                        pre_alloc: cli.pre_alloc,
                     };
                     for header in cli.headers {
                         let mut parts = header.splitn(2, ':').map(|t| t.trim());

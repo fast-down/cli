@@ -22,6 +22,7 @@ use fast_down::{
     single::{self, download_single},
     unique_path::gen_unique_path,
 };
+use file_alloc::FileAlloc;
 use parking_lot::Mutex;
 use reqwest::header;
 use std::{
@@ -239,13 +240,18 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
     {
         return Err(err.into());
     }
-    let file = OpenOptions::new()
+    let mut file = OpenOptions::new()
         .create(true)
         .write(true)
         .read(true)
         .truncate(false)
         .open(&save_path)
         .await?;
+    if info.size > 0 && args.pre_alloc {
+        println!("{}", t!("msg.file-allocating"));
+        file.allocate(info.size).await?;
+        println!("{}", t!("msg.file-allocated"));
+    }
     let pusher = if info.fast_download
         && cfg!(target_pointer_width = "64")
         && matches!(args.write_method, WriteMethod::Mmap)

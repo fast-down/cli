@@ -681,6 +681,7 @@ dependencies = [
  "dashmap",
  "dialoguer",
  "fast-down",
+ "file_alloc",
  "fs4",
  "futures",
  "mimalloc",
@@ -726,6 +727,17 @@ name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
+
+[[package]]
+name = "file_alloc"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4c557211ab46e850d1e03bb3e831de58dbbe232e21141d33f5d92bc51ed933a"
+dependencies = [
+ "rustix",
+ "tokio",
+ "windows-sys 0.61.2",
+]
 
 [[package]]
 name = "find-msvc-tools"

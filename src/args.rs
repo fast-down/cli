@@ -64,6 +64,9 @@ struct DownloadCli {
     /// 自定义请求头 (可多次使用)
     #[arg(short = 'H', long = "header", value_name = "Key: Value")]
     headers: Vec<String>,
+    /// 块平滑窗口 (单位: B)
+    #[arg(long, default_value_t = 8 * 1024)]
+    chunk_window: u64,
     /// 最小分片大小 (单位: B)
     #[arg(long, default_value_t = 1024 * 1024)]
     min_chunk_size: u64,
@@ -139,6 +142,7 @@ pub struct DownloadArgs {
     pub file_name: Option<String>,
     pub proxy: Option<String>,
     pub headers: HeaderMap,
+    pub chunk_window: u64,
     pub min_chunk_size: u64,
     pub write_buffer_size: usize,
     pub write_queue_cap: usize,
@@ -183,6 +187,7 @@ impl Args {
                         file_name: cli.file_name,
                         proxy: cli.proxy,
                         headers: HeaderMap::new(),
+                        chunk_window: cli.chunk_window,
                         min_chunk_size: cli.min_chunk_size,
                         write_buffer_size: cli.write_buffer_size,
                         write_queue_cap: cli.write_queue_cap,

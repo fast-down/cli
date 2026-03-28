@@ -104,7 +104,8 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
             let downloaded: u64 = entry.progress.iter().map(|(a, b)| b - a).sum();
             if downloaded < info.size {
                 write_progress.extend(entry.progress.iter().map(|(a, b)| *a..*b));
-                download_chunks = invert(write_progress.iter().cloned(), info.size, 1024).collect();
+                download_chunks =
+                    invert(write_progress.iter().cloned(), info.size, args.chunk_window).collect();
                 resume_download = true;
                 elapsed = entry.elapsed.as_millis() as u64;
                 println!("{}", t!("msg.resume-download"));

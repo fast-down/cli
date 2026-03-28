@@ -12,7 +12,23 @@ trap 'rm -f "$TMP_FILE"' EXIT INT TERM
 
 echo "✨ Downloading $DOWNLOAD_URL"
 
-if command -v wget >/dev/null 2>&1; then
+if command -v curl >/dev/null 2>&1; then
+    HTTP_STATUS=$(curl -L# --retry 3 --retry-delay 2 -w "%{http_code}" -o "$TMP_FILE" "$DOWNLOAD_URL")
+    CURL_RET=$?
+    if [ $CURL_RET -ne 0 ]; then
+        echo "❌ Error: Curl command failed (Exit Code: $CURL_RET)"
+        exit 1
+    fi
+    if [ "$HTTP_STATUS" != "200" ]; then
+        if [ -s "$TMP_FILE" ]; then
+            SERVER_MSG=$(cat "$TMP_FILE")
+            echo "❌ Error: $SERVER_MSG (Platform: $PLATFORM, Arch: $ARCH, HTTP Status: $HTTP_STATUS)"
+        else
+            echo "❌ Error: Network request failed (Platform: $PLATFORM, Arch: $ARCH, HTTP Status: $HTTP_STATUS)"
+        fi
+        exit 1
+    fi
+elif command -v wget >/dev/null 2>&1; then
     wget -q --show-progress --content-on-error -O "$TMP_FILE" "$DOWNLOAD_URL"
     WGET_STATUS=$?
     if [ $WGET_STATUS -ne 0 ]; then
@@ -22,16 +38,6 @@ if command -v wget >/dev/null 2>&1; then
         else
             echo "❌ Error: Network request failed (Platform: $PLATFORM, Arch: $ARCH)"
         fi
-        exit 1
-    fi
-elif command -v curl >/dev/null 2>&1; then
-    HTTP_STATUS=$(curl -# -L -w "%{http_code}" -o "$TMP_FILE" "$DOWNLOAD_URL" || echo "CURL_ERROR")
-    if [ "$HTTP_STATUS" = "CURL_ERROR" ]; then
-        echo "❌ Error: Network request failed (Platform: $PLATFORM, Arch: $ARCH)"
-        exit 1
-    elif [ "$HTTP_STATUS" != "200" ]; then
-        SERVER_MSG=$(cat "$TMP_FILE")
-        echo "❌ Error: $SERVER_MSG (Platform: $PLATFORM, Arch: $ARCH, HTTP Status: $HTTP_STATUS)"
         exit 1
     fi
 else

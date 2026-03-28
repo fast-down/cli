@@ -43,7 +43,29 @@
   by [share121](https://github.com/share121), [Cyan](https://github.com/CyanChanges), and other contributors.
 - **💻 Cross-Platform**
 
-## Download
+## Quick Install
+
+### Linux & macOS
+
+using curl:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fast-down/cli/refs/heads/main/scripts/install.sh | bash
+```
+
+Or using wget:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/fast-down/cli/refs/heads/main/scripts/install.sh | bash
+```
+
+### Windows
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/fast-down/cli/refs/heads/main/scripts/install.ps1 | iex"
+```
+
+## Manual Download
 
 | Architecture | Windows       | Linux         | Mac OS           |
 | ------------ | ------------- | ------------- | ---------------- |

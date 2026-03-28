@@ -39,7 +39,29 @@
   所有程式碼完全公開，由 [share121](https://github.com/share121)、[Cyan](https://github.com/CyanChanges) 及其他貢獻者共同維護
 - **💻 跨平台支援**
 
-## 下載
+## 快速安装
+
+### Linux & macOS
+
+使用 curl:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fast-down/cli/refs/heads/main/scripts/install.sh | bash
+```
+
+或使用 wget:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/fast-down/cli/refs/heads/main/scripts/install.sh | bash
+```
+
+### Windows
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/fast-down/cli/refs/heads/main/scripts/install.ps1 | iex"
+```
+
+## 手動下載
 
 | 架構    | Windows   | Linux     | Mac OS    |
 | ------- | --------- | --------- | --------- |

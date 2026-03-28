@@ -23,7 +23,7 @@ jobs:
           - macos-aarch64
           - macos-x86_64 # deprecated
           - windows-x86_64
-          - windows-x86
+          - windows-i686
           - windows-aarch64
         include:
           - build: linux-aarch64
@@ -50,7 +50,7 @@ jobs:
             os: windows-2022
             target: x86_64-pc-windows-msvc
             use-cross: false
-          - build: windows-x86
+          - build: windows-i686
             os: windows-2022
             target: i686-pc-windows-msvc
             use-cross: false

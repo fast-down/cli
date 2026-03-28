@@ -1,4 +1,3 @@
-#[cfg(target_pointer_width = "64")]
 use crate::args::WriteMethod;
 use crate::{
     args::DownloadArgs,
@@ -9,7 +8,6 @@ use crate::{
 };
 use color_eyre::eyre::Result;
 use dialoguer::{MultiSelect, theme::ColorfulTheme};
-#[cfg(target_pointer_width = "64")]
 use fast_down::file::MmapFilePusher;
 use fast_down::{
     BoxPusher, Event, Merge, ProgressEntry, Proxy, Total,

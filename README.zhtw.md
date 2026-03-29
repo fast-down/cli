@@ -46,19 +46,19 @@
 使用 curl:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/fast-down/cli/refs/heads/main/scripts/install.sh | bash
+curl -fsSL https://fd.s121.top/update/cli/install.sh | bash
 ```
 
 或使用 wget:
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/fast-down/cli/refs/heads/main/scripts/install.sh | bash
+wget -qO- https://fd.s121.top/update/cli/install.sh | bash
 ```
 
 ### Windows
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/fast-down/cli/refs/heads/main/scripts/install.ps1 | iex"
+powershell -ExecutionPolicy ByPass -c "irm https://fd.s121.top/update/cli/install.ps1 | iex"
 ```
 
 ## 手動下載

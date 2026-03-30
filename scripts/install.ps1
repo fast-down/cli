@@ -14,7 +14,10 @@ try
 } catch
 {
     Write-Host "❌ Error: Failed to download the file: $_"
-    Remove-Item -Path $TMP_FILE
+    if (Test-Path $TMP_FILE)
+    {
+        Remove-Item -Path $TMP_FILE
+    }
     exit 1
 }
 

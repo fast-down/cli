@@ -36,7 +36,7 @@
 - **⛓️‍💥 增量续传**  
   服务器日志今天下载完成，明天又多了 1000 行，增量续传功能实现**只传输新增的 1000 行**
 - **💰 开源免费**  
-  所有代码全部公开，由 [share121](https://github.com/share121)、[Cyan](https://github.com/CyanChanges) 与其他贡献者一起维护
+  所有代码全部公开，由 [share121](https://github.com/share121)、[lfcypo](https://github.com/lfcypo) 与其他贡献者一起维护
 - **💻 跨平台**
 
 ## 快速安装

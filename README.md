@@ -40,7 +40,7 @@
   1000 lines**.
 - **💰 Open-Source & Free**  
   Full source code is public, maintained
-  by [share121](https://github.com/share121), [Cyan](https://github.com/CyanChanges), and other contributors.
+  by [share121](https://github.com/share121), [lfcypo](https://github.com/lfcypo), and other contributors.
 - **💻 Cross-Platform**
 
 ## Quick Install

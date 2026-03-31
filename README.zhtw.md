@@ -36,7 +36,7 @@
 - **⛓️‍💥 增量續傳**  
   伺服器日誌今日下載完成後，明日若新增 1000 行，透過增量續傳功能僅需**傳輸新增的 1000 行**
 - **💰 開源免費**  
-  所有程式碼完全公開，由 [share121](https://github.com/share121)、[Cyan](https://github.com/CyanChanges) 及其他貢獻者共同維護
+  所有程式碼完全公開，由 [share121](https://github.com/share121)、[lfcypo](https://github.com/lfcypo) 及其他貢獻者共同維護
 - **💻 跨平台支援**
 
 ## 快速安装

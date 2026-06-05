@@ -102,6 +102,7 @@ impl Painter {
         Ok(())
     }
 
+    #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     pub fn update(&mut self) -> io::Result<()> {
         if self.width == 0 {
             return Ok(());
@@ -110,12 +111,13 @@ impl Painter {
         self.last_repaint_time = Instant::now();
         let curr_dsize = self.curr_size - self.prev_size;
         self.prev_size = self.curr_size;
+        #[allow(clippy::cast_precision_loss)]
         let curr_speed = if repaint_elapsed > 0 {
             (curr_dsize * 1000) as f64 / repaint_elapsed as f64
         } else {
             0.0
         };
-        self.avg_speed = self.avg_speed * self.alpha + curr_speed * (1.0 - self.alpha);
+        self.avg_speed = self.avg_speed.mul_add(self.alpha, curr_speed * (1.0 - self.alpha));
         let line1 = if self.file_size == 0 {
             format!(
                 "|{}| {:>6.2}% ({:>8}/Unknown)",
@@ -125,11 +127,11 @@ impl Painter {
             )
         } else {
             let get_percent = (self.curr_size as f64 / self.file_size as f64) * 100.0;
-            let per_bytes = self.file_size as f64 / self.width as f64;
+            let per_bytes = self.file_size as f64 / f64::from(self.width);
             let mut bar_values = vec![0u64; self.width as usize];
             let mut index = 0;
             for i in 0..self.width {
-                let start_byte = i as f64 * per_bytes;
+                let start_byte = f64::from(i) * per_bytes;
                 let end_byte = (start_byte + per_bytes) as u64;
                 let start_byte = start_byte as u64;
                 let mut block_total = 0;

@@ -36,6 +36,6 @@ mod tests {
         assert_eq!(format_time(86400), "1d 00:00:00");
         assert_eq!(format_time(86401), "1d 00:00:01");
         assert_eq!(format_time(95400), "1d 02:30:00");
-        assert_eq!(format_time(8726399), "100d 23:59:59");
+        assert_eq!(format_time(8_726_399), "100d 23:59:59");
     }
 }

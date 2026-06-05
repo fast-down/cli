@@ -2,6 +2,7 @@ use crate::fmt::format_size;
 use fast_down::UrlInfo;
 use std::path::Path;
 
+#[allow(clippy::cast_precision_loss)]
 pub fn format_download_info(
     info: &UrlInfo,
     filename: &str,

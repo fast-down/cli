@@ -39,6 +39,7 @@ enum Commands {
 }
 
 #[derive(clap::Args, Debug)]
+#[allow(clippy::struct_excessive_bools)]
 struct DownloadCli {
     /// 要下载的URL
     #[arg(required = true)]
@@ -142,6 +143,7 @@ pub enum Args {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct DownloadArgs {
     pub url: String,
     pub force: bool,
@@ -179,7 +181,7 @@ pub struct ListArgs {
 }
 
 impl Args {
-    pub fn parse() -> Result<Args> {
+    pub fn parse() -> Result<Self> {
         match Cli::try_parse().or_else(|err| match err.kind() {
             clap::error::ErrorKind::InvalidSubcommand | clap::error::ErrorKind::UnknownArgument => {
                 CliDefault::try_parse().map(|cli_default| Cli {
@@ -224,7 +226,7 @@ impl Args {
                         cookie_store: cli.cookie_store,
                     };
                     for header in cli.headers {
-                        let mut parts = header.splitn(2, ':').map(|t| t.trim());
+                        let mut parts = header.splitn(2, ':').map(str::trim);
                         let name = parts
                             .next()
                             .with_context(|| format!("请求头格式错误: {header}"))?;
@@ -234,10 +236,10 @@ impl Args {
                         args.headers
                             .insert(HeaderName::from_str(name)?, value.parse()?);
                     }
-                    Ok(Args::Download(args))
+                    Ok(Self::Download(args))
                 }
                 // Commands::Update => Ok(Args::Update),
-                Commands::List(cli) => Ok(Args::List(ListArgs {
+                Commands::List(cli) => Ok(Self::List(ListArgs {
                     details: cli.details,
                 })),
             },

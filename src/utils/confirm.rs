@@ -2,16 +2,10 @@ use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 #[inline]
 pub async fn confirm(yes: bool, prompt: &str, default: bool) -> io::Result<bool> {
-    fn get_text(value: bool) -> u8 {
-        match value {
-            true => b'Y',
-            false => b'N',
-        }
+    const fn get_text(value: bool) -> u8 {
+        if value { b'Y' } else { b'N' }
     }
-    let text = match default {
-        true => b"(Y/n) ",
-        false => b"(y/N) ",
-    };
+    let text = if default { b"(Y/n) " } else { b"(y/N) " };
     let mut stderr = io::stderr();
     stderr.write_all(prompt.as_bytes()).await?;
     stderr.write_all(text).await?;

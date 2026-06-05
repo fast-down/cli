@@ -31,11 +31,14 @@ use tokio::fs::{self, OpenOptions};
 use url::Url;
 
 #[inline]
+#[allow(clippy::unnecessary_wraps)]
 fn cancel_expected() -> Result<()> {
     eprintln!("{}", t!("msg.cancel"));
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
+#[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss, clippy::cast_sign_loss)]
 pub async fn download(mut args: DownloadArgs) -> Result<()> {
     let url = Url::parse(&args.url)?;
     if args.browser {
@@ -222,7 +225,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         t!("msg.available-ips"),
         available_ips
             .iter()
-            .map(|a| a.to_string())
+            .map(ToString::to_string)
             .collect::<Vec<_>>()
     );
 
@@ -305,10 +308,10 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         result_clone.abort();
     });
     if !resume_download {
-        store.init_entry(&save_path, filename, info.size, &info.file_id, url)?;
+        store.init_entry(&save_path, filename, info.size, &info.file_id, &url)?;
     }
 
-    let start = Instant::now() - Duration::from_millis(elapsed);
+    let start = Instant::now().checked_sub(Duration::from_millis(elapsed)).unwrap_or_else(Instant::now);
     let painter = Arc::new(Mutex::new(ProgressPainter::new(
         write_progress.clone(),
         info.size,
@@ -342,15 +345,10 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
                 t!("verbose.download-error"),
                 err
             ))?,
-            Event::PushError(_, _, err) => {
+            Event::PushError(_, _, err) | Event::FlushError(err) => {
                 painter
                     .lock()
-                    .print(&format!("{}\n{:?}\n", t!("verbose.write-error"), err))?
-            }
-            Event::FlushError(err) => {
-                painter
-                    .lock()
-                    .print(&format!("{}\n{:?}\n", t!("verbose.write-error"), err))?
+                    .print(&format!("{}\n{:?}\n", t!("verbose.write-error"), err))?;
             }
             Event::Pulling(id) => {
                 if args.verbose {
@@ -400,7 +398,7 @@ pub async fn download(mut args: DownloadArgs) -> Result<()> {
         let output_path = gen_unique_path(save_path.with_extension("")).await?;
         fs::rename(&save_path, &output_path).await?;
         store.remove_entry(&save_path)?;
-        println!("{}", t!("msg.output-path", path = output_path.display()))
+        println!("{}", t!("msg.output-path", path = output_path.display()));
     }
     Ok(())
 }

@@ -75,9 +75,9 @@ lto = true
 panic = "abort"
 codegen-units = 1
 
-# [lints.clippy]
-# all = { level = "deny", priority = -1 }
-# cargo = { level = "deny", priority = -1 }
-# multiple_crate_versions = "allow"
-# nursery = { level = "deny", priority = -1 }
-# pedantic = { level = "deny", priority = -1 }
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+cargo = { level = "deny", priority = -1 }
+multiple_crate_versions = "allow"
+nursery = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }

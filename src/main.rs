@@ -10,7 +10,7 @@ mod utils;
 
 use args::Args;
 use color_eyre::Result;
-use commands::*;
+use commands::{download, list};
 use mimalloc::MiMalloc;
 use rust_i18n::set_locale;
 

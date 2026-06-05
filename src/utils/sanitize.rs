@@ -1,4 +1,5 @@
 pub fn sanitize(filename: impl AsRef<str>) -> String {
+    const MAX_BYTES: usize = 255;
     let filename = filename.as_ref();
     let options = sanitize_filename::Options {
         windows: cfg!(windows),
@@ -7,6 +8,7 @@ pub fn sanitize(filename: impl AsRef<str>) -> String {
     };
     let cleaned = sanitize_filename::sanitize_with_options(filename, options);
 
+    #[allow(clippy::option_if_let_else)]
     let (base, ext) = if cleaned.ends_with(".fdpart") {
         let without_fdpart = &cleaned[..cleaned.len() - 7];
         if let Some(pos) = without_fdpart.rfind('.') {
@@ -32,11 +34,10 @@ pub fn sanitize(filename: impl AsRef<str>) -> String {
         (&cleaned[..], "")
     };
 
-    const MAX_BYTES: usize = 255;
     let ext_bytes = ext.len();
     let max_base_bytes = MAX_BYTES.saturating_sub(ext_bytes);
     let final_base = truncate_to_bytes(base, max_base_bytes);
-    format!("{}{}", final_base, ext)
+    format!("{final_base}{ext}")
 }
 
 fn truncate_to_bytes(s: &str, max_bytes: usize) -> &str {
@@ -59,7 +60,7 @@ mod tests {
         // 文件名：file_stem.ext.fdpart <- 注意 fdpart 是我的程序的特殊后缀表示未下完的文件
         // 测试长文件名保留后缀（当 ext 较短时优先截断 file_stem）
         let long_stem = "这是一个非常".repeat(50);
-        let long_name = format!("{}.mp4.fdpart", long_stem);
+        let long_name = format!("{long_stem}.mp4.fdpart");
         let result = sanitize(&long_name);
         assert!(result.ends_with(".mp4.fdpart"));
         assert!(result.len() <= 255);
@@ -68,16 +69,16 @@ mod tests {
         // 文件名：file_stem.ext
         // 测试长文件名保留后缀（当 ext 较短时优先截断 file_stem）
         let long_stem = "这是一个非常".repeat(50);
-        let long_name = format!("{}.mp4", long_stem);
+        let long_name = format!("{long_stem}.mp4");
         let result = sanitize(&long_name);
-        assert!(result.ends_with(".mp4"));
+        assert!(result.to_ascii_lowercase().ends_with(".mp4"));
         assert!(result.len() <= 255);
         assert!(result.len() >= 252);
 
         // 文件名：file_stem.ext
         // 测试非常长的后缀名（当 ext 过长时，可能他并没有扩展名，类似“1.这是第一个标题”，显然“这是第一个标题”不是文件后缀名，因此 file_stem.ext 当成整个文件名截断
         let long_stem = "这是一个非常".repeat(50);
-        let long_name = format!("1.{}", long_stem);
+        let long_name = format!("1.{long_stem}");
         let result = sanitize(&long_name);
         assert!(result.len() <= 255);
         assert!(result.len() >= 252);
@@ -85,7 +86,7 @@ mod tests {
         // 文件名：file_stem.ext.fdpart
         // 测试非常长的后缀名（当 ext 过长时，可能他并没有扩展名，因此 file_stem.ext 当成整个文件名截断
         let long_stem = "这是一个非常".repeat(50);
-        let long_name = format!("1.{}.fdpart", long_stem);
+        let long_name = format!("1.{long_stem}.fdpart");
         let result = sanitize(&long_name);
         assert!(result.ends_with(".fdpart"));
         assert!(result.len() <= 255);

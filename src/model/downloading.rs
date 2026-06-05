@@ -6,7 +6,7 @@ use std::time::Duration;
 /// 对Progress进行可视化输出的时候每行最多显示个数
 const DISPLAY_PROGRESS_IN_PER_LINE: usize = 3;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Downloading {
     pub url: String,
     pub file_name: String,
@@ -29,6 +29,7 @@ impl Downloading {
     }
 
     #[rustfmt::skip]
+    #[allow(clippy::cast_precision_loss)]
     pub fn display(&self, with_details: bool) -> Result<String, std::fmt::Error> {
         let mut content = String::new();
         writeln!(&mut content, "{}: {}", t!("db-display.file-name"), self.file_name)?;
@@ -76,6 +77,7 @@ struct DownloadingRecord {
 }
 
 impl From<Downloading> for DownloadingRecord {
+    #[allow(clippy::cast_possible_truncation)]
     fn from(downloading: Downloading) -> Self {
         Self {
             file_name: downloading.file_name,

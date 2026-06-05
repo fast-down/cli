@@ -5,8 +5,10 @@ use dashmap::DashMap;
 use fast_down::FileId;
 use parking_lot::Mutex;
 use rusqlite::{Connection, params};
+use std::borrow::ToOwned;
 use std::fmt::Write;
 use std::path::Path;
+use std::string::ToString;
 use std::{env, ffi::OsStr, path::PathBuf, sync::Arc, time::Duration};
 use tokio::fs;
 use url::Url;
@@ -17,12 +19,12 @@ const CURRENT_DB_VERSION: u32 = 2;
 pub struct Store {
     db: Arc<Mutex<Connection>>,
     db_path: PathBuf,
-    /// file_path: record
+    /// `file_path`: record
     cache: Arc<DashMap<String, (bool, Downloading)>>,
 }
 
 impl Store {
-    async fn setup_db(path: &Path) -> Result<Arc<Mutex<Connection>>> {
+    fn setup_db(path: &Path) -> Result<Arc<Mutex<Connection>>> {
         let conn = Connection::open(path)?;
         conn.busy_timeout(Duration::from_millis(5000))?;
         conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -38,12 +40,12 @@ impl Store {
     pub async fn new() -> Result<Self> {
         let db_path = env::current_exe()
             .ok()
-            .and_then(|path| path.parent().map(|p| p.to_owned()))
-            .unwrap_or(PathBuf::from("."))
-            .join(format!("fd-state-v{}.db", CURRENT_DB_VERSION));
+            .and_then(|path| path.parent().map(ToOwned::to_owned))
+            .unwrap_or_default()
+            .join(format!("fd-state-v{CURRENT_DB_VERSION}.db"));
 
         let store_instance = Self {
-            db: Self::setup_db(&db_path).await?,
+            db: Self::setup_db(&db_path)?,
             cache: Arc::new(DashMap::new()),
             db_path,
         };
@@ -71,6 +73,7 @@ impl Store {
         Ok(store_instance)
     }
 
+    #[allow(clippy::significant_drop_tightening)]
     pub async fn clean(&self) -> Result<()> {
         let mut paths_to_delete = Vec::new();
         let paths: Vec<String> = {
@@ -103,24 +106,25 @@ impl Store {
                 }
             }
             tx.commit()?;
-        };
+        }
         Ok(())
     }
 
+    #[allow(clippy::significant_drop_tightening)]
     pub fn init_entry(
         &self,
         file_path: impl AsRef<OsStr>,
         file_name: String,
         file_size: u64,
         file_id: &FileId,
-        url: Url,
+        url: &Url,
     ) -> Result<()> {
         let path_str = file_path.as_ref().to_string_lossy().to_string();
         let entry = Downloading {
             file_name,
             file_size,
-            etag: file_id.etag.as_ref().map(|s| s.to_string()),
-            last_modified: file_id.last_modified.as_ref().map(|s| s.to_string()),
+            etag: file_id.etag.as_ref().map(ToString::to_string),
+            last_modified: file_id.last_modified.as_ref().map(ToString::to_string),
             url: url.to_string(),
             progress: Vec::new(),
             elapsed: Duration::ZERO,
@@ -135,6 +139,7 @@ impl Store {
         Ok(())
     }
 
+    #[allow(clippy::significant_drop_tightening)]
     pub fn get_all_entry(&self) -> Option<DashMap<String, Downloading>> {
         let entries = DashMap::new();
         let db = self.db.lock();
@@ -157,6 +162,7 @@ impl Store {
         Some(entries)
     }
 
+    #[allow(clippy::significant_drop_tightening)]
     pub fn get_entry(&self, file_path: impl AsRef<OsStr>) -> Option<Downloading> {
         let path_str = file_path.as_ref().to_string_lossy();
         if let Some(e) = self.cache.get(path_str.as_ref()) {
@@ -194,6 +200,7 @@ impl Store {
         }
     }
 
+    #[allow(clippy::significant_drop_tightening)]
     pub fn remove_entry(&self, file_path: impl AsRef<OsStr>) -> Result<()> {
         let path_str = file_path.as_ref().to_string_lossy();
         self.cache.remove(path_str.as_ref());
@@ -205,6 +212,7 @@ impl Store {
         Ok(())
     }
 
+    #[allow(clippy::significant_drop_tightening)]
     fn static_flush(
         conn: &Mutex<Connection>,
         cache: &DashMap<String, (bool, Downloading)>,
@@ -257,7 +265,7 @@ impl Store {
             return Ok(content);
         };
 
-        for ref_multi in entries.iter() {
+        for ref_multi in &entries {
             let path: &String = ref_multi.key();
             let entry: &Downloading = ref_multi.value();
 
@@ -266,7 +274,7 @@ impl Store {
 
             let downloading_display = entry.display(with_details)?;
             let downloading_display = add_prefix_to_lines(&downloading_display, "| ");
-            writeln!(&mut content, "{}", downloading_display)?;
+            writeln!(&mut content, "{downloading_display}")?;
 
             writeln!(&mut content, "----------------------")?;
         }
